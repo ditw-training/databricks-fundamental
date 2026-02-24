@@ -1,0 +1,16 @@
+customer_id,first_name,last_name,email,phone,city,state,country,registration_date,customer_segment
+CUST000001,Jesse,Hoffman,jesse.hoffman@interia.pl,+48 694 026 542,Seattle,SE,USA,2025-10-16,Basic
+CUST000002,Paweł,James,pawel.james@gmail.com,+48 32 078 16 18,Florida,FL,USA,2025-07-15,Premium
+CUST000003,Aurelia,Bush-Marudo,aurelia.Bush.Marudo@hotmail.com,001-341-431-6475x25534,New Jersey,NJ,USA,2024-03-15,Basic
+CUST000004,Jeremi,Cohen,jeremi.cohen@gmail.com,564-613-953,Austin,CA,USA,2025-09-03,Basic
+CUST000005,Olgierd,Osborn,olgierd.osborn@hotmail.com,530 122 691,Washington,WA,USA,2024-08-21,Premium
+CUST000008,Amber,George,amber.george@gmail.pl,(443)903-9117x182,,NJ,USA,2024-05-28,Standard
+CUST000007,Bruno,Marquez,bruno.marquez.2@hotmail.com,+48 538 713 315,Austin,MI,USA,2025-01-20,Premium
+CUST000009,Brianna,Jones,brianna.jones@gmail.com,231 323 233,Texas,TX,USA,2025-06-12,Basic
+CUST000010,Rafał,Davis,rafał.davis@gmail.com,+48 517 010 651,Illinois,IL,USA,2024-04-05,Premium
+CUST010011,Robert,Bieniek,Robert.Bieniek@onet.pl,690 850 876,Krakow,Slaskie,Poland,2024-01-26,Premium
+CUST010012,Karol,Lotek,Karol.Lotek@onet.pl,903 624 343,Austin,CA,USA,2024-01-26,Premium
+CUST010013,Adriana,Endurso,robAdrianaert.Endurso@onet.pl,690 850 876,Pennsylvania,CA,USA,2024-01-26,Premium
+CUST010014,Zbyszek,Zbigniew,Zbyszek.Zbigniew@onet.pl,315 850 876,Texas,TX,USA,2024-01-26,Standard
+CUST010015,Arnold,Brozek,Arnold.Brozek@onet.pl,538 850 876,Austin,CA,USA,2024-01-26,Premium
+

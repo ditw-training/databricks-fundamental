@@ -1,0 +1,56 @@
+# ── Trainer-only source files (not distributed to participants) ───────────────
+# Training plan, quiz sources, cheatsheet sources — local reference only
+utilization/
+_old/
+scripts/
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv/
+venv/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Databricks
+.databricks/
+*.dbc
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.DS_Store
+
+# ── Large binary installers (never belong in repo) ────────────────────────────
+*.pkg
+*.dmg
+*.exe
+*.zip

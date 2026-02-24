@@ -1,0 +1,144 @@
+# Databricks Asset Bundle (DAB) — Training Template
+# Reference: https://docs.databricks.com/dev-tools/bundles/index.html
+#
+# USAGE:
+#   databricks bundle validate         # dry-run — check syntax
+#   databricks bundle deploy           # deploy to current target
+#   databricks bundle deploy -t dev    # explicit environment
+#   databricks bundle run <job_name>   # trigger a job
+#   databricks bundle destroy          # tear down all resources
+#
+# File structure expected alongside this file:
+#   src/               Python wheel / source code
+#   notebooks/         Databricks notebooks (*.ipynb or *.py)
+#   resources/         job/*.yml, pipeline/*.yml definitions
+#   tests/             pytest-based unit tests
+
+bundle:
+  name: de-training-bundle                  # logical name — change per project
+
+# ─── Variable Definitions ────────────────────────────────────────────────────
+variables:
+  catalog:
+    description: Unity Catalog name
+    default: training
+  schema_suffix:
+    description: Schema name suffix (e.g. dev / prod)
+    default: dev
+  cluster_policy_id:
+    description: Cluster policy ID (leave empty to use default)
+    default: ""
+
+# ─── Artifacts ───────────────────────────────────────────────────────────────
+# Uncomment if the bundle includes a Python wheel package
+# artifacts:
+#   training_utils:
+#     type: whl
+#     path: ./src
+#     build: pip install --upgrade build && python -m build
+
+# ─── Resources ───────────────────────────────────────────────────────────────
+resources:
+
+  # ── Lakeflow Pipeline (formerly Delta Live Tables) ──────────────────────
+  pipelines:
+    de_training_pipeline:
+      name: "[${bundle.target}] DE Training — Medallion Pipeline"
+      catalog: ${var.catalog}
+      target: medallion_${var.schema_suffix}
+      continuous: false
+      development: ${bundle.target == 'dev'}
+      photon: false
+      channel: CURRENT                        # or PREVIEW
+      libraries:
+        - notebook:
+            path: ./notebooks/modules/M09_medallion_lakeflow.ipynb
+        # - notebook:
+        #     path: ./notebooks/modules/M06_incremental_autoloader.ipynb
+
+  # ── Lakeflow Job (formerly Databricks Jobs) ─────────────────────────────
+  jobs:
+    de_training_orchestration_job:
+      name: "[${bundle.target}] DE Training — Orchestration Demo"
+      # email_notifications:
+      #   on_failure: ["trainer@example.com"]
+
+      # Cluster shared across all tasks (job cluster)
+      job_clusters:
+        - job_cluster_key: default_cluster
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"   # DBR LTS
+            node_type_id: Standard_DS3_v2        # change for your cloud
+            num_workers: 1
+            spark_conf:
+              spark.databricks.io.cache.enabled: "true"
+            data_security_mode: SINGLE_USER
+
+      tasks:
+        - task_key: validate
+          job_cluster_key: default_cluster
+          notebook_task:
+            notebook_path: ./notebooks/labs/job/task_01_validate.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema_suffix: ${var.schema_suffix}
+
+        - task_key: transform
+          depends_on: [{task_key: validate}]
+          job_cluster_key: default_cluster
+          notebook_task:
+            notebook_path: ./notebooks/labs/job/task_02_transform.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema_suffix: ${var.schema_suffix}
+
+        - task_key: report
+          depends_on: [{task_key: transform}]
+          job_cluster_key: default_cluster
+          notebook_task:
+            notebook_path: ./notebooks/labs/job/task_03_report.ipynb
+            base_parameters:
+              catalog: ${var.catalog}
+              schema_suffix: ${var.schema_suffix}
+
+# ─── Targets (Environments) ──────────────────────────────────────────────────
+targets:
+
+  # ── Development ─────────────────────────────────────────────────────────
+  dev:
+    mode: development               # runs with relaxed constraints, no SLAs
+    default: true
+    workspace:
+      host: https://<YOUR_DEV_WORKSPACE>.azuredatabricks.net
+      # auth: use `databricks auth login` once per machine
+    variables:
+      catalog: training
+      schema_suffix: dev
+
+  # ── Staging ─────────────────────────────────────────────────────────────
+  staging:
+    mode: development
+    workspace:
+      host: https://<YOUR_STAGING_WORKSPACE>.azuredatabricks.net
+    variables:
+      catalog: training
+      schema_suffix: staging
+
+  # ── Production ──────────────────────────────────────────────────────────
+  prod:
+    mode: production                # enforces named clusters, permissions, SLAs
+    workspace:
+      host: https://<YOUR_PROD_WORKSPACE>.azuredatabricks.net
+    variables:
+      catalog: prod
+      schema_suffix: prod
+    # Override job settings for prod (e.g. more workers, alerts, schedules)
+    resources:
+      jobs:
+        de_training_orchestration_job:
+          schedule:
+            # Cron: MON–FRI at 06:00 UTC
+            quartz_cron_expression: "0 0 6 * * MON,TUE,WED,THU,FRI"
+            timezone_id: UTC
+          # email_notifications:
+          #   on_failure: ["oncall@example.com"]

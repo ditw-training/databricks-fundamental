@@ -1,0 +1,24 @@
+# Git LFS — large binary assets tracked via LFS instead of raw git objects
+# Ensures fast clones and prevents repo bloat
+#
+# Setup: git lfs install  (once per machine)
+# Migrate existing: git lfs migrate import --include="*.pdf,*.png,*.webp,*.xlsx"
+
+*.pdf    filter=lfs diff=lfs merge=lfs -text
+*.png    filter=lfs diff=lfs merge=lfs -text
+*.webp   filter=lfs diff=lfs merge=lfs -text
+*.avif   filter=lfs diff=lfs merge=lfs -text
+*.jpg    filter=lfs diff=lfs merge=lfs -text
+*.jpeg   filter=lfs diff=lfs merge=lfs -text
+*.xlsx   filter=lfs diff=lfs merge=lfs -text
+*.xls    filter=lfs diff=lfs merge=lfs -text
+
+# Line endings — normalize to LF for cross-platform notebook compatibility
+*.ipynb  text eol=lf
+*.py     text eol=lf
+*.sql    text eol=lf
+*.md     text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.json   text eol=lf
+*.csv    text eol=lf
