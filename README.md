@@ -103,20 +103,20 @@ Two learning scenarios are woven throughout the course:
 
 | ID | File | Source | Key Topics |
 |---|---|---|---|
-| M00 | M00_intro.ipynb | DEA | Databricks architecture, Unity Catalog, DBR |
-| M01 | M01_platform_workspace.ipynb | DEA | Workspace, clusters, SQL warehouse, repos |
-| M02 | M02_elt_ingestion.ipynb | DEA | COPY INTO, Auto Loader, batch patterns |
-| M03 | M03_delta_fundamentals.ipynb | DEA | ACID transactions, time travel, CDF, DML |
-| M04 | M04_data_quality.ipynb | TwoDays | DLT Expectations, quarantine, quality metrics |
-| M05 | M05_delta_optimization.ipynb | DEA | OPTIMIZE, Z-Order, liquid clustering, vacuuming |
-| M06 | M06_incremental_autoloader.ipynb | DEA | `cloudFiles`, schema evolution, checkpointing |
-| M07 | M07_advanced_transforms.ipynb | DEA | Window functions, UDFs, higher-order functions, Scala |
-| M08 | M08_streaming_stateful.ipynb | TwoDays | Watermarks, stateful aggregations, trigger modes |
-| M09 | M09_medallion_lakeflow.ipynb | DEA | Bronze→Silver→Gold, Lakeflow Pipelines, SDP |
-| M10 | M10_orchestration_jobs.ipynb | DEA | Lakeflow Jobs, task dependencies, repair, alerts |
-| M11 | M11_governance_unity_catalog.ipynb | DEA | Lineage, data tags, row/col security, metastore admin |
-| M12 | M12_asset_bundles_cicd.ipynb | placeholder | DAB, `bundle init/deploy/run`, dev→staging→prod, GitHub Actions |
-| M13 | M13_ai_ml_for_de.ipynb | TwoDays | AI Functions, Feature Store, MLflow, Model Registry |
+| 00 | 00_intro.ipynb | DEA | Databricks architecture, Unity Catalog, DBR |
+| 01 | 01_platform_workspace.ipynb | DEA | Workspace, clusters, SQL warehouse, repos |
+| 02 | 02_elt_ingestion.ipynb | DEA | COPY INTO, Auto Loader, batch patterns |
+| 03 | 03_delta_fundamentals.ipynb | DEA | ACID transactions, time travel, CDF, DML |
+| 04 | 04_data_quality.ipynb | TwoDays | DLT Expectations, quarantine, quality metrics |
+| 05 | 05_delta_optimization.ipynb | DEA | OPTIMIZE, Z-Order, liquid clustering, vacuuming |
+| 06 | 06_incremental_autoloader.ipynb | DEA | `cloudFiles`, schema evolution, checkpointing |
+| 07 | 07_advanced_transforms.ipynb | DEA | Window functions, UDFs, higher-order functions, Scala |
+| 08 | 08_streaming_stateful.ipynb | TwoDays | Watermarks, stateful aggregations, trigger modes |
+| 09 | 09_medallion_lakeflow.ipynb | DEA | Bronze→Silver→Gold, Lakeflow Pipelines, SDP |
+| 10 | 10_orchestration_jobs.ipynb | DEA | Lakeflow Jobs, task dependencies, repair, alerts |
+| 11 | 11_governance_unity_catalog.ipynb | DEA | Lineage, data tags, row/col security, metastore admin |
+| 12 | 12_asset_bundles_cicd.ipynb | placeholder | DAB, `bundle init/deploy/run`, dev→staging→prod, GitHub Actions |
+| 13 | 13_ai_ml_for_de.ipynb | TwoDays | AI Functions, Feature Store, MLflow, Model Registry |
 
 ---
 
