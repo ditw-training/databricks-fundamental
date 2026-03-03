@@ -4,6 +4,9 @@ utilization/
 _old/
 scripts/
 
+# ── Pre-configuration notebook (contains env-specific secrets/paths) ──────────
+notebooks/setup/00_pre_config.ipynb
+
 # ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
