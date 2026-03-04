@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="480" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="900" height="480" fill="#f8f9fa" rx="12"/>
+  <text x="450" y="30" text-anchor="middle" font-size="17" font-weight="bold" fill="#1a1a2e">DAG → Stages → Shuffle</text>
+  <text x="450" y="50" text-anchor="middle" font-size="12" fill="#64748b">How Spark breaks a query into parallel work units</text>
+  <defs>
+    <marker id="da" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#64748b"/>
+    </marker>
+    <marker id="dared" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#ef4444"/>
+    </marker>
+  </defs>
+
+  <!-- QUERY EXAMPLE -->
+  <rect x="50" y="62" width="800" height="38" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="450" y="78" text-anchor="middle" font-size="12" fill="#94a3b8">df</text>
+  <text x="450" y="78" text-anchor="middle" font-size="12" fill="#ffffff">df  →  </text>
+  <text x="450" y="93" text-anchor="middle" font-size="11" fill="#4ade80">  .filter(fare_amount > 10)  →  .withColumn(...)  →  .groupBy("zip").agg(avg(...))  →  .orderBy(desc(...))  →  display()</text>
+
+  <!-- ─── STAGE 1 ─── -->
+  <rect x="50" y="118" width="370" height="200" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+  <rect x="50" y="118" width="370" height="32" rx="10" fill="#3b82f6"/>
+  <rect x="50" y="138" width="370" height="12" rx="0" fill="#3b82f6"/>
+  <text x="235" y="138" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Stage 1 — Narrow Transformations (no shuffle)</text>
+
+  <!-- Stage 1 ops -->
+  <rect x="70" y="160" width="320" height="34" rx="6" fill="#bfdbfe"/>
+  <text x="230" y="173" text-anchor="middle" font-size="12" fill="#1e3a8a">📥  Scan / Read partitions (parallel)</text>
+  <text x="230" y="187" text-anchor="middle" font-size="10" fill="#1e40af">each partition processed independently</text>
+
+  <line x1="230" y1="195" x2="230" y2="208" stroke="#64748b" stroke-width="1.5" marker-end="url(#da)"/>
+
+  <rect x="70" y="210" width="320" height="30" rx="6" fill="#dbeafe"/>
+  <text x="230" y="230" text-anchor="middle" font-size="12" fill="#1e3a8a">🔍  filter(fare_amount &gt; 10)</text>
+
+  <line x1="230" y1="241" x2="230" y2="254" stroke="#64748b" stroke-width="1.5" marker-end="url(#da)"/>
+
+  <rect x="70" y="256" width="320" height="30" rx="6" fill="#dbeafe"/>
+  <text x="230" y="276" text-anchor="middle" font-size="12" fill="#1e3a8a">➕  withColumn(fare_per_mile)</text>
+
+  <text x="235" y="308" text-anchor="middle" font-size="10" fill="#1d4ed8">✅ Each task works on its own partition — no network I/O</text>
+
+  <!-- SHUFFLE BOUNDARY -->
+  <rect x="50" y="328" width="800" height="38" rx="8" fill="#fef2f2" stroke="#ef4444" stroke-width="2" stroke-dasharray="8,4"/>
+  <text x="450" y="344" text-anchor="middle" font-size="13" font-weight="bold" fill="#b91c1c">🔀  SHUFFLE BOUNDARY  —  data redistributed across network by key ("zip")</text>
+  <text x="450" y="360" text-anchor="middle" font-size="10" fill="#dc2626">All rows with the same key must arrive at the same Executor  →  disk write + network transfer</text>
+
+  <!-- ─── STAGE 2 ─── -->
+  <rect x="480" y="118" width="370" height="200" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+  <rect x="480" y="118" width="370" height="32" rx="10" fill="#22c55e"/>
+  <rect x="480" y="138" width="370" height="12" rx="0" fill="#22c55e"/>
+  <text x="665" y="138" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Stage 2 — Wide Transformations (after shuffle)</text>
+
+  <rect x="500" y="160" width="330" height="34" rx="6" fill="#bbf7d0"/>
+  <text x="665" y="173" text-anchor="middle" font-size="12" fill="#14532d">📥  Shuffle Read — receive rows by "zip" key</text>
+  <text x="665" y="187" text-anchor="middle" font-size="10" fill="#166534">each Executor handles a subset of keys</text>
+
+  <line x1="665" y1="195" x2="665" y2="208" stroke="#64748b" stroke-width="1.5" marker-end="url(#da)"/>
+
+  <rect x="500" y="210" width="330" height="30" rx="6" fill="#dcfce7"/>
+  <text x="665" y="230" text-anchor="middle" font-size="12" fill="#14532d">📊  groupBy("zip").agg(avg(fare))</text>
+
+  <line x1="665" y1="241" x2="665" y2="254" stroke="#64748b" stroke-width="1.5" marker-end="url(#da)"/>
+
+  <rect x="500" y="256" width="330" height="30" rx="6" fill="#dcfce7"/>
+  <text x="665" y="276" text-anchor="middle" font-size="12" fill="#14532d">🔃  orderBy(desc) — global sort (2nd shuffle)</text>
+
+  <text x="665" y="308" text-anchor="middle" font-size="10" fill="#166534">→ also triggers Stage 3 (final sort merge)</text>
+
+  <!-- arrow between stages -->
+  <line x1="422" y1="225" x2="478" y2="225" stroke="#ef4444" stroke-width="2.5" marker-end="url(#dared)"/>
+  <text x="450" y="220" text-anchor="middle" font-size="10" fill="#ef4444">shuffle</text>
+
+  <!-- Bottom summary -->
+  <rect x="50" y="374" width="800" height="90" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="450" y="396" text-anchor="middle" font-size="12" font-weight="bold" fill="#93c5fd">Key takeaways</text>
+  <text x="70" y="415" font-size="11" fill="#e2e8f0">  📌  Narrow: filter, select, withColumn, map  →  1 Stage, no network, fast</text>
+  <text x="70" y="432" font-size="11" fill="#e2e8f0">  📌  Wide: groupBy, join, orderBy, repartition  →  new Stage + shuffle (disk + network)</text>
+  <text x="70" y="449" font-size="11" fill="#fca5a5">  📌  Every shuffle = potential bottleneck. Use Broadcast Join for small tables to eliminate shuffle.</text>
+</svg>

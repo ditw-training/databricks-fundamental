@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="480" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="900" height="480" fill="#f8f9fa" rx="12"/>
+  <text x="450" y="34" text-anchor="middle" font-size="18" font-weight="bold" fill="#1a1a2e">Unity Catalog — Object Hierarchy</text>
+
+  <!-- METASTORE -->
+  <rect x="300" y="52" width="300" height="58" rx="10" fill="#1e3a8a" stroke="#1e40af" stroke-width="2"/>
+  <text x="450" y="76" text-anchor="middle" font-size="15" font-weight="bold" fill="white">🌐  Metastore</text>
+  <text x="450" y="98" text-anchor="middle" font-size="11" fill="#bfdbfe">1 per Azure region — managed by Account Admin</text>
+
+  <!-- arrow -->
+  <line x1="450" y1="112" x2="450" y2="130" stroke="#94a3b8" stroke-width="2" marker-end="url(#arr)"/>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- CATALOGS row -->
+  <text x="450" y="148" text-anchor="middle" font-size="12" fill="#64748b">Catalogs</text>
+
+  <!-- Catalog 1: retailhub_user -->
+  <rect x="60" y="158" width="230" height="52" rx="8" fill="#1d4ed8" stroke="#2563eb" stroke-width="2"/>
+  <text x="175" y="180" text-anchor="middle" font-size="13" font-weight="bold" fill="white">📦  retailhub_john</text>
+  <text x="175" y="198" text-anchor="middle" font-size="10" fill="#bfdbfe">per-user catalog (training)</text>
+
+  <!-- Catalog 2: main -->
+  <rect x="335" y="158" width="230" height="52" rx="8" fill="#1d4ed8" stroke="#2563eb" stroke-width="2"/>
+  <text x="450" y="180" text-anchor="middle" font-size="13" font-weight="bold" fill="white">📦  main</text>
+  <text x="450" y="198" text-anchor="middle" font-size="10" fill="#bfdbfe">default system catalog</text>
+
+  <!-- Catalog 3: prod -->
+  <rect x="610" y="158" width="230" height="52" rx="8" fill="#1d4ed8" stroke="#2563eb" stroke-width="2"/>
+  <text x="725" y="180" text-anchor="middle" font-size="13" font-weight="bold" fill="white">📦  prod</text>
+  <text x="725" y="198" text-anchor="middle" font-size="10" fill="#bfdbfe">production catalog</text>
+
+  <!-- lines from metastore to catalogs -->
+  <line x1="450" y1="130" x2="175" y2="158" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="450" y1="130" x2="450" y2="158" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="450" y1="130" x2="725" y2="158" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- arrows down from catalog 1 -->
+  <line x1="175" y1="212" x2="175" y2="232" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- SCHEMAS under retailhub_john -->
+  <rect x="30" y="234" width="100" height="44" rx="7" fill="#0369a1" stroke="#0284c7" stroke-width="1.5"/>
+  <text x="80" y="254" text-anchor="middle" font-size="12" font-weight="bold" fill="white">🗂  bronze</text>
+  <text x="80" y="270" text-anchor="middle" font-size="10" fill="#bae6fd">raw data</text>
+
+  <rect x="145" y="234" width="100" height="44" rx="7" fill="#0369a1" stroke="#0284c7" stroke-width="1.5"/>
+  <text x="195" y="254" text-anchor="middle" font-size="12" font-weight="bold" fill="white">🗂  silver</text>
+  <text x="195" y="270" text-anchor="middle" font-size="10" fill="#bae6fd">cleaned</text>
+
+  <rect x="260" y="234" width="100" height="44" rx="7" fill="#0369a1" stroke="#0284c7" stroke-width="1.5"/>
+  <text x="310" y="254" text-anchor="middle" font-size="12" font-weight="bold" fill="white">🗂  gold</text>
+  <text x="310" y="270" text-anchor="middle" font-size="10" fill="#bae6fd">aggregated</text>
+
+  <!-- lines to schemas -->
+  <line x1="175" y1="232" x2="80" y2="234" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="175" y1="232" x2="195" y2="234" stroke="#94a3b8" stroke-width="1.2"/>
+  <line x1="175" y1="232" x2="310" y2="234" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="3,2"/>
+
+  <!-- arrows from silver schema down -->
+  <line x1="195" y1="280" x2="195" y2="300" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- OBJECTS under silver -->
+  <rect x="30" y="302" width="110" height="42" rx="6" fill="#047857" stroke="#059669" stroke-width="1.5"/>
+  <text x="85" y="320" text-anchor="middle" font-size="11" font-weight="bold" fill="white">📊 Table</text>
+  <text x="85" y="336" text-anchor="middle" font-size="10" fill="#a7f3d0">orders_enriched</text>
+
+  <rect x="155" y="302" width="110" height="42" rx="6" fill="#047857" stroke="#059669" stroke-width="1.5"/>
+  <text x="210" y="320" text-anchor="middle" font-size="11" font-weight="bold" fill="white">👁 View</text>
+  <text x="210" y="336" text-anchor="middle" font-size="10" fill="#a7f3d0">orders_masked</text>
+
+  <rect x="280" y="302" width="110" height="42" rx="6" fill="#b45309" stroke="#d97706" stroke-width="1.5"/>
+  <text x="335" y="320" text-anchor="middle" font-size="11" font-weight="bold" fill="white">📁 Volume</text>
+  <text x="335" y="336" text-anchor="middle" font-size="10" fill="#fde68a">raw_files/</text>
+
+  <!-- lines to objects -->
+  <line x1="195" y1="300" x2="85" y2="302" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="195" y1="300" x2="210" y2="302" stroke="#94a3b8" stroke-width="1.2"/>
+  <line x1="195" y1="300" x2="335" y2="302" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="3,2"/>
+
+  <!-- THREE-LEVEL NAMESPACE BOX -->
+  <rect x="30" y="370" width="840" height="90" rx="10" fill="#1e3a8a" stroke="#3b82f6" stroke-width="2"/>
+  <text x="450" y="394" text-anchor="middle" font-size="14" font-weight="bold" fill="#93c5fd">3-Level Namespace — every object has a unique full address</text>
+
+  <rect x="60" y="404" width="780" height="42" rx="8" fill="#1e40af"/>
+  <text x="450" y="421" text-anchor="middle" font-size="15" font-weight="bold" fill="white" letter-spacing="1">retailhub_john</text>
+  <text x="450" y="421" text-anchor="middle" font-size="15" font-weight="bold" fill="#60a5fa" letter-spacing="1">          .          </text>
+  <!-- Better approach: use tspans -->
+  <text x="450" y="438" text-anchor="middle" font-size="11" fill="#93c5fd">
+    <tspan fill="#fbbf24">retailhub_john</tspan>
+    <tspan fill="white"> . </tspan>
+    <tspan fill="#34d399">silver</tspan>
+    <tspan fill="white"> . </tspan>
+    <tspan fill="#f9a8d4">orders_enriched</tspan>
+    <tspan fill="#94a3b8">        ←  catalog . schema . table</tspan>
+  </text>
+
+  <!-- right side: legend for prod catalog -->
+  <line x1="725" y1="212" x2="725" y2="232" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="660" y="234" width="130" height="44" rx="7" fill="#0369a1" stroke="#0284c7" stroke-width="1.5"/>
+  <text x="725" y="254" text-anchor="middle" font-size="12" font-weight="bold" fill="white">🗂  bronze</text>
+  <text x="725" y="270" text-anchor="middle" font-size="10" fill="#bae6fd">isolated env</text>
+</svg>

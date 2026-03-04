@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="400" font-family="Segoe UI, Arial, sans-serif">
+  <!-- Background -->
+  <rect width="860" height="400" fill="#f8f9fa" rx="12"/>
+
+  <!-- Title -->
+  <text x="430" y="34" text-anchor="middle" font-size="18" font-weight="bold" fill="#1a1a2e">Spark Cluster Architecture</text>
+
+  <!-- DRIVER -->
+  <rect x="30" y="60" width="200" height="290" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <rect x="30" y="60" width="200" height="36" rx="10" fill="#3b82f6"/>
+  <rect x="30" y="84" width="200" height="12" rx="0" fill="#3b82f6"/>
+  <text x="130" y="84" text-anchor="middle" font-size="14" font-weight="bold" fill="white">DRIVER</text>
+
+  <rect x="50" y="112" width="160" height="36" rx="6" fill="#2563eb" opacity="0.15"/>
+  <text x="130" y="126" text-anchor="middle" font-size="11" fill="#1e3a8a">SparkSession</text>
+  <text x="130" y="140" text-anchor="middle" font-size="10" fill="#1e3a8a">spark = SparkSession.builder...</text>
+
+  <rect x="50" y="158" width="160" height="36" rx="6" fill="#2563eb" opacity="0.15"/>
+  <text x="130" y="172" text-anchor="middle" font-size="11" fill="#1e3a8a">Query Planner (Catalyst)</text>
+  <text x="130" y="186" text-anchor="middle" font-size="10" fill="#1e3a8a">DAG → Stages → Tasks</text>
+
+  <rect x="50" y="204" width="160" height="36" rx="6" fill="#2563eb" opacity="0.15"/>
+  <text x="130" y="218" text-anchor="middle" font-size="11" fill="#1e3a8a">Task Scheduler</text>
+  <text x="130" y="232" text-anchor="middle" font-size="10" fill="#1e3a8a">assigns tasks to Executors</text>
+
+  <rect x="50" y="250" width="160" height="36" rx="6" fill="#fef08a" opacity="0.7"/>
+  <text x="130" y="264" text-anchor="middle" font-size="11" fill="#713f12">Your Python code runs here</text>
+  <text x="130" y="278" text-anchor="middle" font-size="10" fill="#713f12">loops, print(), collect()</text>
+
+  <text x="130" y="328" text-anchor="middle" font-size="10" fill="#374151">1 per cluster</text>
+  <text x="130" y="342" text-anchor="middle" font-size="10" fill="#dc2626">If Driver crashes → job fails</text>
+
+  <!-- Arrow from Driver to Workers -->
+  <line x1="232" y1="200" x2="272" y2="200" stroke="#6b7280" stroke-width="2" marker-end="url(#arrow)"/>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6b7280"/>
+    </marker>
+  </defs>
+  <text x="252" y="194" text-anchor="middle" font-size="9" fill="#6b7280">tasks</text>
+
+  <!-- WORKER NODE 1 -->
+  <rect x="280" y="60" width="260" height="150" rx="10" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <rect x="280" y="60" width="260" height="36" rx="10" fill="#22c55e"/>
+  <rect x="280" y="84" width="260" height="12" rx="0" fill="#22c55e"/>
+  <text x="410" y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="white">WORKER NODE 1</text>
+
+  <!-- Executor 1 -->
+  <rect x="296" y="108" width="228" height="86" rx="8" fill="#86efac" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="410" y="124" text-anchor="middle" font-size="12" font-weight="bold" fill="#14532d">Executor</text>
+  <rect x="308" y="132" width="96" height="24" rx="4" fill="#4ade80" opacity="0.7"/>
+  <text x="356" y="148" text-anchor="middle" font-size="11" fill="#14532d">Task (Partition 0)</text>
+  <rect x="416" y="132" width="96" height="24" rx="4" fill="#4ade80" opacity="0.7"/>
+  <text x="464" y="148" text-anchor="middle" font-size="11" fill="#14532d">Task (Partition 1)</text>
+  <text x="410" y="186" text-anchor="middle" font-size="10" fill="#166534">JVM process | memory + CPU cores</text>
+
+  <!-- WORKER NODE 2 -->
+  <rect x="560" y="60" width="270" height="150" rx="10" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <rect x="560" y="60" width="270" height="36" rx="10" fill="#22c55e"/>
+  <rect x="560" y="84" width="270" height="12" rx="0" fill="#22c55e"/>
+  <text x="695" y="84" text-anchor="middle" font-size="13" font-weight="bold" fill="white">WORKER NODE 2</text>
+
+  <!-- Executor 2 -->
+  <rect x="576" y="108" width="238" height="86" rx="8" fill="#86efac" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="695" y="124" text-anchor="middle" font-size="12" font-weight="bold" fill="#14532d">Executor</text>
+  <rect x="588" y="132" width="100" height="24" rx="4" fill="#4ade80" opacity="0.7"/>
+  <text x="638" y="148" text-anchor="middle" font-size="11" fill="#14532d">Task (Partition 2)</text>
+  <rect x="700" y="132" width="100" height="24" rx="4" fill="#4ade80" opacity="0.7"/>
+  <text x="750" y="148" text-anchor="middle" font-size="11" fill="#14532d">Task (Partition 3)</text>
+  <text x="695" y="186" text-anchor="middle" font-size="10" fill="#166534">JVM process | memory + CPU cores</text>
+
+  <!-- Arrow from Driver to Worker 2 -->
+  <line x1="232" y1="155" x2="556" y2="130" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+
+  <!-- DATA STORAGE -->
+  <rect x="280" y="240" width="550" height="80" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="555" y="264" text-anchor="middle" font-size="13" font-weight="bold" fill="#92400e">Distributed Storage (DBFS / S3 / ADLS)</text>
+  <text x="555" y="284" text-anchor="middle" font-size="11" fill="#92400e">Data split into Partitions (~128 MB each)</text>
+  <text x="555" y="300" text-anchor="middle" font-size="10" fill="#78350f">Spark moves code to data — not data to code  (data locality)</text>
+
+  <!-- Arrows from Workers to Storage -->
+  <line x1="410" y1="212" x2="440" y2="238" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <line x1="695" y1="212" x2="660" y2="238" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrow2)"/>
+  <defs>
+    <marker id="arrow2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#d97706"/>
+    </marker>
+  </defs>
+
+  <!-- Legend -->
+  <text x="30" y="385" font-size="10" fill="#6b7280">Results return to Driver via collect() or are written to storage by write()</text>
+</svg>

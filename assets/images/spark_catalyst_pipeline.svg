@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="340" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="900" height="340" fill="#f8f9fa" rx="12"/>
+  <text x="450" y="30" text-anchor="middle" font-size="17" font-weight="bold" fill="#1a1a2e">Catalyst Optimizer Pipeline</text>
+  <text x="450" y="50" text-anchor="middle" font-size="12" fill="#64748b">From your code to an optimized physical execution plan</text>
+  <defs>
+    <marker id="ca" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 Z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <!-- Step boxes with arrow connectors -->
+  <!-- Step 1: User Code -->
+  <rect x="20" y="72" width="140" height="130" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <rect x="20" y="72" width="140" height="30" rx="10" fill="#d97706"/>
+  <rect x="20" y="90" width="140" height="12" rx="0" fill="#d97706"/>
+  <text x="90" y="90" text-anchor="middle" font-size="11" font-weight="bold" fill="white">① User Code</text>
+  <text x="90" y="116" text-anchor="middle" font-size="10" fill="#78350f">Python / SQL</text>
+  <text x="90" y="132" text-anchor="middle" font-size="10" fill="#92400e">df.filter(...)</text>
+  <text x="90" y="148" text-anchor="middle" font-size="10" fill="#92400e">  .groupBy(...)</text>
+  <text x="90" y="164" text-anchor="middle" font-size="10" fill="#92400e">  .agg(...)</text>
+  <text x="90" y="184" text-anchor="middle" font-size="9" fill="#b45309">↕ identical result</text>
+
+  <line x1="162" y1="137" x2="178" y2="137" stroke="#475569" stroke-width="2" marker-end="url(#ca)"/>
+
+  <!-- Step 2: Unresolved Logical Plan -->
+  <rect x="180" y="72" width="140" height="130" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <rect x="180" y="72" width="140" height="30" rx="10" fill="#7c3aed"/>
+  <rect x="180" y="90" width="140" height="12" rx="0" fill="#7c3aed"/>
+  <text x="250" y="90" text-anchor="middle" font-size="11" font-weight="bold" fill="white">② Unresolved Plan</text>
+  <text x="250" y="116" text-anchor="middle" font-size="10" fill="#4c1d95">Parsed AST tree</text>
+  <text x="250" y="132" text-anchor="middle" font-size="10" fill="#5b21b6">Column names exist</text>
+  <text x="250" y="148" text-anchor="middle" font-size="10" fill="#5b21b6">but not yet</text>
+  <text x="250" y="164" text-anchor="middle" font-size="10" fill="#5b21b6">validated</text>
+
+  <line x1="322" y1="137" x2="338" y2="137" stroke="#475569" stroke-width="2" marker-end="url(#ca)"/>
+
+  <!-- Step 3: Analyzed Logical Plan -->
+  <rect x="340" y="72" width="140" height="130" rx="10" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/>
+  <rect x="340" y="72" width="140" height="30" rx="10" fill="#1d4ed8"/>
+  <rect x="340" y="90" width="140" height="12" rx="0" fill="#1d4ed8"/>
+  <text x="410" y="90" text-anchor="middle" font-size="11" font-weight="bold" fill="white">③ Analyzed Plan</text>
+  <text x="410" y="116" text-anchor="middle" font-size="10" fill="#1e3a8a">Columns resolved</text>
+  <text x="410" y="132" text-anchor="middle" font-size="10" fill="#1e40af">Types checked</text>
+  <text x="410" y="148" text-anchor="middle" font-size="10" fill="#1e40af">Catalog metadata</text>
+  <text x="410" y="164" text-anchor="middle" font-size="10" fill="#1e40af">applied</text>
+
+  <line x1="482" y1="137" x2="498" y2="137" stroke="#475569" stroke-width="2" marker-end="url(#ca)"/>
+
+  <!-- Step 4: Optimized Logical Plan -->
+  <rect x="500" y="72" width="140" height="130" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <rect x="500" y="72" width="140" height="30" rx="10" fill="#16a34a"/>
+  <rect x="500" y="90" width="140" height="12" rx="0" fill="#16a34a"/>
+  <text x="570" y="90" text-anchor="middle" font-size="11" font-weight="bold" fill="white">④ Optimized Plan</text>
+  <text x="570" y="112" text-anchor="middle" font-size="10" fill="#14532d">Catalyst Rules:</text>
+  <text x="570" y="128" text-anchor="middle" font-size="10" fill="#166534">✓ Predicate Pushdown</text>
+  <text x="570" y="144" text-anchor="middle" font-size="10" fill="#166534">✓ Column Pruning</text>
+  <text x="570" y="160" text-anchor="middle" font-size="10" fill="#166534">✓ Constant Folding</text>
+  <text x="570" y="176" text-anchor="middle" font-size="10" fill="#166534">✓ Join Reordering</text>
+
+  <line x1="642" y1="137" x2="658" y2="137" stroke="#475569" stroke-width="2" marker-end="url(#ca)"/>
+
+  <!-- Step 5: Physical Plan + AQE -->
+  <rect x="660" y="72" width="220" height="130" rx="10" fill="#fce7f3" stroke="#be185d" stroke-width="2"/>
+  <rect x="660" y="72" width="220" height="30" rx="10" fill="#be185d"/>
+  <rect x="660" y="90" width="220" height="12" rx="0" fill="#be185d"/>
+  <text x="770" y="90" text-anchor="middle" font-size="11" font-weight="bold" fill="white">⑤ Physical Plan + AQE</text>
+  <text x="770" y="112" text-anchor="middle" font-size="10" fill="#831843">Select join strategy:</text>
+  <text x="770" y="126" text-anchor="middle" font-size="10" fill="#9d174d">SortMerge / Broadcast / Hash</text>
+  <text x="770" y="142" text-anchor="middle" font-size="10" fill="#9d174d">AQE at RUNTIME:</text>
+  <text x="770" y="156" text-anchor="middle" font-size="10" fill="#9d174d">✓ Coalesce shuffle partitions</text>
+  <text x="770" y="170" text-anchor="middle" font-size="10" fill="#9d174d">✓ Auto-convert to Broadcast</text>
+  <text x="770" y="186" text-anchor="middle" font-size="10" fill="#9d174d">✓ Handle data skew</text>
+
+  <!-- Bottom execution bar -->
+  <rect x="20" y="220" width="860" height="48" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="450" y="240" text-anchor="middle" font-size="12" font-weight="bold" fill="#93c5fd">⚡ RDD Execution — Tasks dispatched to Executors, results collected</text>
+  <text x="450" y="258" text-anchor="middle" font-size="11" fill="#94a3b8">PySpark DataFrame API and spark.sql() compile to the SAME physical plan — no performance difference</text>
+  <line x1="770" y1="204" x2="770" y2="220" stroke="#be185d" stroke-width="2" marker-end="url(#ca)"/>
+
+  <!-- Key insight box -->
+  <rect x="20" y="278" width="860" height="48" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="450" y="298" text-anchor="middle" font-size="11" font-weight="bold" fill="#78350f">💡  Key insight: Catalyst runs at COMPILE TIME (steps 2–4). AQE runs at RUNTIME (step 5).</text>
+  <text x="450" y="316" text-anchor="middle" font-size="11" fill="#92400e">  Use df.explain("formatted") to see the chosen physical plan before any data is processed.</text>
+</svg>

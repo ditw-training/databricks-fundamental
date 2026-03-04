@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="900" height="420" fill="#f8f9fa" rx="12"/>
+  <text x="450" y="34" text-anchor="middle" font-size="18" font-weight="bold" fill="#1a1a2e">Unity Catalog — Permissions Model</text>
+  <defs>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- LEFT SIDE: Principal Hierarchy -->
+  <text x="220" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#475569">Principal Hierarchy</text>
+
+  <!-- Account Admin -->
+  <rect x="100" y="72" width="240" height="48" rx="8" fill="#7c3aed" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="220" y="93" text-anchor="middle" font-size="13" font-weight="bold" fill="white">👑  Account Admin</text>
+  <text x="220" y="111" text-anchor="middle" font-size="10" fill="#ddd6fe">Full control — Metastore, catalogs, users</text>
+
+  <line x1="220" y1="122" x2="220" y2="138" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- Workspace Admin -->
+  <rect x="100" y="140" width="240" height="48" rx="8" fill="#1d4ed8" stroke="#3b82f6" stroke-width="2"/>
+  <text x="220" y="161" text-anchor="middle" font-size="13" font-weight="bold" fill="white">🔧  Workspace Admin</text>
+  <text x="220" y="179" text-anchor="middle" font-size="10" fill="#bfdbfe">Clusters, jobs, workspace settings</text>
+
+  <line x1="220" y1="190" x2="220" y2="206" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- Data Steward -->
+  <rect x="100" y="208" width="240" height="48" rx="8" fill="#0369a1" stroke="#0284c7" stroke-width="2"/>
+  <text x="220" y="229" text-anchor="middle" font-size="13" font-weight="bold" fill="white">🛡  Data Steward</text>
+  <text x="220" y="247" text-anchor="middle" font-size="10" fill="#bae6fd">Catalog/schema-level grants</text>
+
+  <line x1="220" y1="258" x2="220" y2="274" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+  <!-- User / Service Principal -->
+  <rect x="60" y="276" width="145" height="48" rx="8" fill="#047857" stroke="#059669" stroke-width="1.5"/>
+  <text x="133" y="296" text-anchor="middle" font-size="12" font-weight="bold" fill="white">👤 User</text>
+  <text x="133" y="313" text-anchor="middle" font-size="10" fill="#a7f3d0">john@company.com</text>
+
+  <rect x="215" y="276" width="145" height="48" rx="8" fill="#b45309" stroke="#d97706" stroke-width="1.5"/>
+  <text x="288" y="296" text-anchor="middle" font-size="12" font-weight="bold" fill="white">⚙️ Service Principal</text>
+  <text x="288" y="313" text-anchor="middle" font-size="10" fill="#fde68a">pipeline-sp@app</text>
+
+  <line x1="220" y1="274" x2="133" y2="276" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <line x1="220" y1="274" x2="288" y2="276" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="3,2"/>
+
+  <!-- Groups box -->
+  <rect x="60" y="340" width="300" height="44" rx="8" fill="#374151" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="210" y="360" text-anchor="middle" font-size="12" font-weight="bold" fill="white">👥 Groups: data_engineers, analysts, viewers</text>
+  <text x="210" y="377" text-anchor="middle" font-size="10" fill="#9ca3af">Users / SPs can belong to one or more groups</text>
+
+  <!-- DIVIDER -->
+  <line x1="380" y1="55" x2="380" y2="410" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+  <!-- RIGHT SIDE: Privilege levels -->
+  <text x="645" y="62" text-anchor="middle" font-size="13" font-weight="bold" fill="#475569">Key Privileges (GRANT → on object TO principal)</text>
+
+  <!-- Privilege rows -->
+  <!-- Metastore -->
+  <rect x="400" y="72" width="480" height="38" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="420" y="88" font-size="11" font-weight="bold" fill="#1e3a8a">  METASTORE</text>
+  <text x="420" y="102" font-size="10" fill="#475569">  CREATE CATALOG, CREATE EXTERNAL LOCATION</text>
+
+  <!-- Catalog -->
+  <rect x="400" y="116" width="480" height="38" rx="6" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+  <text x="420" y="132" font-size="11" font-weight="bold" fill="#1d4ed8">  CATALOG</text>
+  <text x="420" y="146" font-size="10" fill="#475569">  USE CATALOG, CREATE SCHEMA</text>
+
+  <!-- Schema -->
+  <rect x="400" y="160" width="480" height="38" rx="6" fill="#ecfdf5" stroke="#bbf7d0" stroke-width="1"/>
+  <text x="420" y="176" font-size="11" font-weight="bold" fill="#047857">  SCHEMA</text>
+  <text x="420" y="190" font-size="10" fill="#475569">  USE SCHEMA, CREATE TABLE, CREATE FUNCTION</text>
+
+  <!-- Table -->
+  <rect x="400" y="204" width="480" height="38" rx="6" fill="#fefce8" stroke="#fde68a" stroke-width="1"/>
+  <text x="420" y="220" font-size="11" font-weight="bold" fill="#92400e">  TABLE / VIEW</text>
+  <text x="420" y="234" font-size="10" fill="#475569">  SELECT, MODIFY, ALL PRIVILEGES</text>
+
+  <!-- Volume -->
+  <rect x="400" y="248" width="480" height="38" rx="6" fill="#fdf4ff" stroke="#e9d5ff" stroke-width="1"/>
+  <text x="420" y="264" font-size="11" font-weight="bold" fill="#6b21a8">  VOLUME</text>
+  <text x="420" y="278" font-size="10" fill="#475569">  READ VOLUME, WRITE VOLUME</text>
+
+  <!-- Example GRANT -->
+  <rect x="400" y="300" width="480" height="90" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+  <text x="420" y="320" font-size="11" font-weight="bold" fill="#94a3b8">  Example SQL:</text>
+  <text x="420" y="340" font-size="11" fill="#4ade80">  GRANT USE CATALOG ON CATALOG retailhub_john</text>
+  <text x="420" y="356" font-size="11" fill="#4ade80">        TO GROUP data_engineers;</text>
+  <text x="420" y="374" font-size="11" fill="#4ade80">  GRANT SELECT ON TABLE my_catalog.gold.revenue</text>
+  <text x="420" y="390" font-size="11" fill="#4ade80">        TO GROUP analysts;</text>
+</svg>

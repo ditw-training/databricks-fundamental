@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="900" height="420" fill="#0f172a" rx="12"/>
+  <text x="450" y="32" text-anchor="middle" font-size="18" font-weight="bold" fill="#f1f5f9">RetailHub — Data Flow Throughout the Day</text>
+  <defs>
+    <marker id="wh" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- SOURCE FILES -->
+  <text x="450" y="62" text-anchor="middle" font-size="12" fill="#64748b">Source Files (dataset/)</text>
+
+  <!-- customers.csv -->
+  <rect x="40" y="72" width="200" height="70" rx="8" fill="#1c3a5e" stroke="#3b82f6" stroke-width="2"/>
+  <text x="140" y="96" text-anchor="middle" font-size="22">📄</text>
+  <text x="140" y="116" text-anchor="middle" font-size="13" font-weight="bold" fill="#93c5fd">customers.csv</text>
+  <text x="140" y="132" text-anchor="middle" font-size="10" fill="#64748b">10 000 customers</text>
+
+  <!-- orders.json -->
+  <rect x="350" y="72" width="200" height="70" rx="8" fill="#1c3a5e" stroke="#3b82f6" stroke-width="2"/>
+  <text x="450" y="96" text-anchor="middle" font-size="22">📋</text>
+  <text x="450" y="116" text-anchor="middle" font-size="13" font-weight="bold" fill="#93c5fd">orders_batch.json</text>
+  <text x="450" y="132" text-anchor="middle" font-size="10" fill="#64748b">100 000 orders</text>
+
+  <!-- products.csv -->
+  <rect x="660" y="72" width="200" height="70" rx="8" fill="#1c3a5e" stroke="#3b82f6" stroke-width="2"/>
+  <text x="760" y="96" text-anchor="middle" font-size="22">🏷</text>
+  <text x="760" y="116" text-anchor="middle" font-size="13" font-weight="bold" fill="#93c5fd">products.csv</text>
+  <text x="760" y="132" text-anchor="middle" font-size="10" fill="#64748b">2 000 products</text>
+
+  <!-- Arrows down to BRONZE -->
+  <line x1="140" y1="144" x2="140" y2="175" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#wh)"/>
+  <line x1="450" y1="144" x2="450" y2="175" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#wh)"/>
+  <line x1="760" y1="144" x2="760" y2="175" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#wh)"/>
+
+  <!-- BRONZE layer -->
+  <rect x="30" y="178" width="840" height="60" rx="10" fill="#451a03" stroke="#d97706" stroke-width="2"/>
+  <text x="70" y="200" font-size="20">🥉</text>
+  <text x="110" y="200" font-size="14" font-weight="bold" fill="#fbbf24">BRONZE</text>
+  <text x="110" y="218" font-size="11" fill="#d97706">Raw ingestion — schema enforcement, _load_ts, _source_file</text>
+  <text x="560" y="200" font-size="11" fill="#92400e">M03 Ingestion      LAB 01 / LAB 02</text>
+  <text x="560" y="217" font-size="10" fill="#78350f">spark.read.format("json/.csv").schema(...).load()</text>
+
+  <line x1="450" y1="240" x2="450" y2="260" stroke="#d97706" stroke-width="2" marker-end="url(#wh)"/>
+
+  <!-- SILVER layer -->
+  <rect x="30" y="262" width="840" height="60" rx="10" fill="#1c3347" stroke="#60a5fa" stroke-width="2"/>
+  <text x="70" y="284" font-size="20">🥈</text>
+  <text x="110" y="284" font-size="14" font-weight="bold" fill="#93c5fd">SILVER</text>
+  <text x="110" y="302" font-size="11" fill="#60a5fa">Cleaned & enriched — type casting, nullable checks, joins, derived columns</text>
+  <text x="580" y="284" font-size="11" fill="#3b82f6">M03 Transformations</text>
+  <text x="580" y="301" font-size="10" fill="#1d4ed8">withColumn, cast, when, filter, join</text>
+
+  <line x1="450" y1="324" x2="450" y2="344" stroke="#60a5fa" stroke-width="2" marker-end="url(#wh)"/>
+
+  <!-- GOLD layer -->
+  <rect x="30" y="347" width="840" height="60" rx="10" fill="#14291e" stroke="#4ade80" stroke-width="2"/>
+  <text x="70" y="369" font-size="20">🥇</text>
+  <text x="110" y="369" font-size="14" font-weight="bold" fill="#86efac">GOLD</text>
+  <text x="110" y="387" font-size="11" fill="#4ade80">Business aggregates — groupBy, agg, daily revenue, KPIs for BI</text>
+  <text x="580" y="369" font-size="11" fill="#22c55e">M04 Delta + Final Lab</text>
+  <text x="580" y="386" font-size="10" fill="#16a34a">groupBy.agg(), Delta MERGE, Time Travel</text>
+
+  <line x1="870" y1="377" x2="892" y2="377" stroke="#4ade80" stroke-width="2"/>
+</svg>
