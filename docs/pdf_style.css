@@ -1,0 +1,217 @@
+/* =====================================================
+   Databricks Fundamentals — PDF Style
+   Matches cheatsheet / quiz PDF visual identity
+   Fonts: Helvetica Neue / Arial / Courier New
+   Colors: #FF3621 (Databricks red), #1E1E2E (dark navy), #1A1A1A (text)
+   ===================================================== */
+
+@page {
+    size: A4;
+    margin: 2cm 2.2cm 2.2cm 2.2cm;
+    @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 9pt;
+        color: #888888;
+    }
+}
+
+body {
+    font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.6;
+    color: #1A1A1A;
+    background: #ffffff;
+}
+
+/* ── Title / H1 ──────────────────────────────── */
+h1 {
+    font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+    font-size: 22pt;
+    font-weight: 700;
+    color: #ffffff;
+    background-color: #1E1E2E;
+    padding: 18px 22px 16px 22px;
+    margin: 0 -2.2cm 28px -2.2cm;
+    border-bottom: 4px solid #FF3621;
+    letter-spacing: -0.3px;
+    page-break-after: avoid;
+}
+
+/* ── H2 section headers ──────────────────────── */
+h2 {
+    font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+    font-size: 13.5pt;
+    font-weight: 700;
+    color: #ffffff;
+    background-color: #FF3621;
+    padding: 7px 12px 6px 12px;
+    margin-top: 30px;
+    margin-bottom: 14px;
+    border-radius: 3px;
+    page-break-after: avoid;
+}
+
+/* ── H3 sub-headers ──────────────────────────── */
+h3 {
+    font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1E1E2E;
+    margin-top: 20px;
+    margin-bottom: 6px;
+    border-bottom: 1.5px solid #FF3621;
+    padding-bottom: 3px;
+    page-break-after: avoid;
+}
+
+/* ── H4 ──────────────────────────────────────── */
+h4 {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #1A1A1A;
+    margin-top: 14px;
+    margin-bottom: 4px;
+    page-break-after: avoid;
+}
+
+/* ── Paragraphs ──────────────────────────────── */
+p {
+    margin: 0 0 10px 0;
+    orphans: 3;
+    widows: 3;
+}
+
+/* ── Code (inline) ───────────────────────────── */
+code {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 9pt;
+    background-color: #F0F0F0;
+    color: #1E1E2E;
+    padding: 1px 4px;
+    border-radius: 3px;
+    border: 1px solid #DDDDDD;
+}
+
+/* ── Code blocks ─────────────────────────────── */
+pre {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 8.5pt;
+    background-color: #1E1E2E;
+    color: #CDD6F4;
+    padding: 14px 16px;
+    border-radius: 5px;
+    border-left: 4px solid #FF3621;
+    overflow-x: auto;
+    margin: 12px 0 14px 0;
+    page-break-inside: avoid;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    border: none;
+    font-size: inherit;
+}
+
+/* ── Blockquotes (checkpoint banners etc.) ────── */
+blockquote {
+    background-color: #E8F5E9;
+    border-left: 4px solid #FF3621;
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 10pt;
+    color: #1A1A1A;
+    page-break-inside: avoid;
+}
+
+blockquote p {
+    margin: 0 0 4px 0;
+}
+
+blockquote p:last-child {
+    margin: 0;
+}
+
+/* ── Tables ──────────────────────────────────── */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+}
+
+thead tr {
+    background-color: #1E1E2E;
+    color: #ffffff;
+}
+
+thead th {
+    padding: 7px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 9.5pt;
+    border: none;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #F8F8F8;
+}
+
+tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+tbody td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #EEEEEE;
+    vertical-align: top;
+}
+
+/* ── Lists ───────────────────────────────────── */
+ul, ol {
+    margin: 6px 0 10px 0;
+    padding-left: 22px;
+}
+
+li {
+    margin-bottom: 3px;
+    line-height: 1.55;
+}
+
+li::marker {
+    color: #FF3621;
+}
+
+/* ── Horizontal rule ─────────────────────────── */
+hr {
+    border: none;
+    border-top: 2px solid #F0F0F0;
+    margin: 20px 0;
+}
+
+/* ── Links ───────────────────────────────────── */
+a {
+    color: #FF3621;
+    text-decoration: none;
+}
+
+/* ── Strong / emphasis ───────────────────────── */
+strong {
+    color: #1E1E2E;
+}
+
+/* ── Note box (> **Note:**) ──────────────────── */
+blockquote strong {
+    color: #FF3621;
+}
+
+/* ── Page break hints ────────────────────────── */
+h2, h3 {
+    page-break-after: avoid;
+}
