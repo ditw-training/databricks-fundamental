@@ -25,7 +25,7 @@ Specialty Tracks: ML, Data Engineering, SQL Analytics
 - **What it covers:** Delta Lake, Spark, Databricks platform, Medallion Architecture, basic ETL
 - **Exam:** 45 questions, 90 minutes, multiple choice + hands-on lab
 - **Who:** Anyone who completed this training + ~3 months hands-on practice
-- **Prep:** [academy.databricks.com/learn/learning-path](https://academy.databricks.com/learn/learning-path)
+- **Prep:** [databricks.com/learn/training](https://www.databricks.com/learn/training)
 - **Cost:** ~$200 USD
 
 ### ✅ Databricks Certified Associate Developer for Apache Spark
@@ -379,7 +379,7 @@ print(data["rows_processed"])  # 15000
 | Resource | Link |
 |----------|------|
 | Databricks documentation | [docs.databricks.com](https://docs.databricks.com) |
-| Databricks Academy | [academy.databricks.com](https://academy.databricks.com) |
+| Databricks Academy | [databricks.com/learn/training](https://www.databricks.com/learn/training) |
 | Community forums | [community.databricks.com](https://community.databricks.com) |
 | Databricks Blog | [databricks.com/blog](https://databricks.com/blog) |
 | YouTube: Databricks | search "Databricks Data + AI Summit" |
