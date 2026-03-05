@@ -89,19 +89,37 @@ df = (
 
 ## 3. Lakeflow Pipelines
 
-**Lakeflow Pipelines** is the current product name for what was previously called Delta Live Tables (DLT). It is Databricks' declarative framework for building **reliable, maintainable, production ETL pipelines**. You define tables with Python or SQL; Databricks handles orchestration, incremental processing, data quality, and restarts automatically.
+**Lakeflow Pipelines** is Databricks' declarative framework for building production ETL pipelines. You write Python or SQL files that declare tables — Databricks handles the execution order (DAG), incremental processing, data quality enforcement, retries, and observability automatically.
 
-> **Note:** The `dlt` Python library and decorator API (`@dlt.table`, `@dlt.expect_or_drop`, etc.) remain unchanged — only the product branding changed. Code written for DLT works as-is on Lakeflow Pipelines.
+---
 
-### Key Concepts
+### Step 1 — Create a Pipeline
+
+In the Databricks workspace:
+
+1. Left sidebar → **Workflows** → **Lakeflow Pipelines** → **Create pipeline**
+2. Fill in:
+   - **Pipeline name** — e.g. `retailhub_pipeline`
+   - **Source code** — add one or more notebooks or `.py` files
+   - **Destination** — select **Unity Catalog**, then set `Catalog` and `Target schema`
+   - **Cluster mode** — choose **Serverless** (recommended) or Enhanced Autoscaling
+3. Click **Create** — the pipeline appears in the list but has not run yet
+
+---
+
+### Step 2 — Write the Pipeline Code
+
+Create a notebook (`.py` or SQL) and attach it to the pipeline. Use `import dlt` — this is the Lakeflow Pipelines library:
 
 ```python
 import dlt
 from pyspark.sql.functions import col, sum as _sum
 
-# Bronze — raw ingestion via AutoLoader (cloud files)
+# ── BRONZE ──────────────────────────────────────────────────────────────────
+# Source: AutoLoader reads new files incrementally from cloud storage
 @dlt.table(
-    comment="Raw orders from daily file drop",
+    name="orders_bronze",
+    comment="Raw orders — append-only, no transformation",
     table_properties={"quality": "bronze"}
 )
 def orders_bronze():
@@ -109,28 +127,34 @@ def orders_bronze():
         spark.readStream
             .format("cloudFiles")
             .option("cloudFiles.format", "json")
-            .option("cloudFiles.schemaLocation", "/pipeline/schema/orders")
+            .option("cloudFiles.schemaLocation", "/pipelines/retailhub/schema")
             .load("/landing/orders/")
     )
 
-# Silver — cleaned & validated (data quality rules enforced at write)
+# ── SILVER ───────────────────────────────────────────────────────────────────
+# Data quality rules: rows that fail expect_or_drop are removed and counted
 @dlt.table(
-    comment="Validated orders — no nulls, no negatives",
+    name="orders_silver",
+    comment="Validated orders — nulls and negatives removed",
     table_properties={"quality": "silver"}
 )
 @dlt.expect_or_drop("valid_order_id",  "order_id IS NOT NULL")
-@dlt.expect_or_drop("positive_amount",  "total_amount > 0")
+@dlt.expect_or_drop("positive_amount", "total_amount > 0")
 @dlt.expect("known_status",            "status IN ('PENDING','COMPLETED','CANCELLED')")
 def orders_silver():
+    # dlt.read_stream() references the Bronze table defined above
+    # — Lakeflow resolves the dependency automatically
     return (
         dlt.read_stream("orders_bronze")
             .withColumn("order_date", col("order_datetime").cast("date"))
             .drop("order_datetime")
     )
 
-# Gold — aggregated (batch read, not streaming)
+# ── GOLD ─────────────────────────────────────────────────────────────────────
+# Batch aggregation — dlt.read() (not read_stream) for materialised result
 @dlt.table(
-    comment="Daily revenue by payment method",
+    name="revenue_by_day",
+    comment="Daily revenue per payment method",
     table_properties={"quality": "gold"}
 )
 def revenue_by_day():
@@ -141,24 +165,51 @@ def revenue_by_day():
     )
 ```
 
-### Why Lakeflow Pipelines over manual notebooks?
-- Built-in **data quality** rules (`expect`, `expect_or_drop`, `expect_or_fail`) with quality metrics dashboard
-- Automatic **dependency resolution** — Databricks infers the DAG from `dlt.read()` calls
-- **Incremental processing** by default — only new/changed data is processed per run
-- **Serverless mode** available — no cluster management needed
-- Pipeline observability: flow graph, quality metrics, event log, all in the UI
-- Supports both Python and SQL in the same pipeline
-- Enhanced error handling: failed quality checks quarantined, not lost
+**Key API calls:**
+
+| Call | Purpose |
+|------|---------|
+| `@dlt.table()` | Declare a managed table (materialized view) |
+| `@dlt.expect_or_drop("rule", "condition")` | Drop rows that fail; log failure count |
+| `@dlt.expect_or_fail("rule", "condition")` | Halt the pipeline if any row fails |
+| `@dlt.expect("rule", "condition")` | Log failures but keep all rows |
+| `dlt.read_stream("table")` | Incremental read from another pipeline table |
+| `dlt.read("table")` | Full batch read from another pipeline table |
+
+---
+
+### Step 3 — Run the Pipeline
+
+In the pipeline detail page:
+- **Start (Full refresh)** — drops and rewrites all tables — use the first time
+- **Start (Incremental)** — processes only data that arrived since the last run — use for production
+- **Schedule** — set a cron trigger under the **Schedule** tab (e.g. every 1 hour)
+
+During a run you see a **live DAG** with each table's status (green = OK, red = failed, yellow = quality violations).
+
+---
+
+### Step 4 — Monitor Data Quality
+
+After a run, click any table in the DAG → **Data quality** tab shows:
+- Total rows processed
+- Rows passed / dropped / failed per rule
+- Trends over multiple runs
+
+Failed rows go into a **quarantine table** (`_quarantined`) — they are not lost, they are isolate for inspection.
+
+---
 
 ### Lakeflow vs. manual notebooks
 
-| | Manual Notebooks | Lakeflow Pipelines |
+| | Manual Notebooks (Workflows) | Lakeflow Pipelines |
 |---|---|---|
-| Dependency order | Manual, error-prone | Automatic DAG |
-| Data quality | `assert` or custom code | `@dlt.expect_*` built-in |
-| Incremental load | Write from scratch | Built-in, default |
-| Recovery on failure | Manual rerun whole job | Rerun from failed table |
-| Observability | `print()` / logging | Visual pipeline graph |
+| Execution order | You define task dependencies manually | Inferred automatically from `dlt.read()` |
+| Data quality | You write `assert` / custom checks | `@dlt.expect_*` built-in with metrics UI |
+| Incremental load | Write manually with watermarks | Default — handled by the framework |
+| Recovery on failure | Rerun the whole job from the start | Rerun only the failed table downstream |
+| Observability | Logs / `print()` | Live visual DAG + quality dashboard |
+| Schema evolution | Manual `mergeSchema` | Automatic with `cloudFiles.inferColumnTypes` |
 
 📖 [Lakeflow Pipelines docs](https://docs.databricks.com/en/dlt/index.html)
 
