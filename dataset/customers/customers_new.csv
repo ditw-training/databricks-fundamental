@@ -13,4 +13,103 @@ CUST010012,Karol,Lotek,Karol.Lotek@onet.pl,903 624 343,Austin,CA,USA,2024-01-26,
 CUST010013,Adriana,Endurso,robAdrianaert.Endurso@onet.pl,690 850 876,Pennsylvania,CA,USA,2024-01-26,Premium
 CUST010014,Zbyszek,Zbigniew,Zbyszek.Zbigniew@onet.pl,315 850 876,Texas,TX,USA,2024-01-26,Standard
 CUST010015,Arnold,Brozek,Arnold.Brozek@onet.pl,538 850 876,Austin,CA,USA,2024-01-26,Premium
-
+CUST020001,Dorota,Nowak,dorota.nowak@interia.pl,+48 571 854 204,Detroit,MI,USA,2023-10-14,Basic
+CUST020002,Agata,Kaminski,agata.kaminski@onet.pl,+48 513 674 303,Detroit,MI,USA,2024-04-15,Premium
+CUST020003,Adam,Dabrowski,adam.dabrowski@hotmail.com,+48 579 320 881,Seattle,WA,USA,2023-02-13,Basic
+CUST020004,Lukasz,Adamczyk,lukasz.adamczyk@interia.pl,+48 70 649 25 58,Chicago,IL,USA,2025-05-27,Premium
+CUST020005,Witold,Jankowski,witold.jankowski@yahoo.com,+48 616 891 396,Chicago,IL,USA,2023-02-13,Premium
+CUST020006,Renata,Dudek,renata.dudek@wp.pl,+48 607 786 373,Chicago,IL,USA,2025-11-06,Standard
+CUST020007,Filip,Sadowski,filip.sadowski@hotmail.com,+48 785 324 801,Seattle,WA,USA,2023-04-27,Basic
+CUST020008,Krzysztof,Wieczorek,krzysztof.wieczorek@interia.pl,+48 790 997 835,Seattle,WA,USA,2023-11-16,Enterprise
+CUST020009,Renata,Wozniak,renata.wozniak@interia.pl,+48 787 651 369,Las Vegas,NV,USA,2024-10-13,Premium
+CUST020010,Igor,Szymanski,igor.szymanski@outlook.com,+48 524 981 212,Phoenix,AZ,USA,2025-03-26,Enterprise
+CUST020011,Zygmunt,Kowalczyk,zygmunt.kowalczyk@hotmail.com,+48 739 641 357,Detroit,MI,USA,2023-11-24,Basic
+CUST020012,Tomasz,Grabowski,tomasz.grabowski@o2.pl,+48 722 261 564,New York,NY,USA,2025-12-09,Standard
+CUST020013,Sebastian,Lewandowski,sebastian.lewandowski@interia.pl,+48 76 723 35 29,Denver,CO,USA,2023-09-25,Basic
+CUST020014,Zygmunt,Michalski,zygmunt.michalski@outlook.com,+48 685 999 951,Austin,TX,USA,2023-01-08,Basic
+CUST020015,Dagmara,Walczak,dagmara.walczak@yahoo.com,+48 80 884 26 26,Portland,OR,USA,2025-03-09,Enterprise
+CUST020016,Hanna,Jankowski,hanna.jankowski@interia.pl,+48 691 548 629,Atlanta,GA,USA,2023-04-08,Basic
+CUST020017,Laura,Nowak,laura.nowak@onet.pl,+48 503 172 824,Los Angeles,CA,USA,2023-02-02,Premium
+CUST020018,Cezary,Szewczyk,cezary.szewczyk@onet.pl,+48 748 319 652,Phoenix,AZ,USA,2025-10-19,Enterprise
+CUST020019,Izabela,Chmielewski,izabela.chmielewski@hotmail.com,+48 549 774 541,Denver,CO,USA,2024-07-15,Basic
+CUST020020,Dawid,Wojcik,dawid.wojcik@hotmail.com,+48 25 354 34 34,Detroit,MI,USA,2024-03-14,Standard
+CUST020021,Joanna,Sadowski,joanna.sadowski@onet.pl,+48 21 553 80 22,Los Angeles,CA,USA,2025-09-27,Basic
+CUST020022,Dagmara,Krawczyk,dagmara.krawczyk@wp.pl,+48 746 318 985,Boston,MA,USA,2023-03-13,Basic
+CUST020023,Marek,Piotrowski,marek.piotrowski@outlook.com,+48 784 777 835,Portland,OR,USA,2023-04-10,Standard
+CUST020024,Beata,Wojcik,beata.wojcik@o2.pl,+48 799 588 614,Minneapolis,MN,USA,2023-01-17,Basic
+CUST020025,Gabriela,Kowalczyk,gabriela.kowalczyk@yahoo.com,+48 42 513 25 82,San Diego,CA,USA,2025-10-02,Basic
+CUST020026,Pawel,Olejniczak,pawel.olejniczak@o2.pl,+48 38 785 50 40,Dallas,TX,USA,2024-03-22,Premium
+CUST020027,Renata,Michalski,renata.michalski@yahoo.com,+48 788 202 175,Detroit,MI,USA,2023-09-09,Standard
+CUST020028,Lukasz,Kowalczyk,lukasz.kowalczyk@onet.pl,+48 580 548 953,Detroit,MI,USA,2025-05-20,Basic
+CUST020029,Urszula,Pawlowski,urszula.pawlowski@yahoo.com,+48 29 370 24 23,Detroit,MI,USA,2023-05-10,Standard
+CUST020030,Laura,Mazur,laura.mazur@interia.pl,+48 628 966 152,Chicago,IL,USA,2025-07-27,Premium
+CUST020031,Bartosz,Kowalski,bartosz.kowalski@o2.pl,+48 93 368 30 66,Detroit,MI,USA,2025-07-18,Basic
+CUST020032,Dorota,Kowalczyk,dorota.kowalczyk@wp.pl,+48 689 696 665,Phoenix,AZ,USA,2024-03-02,Premium
+CUST020033,Marta,Wisniewski,marta.wisniewski@o2.pl,+48 627 782 205,Denver,CO,USA,2025-07-20,Standard
+CUST020034,Izabela,Dabrowski,izabela.dabrowski@wp.pl,+48 15 283 52 62,San Diego,CA,USA,2024-03-26,Basic
+CUST020035,Marek,Wisniewski,marek.wisniewski@outlook.com,+48 735 458 412,San Diego,CA,USA,2023-01-22,Standard
+CUST020036,Natalia,Nowicki,natalia.nowicki@interia.pl,+48 47 459 92 75,Boston,MA,USA,2025-09-11,Basic
+CUST020037,Dorota,Piotrowski,dorota.piotrowski@wp.pl,+48 635 139 211,Nashville,TN,USA,2024-06-24,Premium
+CUST020038,Patrycja,Szewczyk,patrycja.szewczyk@yahoo.com,+48 795 294 360,Los Angeles,CA,USA,2025-07-01,Standard
+CUST020039,Marta,Bak,marta.bak@yahoo.com,+48 54 738 50 94,Houston,TX,USA,2025-05-17,Premium
+CUST020040,Pawel,Michalski,pawel.michalski@hotmail.com,+48 82 230 34 63,Boston,MA,USA,2025-12-06,Premium
+CUST020041,Natalia,Kowalski,natalia.kowalski@interia.pl,+48 720 904 693,Nashville,TN,USA,2025-06-15,Enterprise
+CUST020042,Piotr,Mazur,piotr.mazur@outlook.com,+48 33 774 20 46,Minneapolis,MN,USA,2025-11-20,Premium
+CUST020043,Dagmara,Krawczyk,dagmara.krawczyk@interia.pl,+48 601 250 125,Los Angeles,CA,USA,2023-08-20,Basic
+CUST020044,Renata,Jablonski,renata.jablonski@onet.pl,+48 61 606 61 41,Phoenix,AZ,USA,2025-12-01,Basic
+CUST020045,Patrycja,Kwiatkowski,patrycja.kwiatkowski@wp.pl,+48 78 575 16 81,San Diego,CA,USA,2023-08-05,Enterprise
+CUST020046,Sylwia,Michalski,sylwia.michalski@outlook.com,+48 76 536 80 67,Philadelphia,PA,USA,2025-08-15,Premium
+CUST020047,Izabela,Grabowski,izabela.grabowski@outlook.com,+48 47 550 19 46,San Diego,CA,USA,2024-06-11,Basic
+CUST020048,Emil,Wozniak,emil.wozniak@onet.pl,+48 578 823 319,Chicago,IL,USA,2024-07-11,Enterprise
+CUST020049,Pawel,Wojcik,pawel.wojcik@onet.pl,+48 61 888 84 99,New York,NY,USA,2025-07-16,Basic
+CUST020050,Lukasz,Pawlowski,lukasz.pawlowski@hotmail.com,+48 65 651 79 87,San Diego,CA,USA,2024-04-09,Enterprise
+CUST020051,Sandra,Nowak,sandra.nowak@hotmail.com,+48 707 841 269,Atlanta,GA,USA,2023-10-18,Basic
+CUST020052,Natalia,Nowak,natalia.nowak@yahoo.com,+48 29 987 69 33,Los Angeles,CA,USA,2024-07-11,Standard
+CUST020053,Renata,Michalski,renata.michalski@o2.pl,+48 60 384 63 42,Chicago,IL,USA,2024-01-24,Basic
+CUST020054,Lukasz,Kwiatkowski,lukasz.kwiatkowski@yahoo.com,+48 95 141 13 41,San Antonio,TX,USA,2023-10-05,Standard
+CUST020055,Emil,Chmielewski,emil.chmielewski@yahoo.com,+48 611 576 816,Dallas,TX,USA,2024-03-20,Basic
+CUST020056,Filip,Pawlowski,filip.pawlowski@yahoo.com,+48 659 689 793,Boston,MA,USA,2024-12-07,Basic
+CUST020057,Zofia,Krawczyk,zofia.krawczyk@yahoo.com,+48 50 970 97 86,Houston,TX,USA,2025-01-12,Enterprise
+CUST020058,Marta,Kowalczyk,marta.kowalczyk@o2.pl,+48 715 942 601,Houston,TX,USA,2024-06-21,Enterprise
+CUST020059,Ewa,Bak,ewa.bak@wp.pl,+48 95 376 88 78,Portland,OR,USA,2024-07-27,Premium
+CUST020060,Krzysztof,Krawczyk,krzysztof.krawczyk@yahoo.com,+48 730 349 868,Atlanta,GA,USA,2025-10-22,Enterprise
+CUST020061,Laura,Nowak,laura.nowak@outlook.com,+48 35 599 37 55,Dallas,TX,USA,2024-05-20,Premium
+CUST020062,Urszula,Kowalski,urszula.kowalski@onet.pl,+48 708 600 668,San Diego,CA,USA,2025-08-21,Enterprise
+CUST020063,Piotr,Nowak,piotr.nowak@yahoo.com,+48 707 808 349,Austin,TX,USA,2025-10-12,Enterprise
+CUST020064,Urszula,Olejniczak,urszula.olejniczak@o2.pl,+48 781 438 460,Atlanta,GA,USA,2024-05-09,Standard
+CUST020065,Dorota,Jankowski,dorota.jankowski@o2.pl,+48 774 880 806,Philadelphia,PA,USA,2023-04-24,Enterprise
+CUST020066,Joanna,Olejniczak,joanna.olejniczak@interia.pl,+48 36 403 39 56,Philadelphia,PA,USA,2024-01-23,Standard
+CUST020067,Joanna,Wisniewski,joanna.wisniewski@gmail.com,+48 564 753 989,Portland,OR,USA,2023-01-19,Premium
+CUST020068,Robert,Chmielewski,robert.chmielewski@outlook.com,+48 526 358 982,Portland,OR,USA,2023-02-13,Enterprise
+CUST020069,Cezary,Wojcik,cezary.wojcik@wp.pl,+48 788 411 187,San Diego,CA,USA,2023-09-25,Enterprise
+CUST020070,Zygmunt,Kwiatkowski,zygmunt.kwiatkowski@hotmail.com,+48 726 404 980,Las Vegas,NV,USA,2024-05-19,Basic
+CUST020071,Anna,Lewandowski,anna.lewandowski@onet.pl,+48 45 776 20 30,San Diego,CA,USA,2023-09-03,Standard
+CUST020072,Adam,Jablonski,adam.jablonski@outlook.com,+48 72 398 14 39,Austin,TX,USA,2025-05-23,Enterprise
+CUST020073,Cezary,Kwiatkowski,cezary.kwiatkowski@interia.pl,+48 92 703 94 35,Miami,FL,USA,2023-09-08,Standard
+CUST020074,Joanna,Wozniak,joanna.wozniak@yahoo.com,+48 657 709 866,Las Vegas,NV,USA,2024-08-04,Enterprise
+CUST020075,Katarzyna,Wieczorek,katarzyna.wieczorek@interia.pl,+48 752 548 182,Nashville,TN,USA,2023-07-24,Premium
+CUST020076,Zygmunt,Piotrowski,zygmunt.piotrowski@gmail.com,+48 794 701 121,Dallas,TX,USA,2025-01-25,Standard
+CUST020077,Robert,Olejniczak,robert.olejniczak@outlook.com,+48 35 699 65 91,Portland,OR,USA,2023-08-12,Enterprise
+CUST020078,Laura,Michalski,laura.michalski@yahoo.com,+48 54 521 98 73,Austin,TX,USA,2025-07-27,Basic
+CUST020079,Renata,Kaminski,renata.kaminski@o2.pl,+48 559 891 513,Minneapolis,MN,USA,2023-11-28,Enterprise
+CUST020080,Pawel,Wojcik,pawel.wojcik@onet.pl,+48 755 740 552,Los Angeles,CA,USA,2023-05-18,Standard
+CUST020081,Kamil,Malinowski,kamil.malinowski@outlook.com,+48 622 826 262,Austin,TX,USA,2025-01-18,Enterprise
+CUST020082,Dagmara,Kwiatkowski,dagmara.kwiatkowski@yahoo.com,+48 560 763 952,Phoenix,AZ,USA,2024-12-10,Premium
+CUST020083,Pawel,Chmielewski,pawel.chmielewski@outlook.com,+48 782 248 492,San Antonio,TX,USA,2025-09-24,Standard
+CUST020084,Cezary,Grabowski,cezary.grabowski@hotmail.com,+48 759 373 940,New York,NY,USA,2024-12-10,Enterprise
+CUST020085,Ewa,Malinowski,ewa.malinowski@outlook.com,+48 782 881 656,Boston,MA,USA,2024-06-28,Standard
+CUST020086,Izabela,Zajac,izabela.zajac@onet.pl,+48 64 144 50 70,Boston,MA,USA,2024-11-26,Standard
+CUST020087,Sandra,Wisniewski,sandra.wisniewski@wp.pl,+48 669 990 202,Atlanta,GA,USA,2023-09-15,Basic
+CUST020088,Ewa,Jablonski,ewa.jablonski@wp.pl,+48 635 446 738,Boston,MA,USA,2025-02-28,Premium
+CUST020089,Tomasz,Zajac,tomasz.zajac@o2.pl,+48 74 993 79 14,Nashville,TN,USA,2023-04-21,Premium
+CUST020090,Igor,Kaminski,igor.kaminski@hotmail.com,+48 93 820 22 66,Philadelphia,PA,USA,2025-05-01,Basic
+CUST020091,Krzysztof,Wojcik,krzysztof.wojcik@interia.pl,+48 720 249 350,Minneapolis,MN,USA,2024-10-22,Standard
+CUST020092,Filip,Kozlowski,filip.kozlowski@yahoo.com,+48 60 734 97 40,Portland,OR,USA,2025-03-08,Enterprise
+CUST020093,Jakub,Sadowski,jakub.sadowski@interia.pl,+48 71 394 96 79,Philadelphia,PA,USA,2023-08-12,Premium
+CUST020094,Patrycja,Piotrowski,patrycja.piotrowski@outlook.com,+48 37 493 71 23,San Diego,CA,USA,2024-10-12,Premium
+CUST020095,Kamil,Nowak,kamil.nowak@hotmail.com,+48 789 985 802,Los Angeles,CA,USA,2025-12-16,Premium
+CUST020096,Igor,Adamczyk,igor.adamczyk@onet.pl,+48 91 356 96 94,Phoenix,AZ,USA,2025-02-21,Basic
+CUST020097,Katarzyna,Malinowski,katarzyna.malinowski@gmail.com,+48 567 192 402,Seattle,WA,USA,2025-07-06,Standard
+CUST020098,Emil,Dudek,emil.dudek@interia.pl,+48 44 944 71 47,Seattle,WA,USA,2023-08-03,Standard
+CUST020099,Igor,Wieczorek,igor.wieczorek@o2.pl,+48 702 114 370,Detroit,MI,USA,2023-08-12,Premium
+CUST020100,Zofia,Zajac,zofia.zajac@o2.pl,+48 619 582 125,Nashville,TN,USA,2025-06-20,Standard
