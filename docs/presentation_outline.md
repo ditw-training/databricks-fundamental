@@ -62,7 +62,7 @@
 - `display()` vs `show()` — kiedy co używać
 - Kiedy Spark jest szybszy, kiedy wolniejszy od tradycyjnego SQL
 
-> 🔬 **Live demo:** `M02_spark_architecture.ipynb`
+> 🔬 **Live demo:** `02_spark_architecture.ipynb`
 
 ---
 
@@ -84,7 +84,7 @@
 - `groupBy().agg(count, sum, avg)` — podstawowe agregacje
 - Tempo views i `spark.sql()`
 
-> 🔬 **Live demo:** `M03_medallion_ingestion.ipynb`
+> 🔬 **Live demo:** `03_medallion_ingestion.ipynb`
 > 💪 **Warsztat:** `WORKSHOP_ingestion.ipynb` (Tasks 03–12)
 
 ---
@@ -105,7 +105,7 @@
 - `RESTORE TABLE` — jak cofnąć przypadkowe nadpisanie
 - Kiedy korzystać z time travel, a kiedy z backupu
 
-> 🔬 **Live demo:** `M04_delta_fundamentals.ipynb`
+> 🔬 **Live demo:** `04_delta_fundamentals.ipynb`
 > 💪 **Warsztat:** `WORKSHOP_delta.ipynb`
 
 ---
@@ -127,7 +127,7 @@
 - Repair Run — jak naprawić tylko failujący task
 - Alerty e-mail przy sukcesie / błędzie
 
-> 🔬 **Live demo:** `M05_orchestration_jobs.ipynb`
+> 🔬 **Live demo:** `05_orchestration_jobs.ipynb`
 
 ---
 
@@ -143,7 +143,7 @@
 - Wizualizacje bezpośrednio z tabel Delta
 - Genie — interaktywne odpowiedzi na pytania w języku naturalnym
 
-> 🔬 **Live demo:** `M06_unity_catalog.ipynb` · `M07_aibi_dashboards.ipynb`
+> 🔬 **Live demo:** `06_unity_catalog.ipynb` · `07_aibi_dashboards.ipynb`
 
 ---
 
