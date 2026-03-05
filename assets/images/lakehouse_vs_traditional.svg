@@ -1,0 +1,113 @@
+<svg viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+
+  <!-- Background -->
+  <rect width="900" height="400" fill="#f8f9fa" rx="12"/>
+
+  <!-- Title -->
+  <text x="450" y="35" text-anchor="middle" font-size="20" font-weight="bold" fill="#1a1a2e">Traditional Architecture vs Lakehouse</text>
+
+  <!-- === LEFT: Traditional === -->
+  <rect x="30" y="55" width="390" height="320" rx="10" fill="#fff" stroke="#dc3545" stroke-width="2"/>
+  <rect x="30" y="55" width="390" height="38" rx="10" fill="#dc3545"/>
+  <text x="225" y="79" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">Traditional: Data Lake + Data Warehouse</text>
+
+  <!-- Data Sources -->
+  <rect x="55" y="110" width="110" height="36" rx="6" fill="#f8d7da" stroke="#dc3545" stroke-width="1.5"/>
+  <text x="110" y="128" text-anchor="middle" font-size="12" fill="#721c24">Source Data</text>
+  <text x="110" y="142" text-anchor="middle" font-size="10" fill="#721c24">(CSV, DB, API)</text>
+
+  <!-- Arrow right -->
+  <line x1="165" y1="128" x2="195" y2="128" stroke="#999" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Data Lake -->
+  <rect x="195" y="110" width="100" height="36" rx="6" fill="#ffc107" fill-opacity="0.3" stroke="#ffc107" stroke-width="1.5"/>
+  <text x="245" y="132" text-anchor="middle" font-size="12" fill="#856404">Data Lake</text>
+
+  <!-- Arrow down + ETL -->
+  <line x1="245" y1="146" x2="245" y2="172" stroke="#999" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="253" y="164" font-size="10" fill="#888">ETL</text>
+
+  <!-- Data Warehouse -->
+  <rect x="195" y="172" width="100" height="36" rx="6" fill="#0d6efd" fill-opacity="0.2" stroke="#0d6efd" stroke-width="1.5"/>
+  <text x="245" y="190" text-anchor="middle" font-size="12" fill="#084298">Data Warehouse</text>
+  <text x="245" y="204" text-anchor="middle" font-size="9" fill="#084298">(structured only)</text>
+
+  <!-- Arrow right to BI -->
+  <line x1="295" y1="190" x2="325" y2="190" stroke="#999" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- BI -->
+  <rect x="325" y="172" width="70" height="36" rx="6" fill="#d1e7dd" stroke="#0f5132" stroke-width="1.5"/>
+  <text x="360" y="194" text-anchor="middle" font-size="12" fill="#0f5132">BI / SQL</text>
+
+  <!-- ML blocked -->
+  <rect x="325" y="219" width="70" height="36" rx="6" fill="#f8d7da" stroke="#dc3545" stroke-width="1.5" stroke-dasharray="4 2"/>
+  <text x="360" y="237" text-anchor="middle" font-size="12" fill="#721c24">ML ❌</text>
+  <text x="360" y="251" text-anchor="middle" font-size="9" fill="#721c24">separate copy</text>
+
+  <!-- Problems box -->
+  <rect x="50" y="270" width="350" height="90" rx="8" fill="#f8d7da" stroke="#dc3545" stroke-width="1"/>
+  <text x="225" y="290" text-anchor="middle" font-size="12" font-weight="bold" fill="#721c24">⚠️ Problems</text>
+  <text x="65" y="308" font-size="11" fill="#721c24">• Data duplication: Lake + Warehouse = 2× cost</text>
+  <text x="65" y="323" font-size="11" fill="#721c24">• ETL pipelines complex, brittle, expensive</text>
+  <text x="65" y="338" font-size="11" fill="#721c24">• ACID transactions absent in raw Data Lake</text>
+  <text x="65" y="353" font-size="11" fill="#721c24">• ML needs separate data copy from warehouse</text>
+
+  <!-- === RIGHT: Lakehouse === -->
+  <rect x="480" y="55" width="390" height="320" rx="10" fill="#fff" stroke="#198754" stroke-width="2"/>
+  <rect x="480" y="55" width="390" height="38" rx="10" fill="#198754"/>
+  <text x="675" y="79" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff">Databricks Lakehouse</text>
+
+  <!-- Source -->
+  <rect x="505" y="110" width="110" height="36" rx="6" fill="#d1e7dd" stroke="#198754" stroke-width="1.5"/>
+  <text x="560" y="128" text-anchor="middle" font-size="12" fill="#0f5132">Source Data</text>
+  <text x="560" y="142" text-anchor="middle" font-size="10" fill="#0f5132">(CSV, DB, API)</text>
+
+  <!-- Arrow -->
+  <line x1="615" y1="128" x2="643" y2="128" stroke="#999" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Delta Lake (center) -->
+  <rect x="643" y="100" width="110" height="52" rx="8" fill="#0d6efd" fill-opacity="0.15" stroke="#0d6efd" stroke-width="2"/>
+  <text x="698" y="121" text-anchor="middle" font-size="13" font-weight="bold" fill="#084298">Delta Lake</text>
+  <text x="698" y="137" text-anchor="middle" font-size="10" fill="#084298">ACID · versioning · schema</text>
+  <text x="698" y="150" text-anchor="middle" font-size="10" fill="#084298">open format (Parquet)</text>
+
+  <!-- BI arrow -->
+  <line x1="753" y1="120" x2="793" y2="140" stroke="#198754" stroke-width="1.5" marker-end="url(#arrow-g)"/>
+  <!-- ML arrow -->
+  <line x1="753" y1="138" x2="793" y2="185" stroke="#198754" stroke-width="1.5" marker-end="url(#arrow-g)"/>
+
+  <!-- BI box -->
+  <rect x="793" y="115" width="60" height="30" rx="6" fill="#d1e7dd" stroke="#198754" stroke-width="1.5"/>
+  <text x="823" y="135" text-anchor="middle" font-size="12" fill="#0f5132">BI / SQL</text>
+
+  <!-- ML box -->
+  <rect x="793" y="165" width="60" height="30" rx="6" fill="#cfe2ff" stroke="#0d6efd" stroke-width="1.5"/>
+  <text x="823" y="185" text-anchor="middle" font-size="12" fill="#084298">ML ✅</text>
+
+  <!-- Streaming -->
+  <rect x="793" y="210" width="60" height="30" rx="6" fill="#e2d9f3" stroke="#6f42c1" stroke-width="1.5"/>
+  <text x="823" y="230" text-anchor="middle" font-size="12" fill="#4a148c">Streaming</text>
+  <line x1="753" y1="140" x2="793" y2="225" stroke="#6f42c1" stroke-width="1.5" marker-end="url(#arrow-p)"/>
+
+  <!-- Benefits box -->
+  <rect x="500" y="270" width="350" height="90" rx="8" fill="#d1e7dd" stroke="#198754" stroke-width="1"/>
+  <text x="675" y="290" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f5132">✅ Benefits</text>
+  <text x="515" y="308" font-size="11" fill="#0f5132">• Single copy of data for BI + ML + Streaming</text>
+  <text x="515" y="323" font-size="11" fill="#0f5132">• ACID transactions natively (Delta format)</text>
+  <text x="515" y="338" font-size="11" fill="#0f5132">• No separate ETL from Lake → Warehouse</text>
+  <text x="515" y="353" font-size="11" fill="#0f5132">• Lower cost, higher data freshness</text>
+
+  <!-- Arrows defs -->
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#999"/>
+    </marker>
+    <marker id="arrow-g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#198754"/>
+    </marker>
+    <marker id="arrow-p" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6f42c1"/>
+    </marker>
+  </defs>
+
+</svg>
