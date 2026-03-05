@@ -374,20 +374,7 @@ print(data["rows_processed"])  # 15000
 
 ---
 
-## 10. Recommended Study Plan (Post-Training)
-
-| Week | Focus | Resource |
-|------|-------|----------|
-| 1–2 | Repeat today's labs on your own cluster | This repo |
-| 3–4 | AutoLoader → build a real Bronze ingestion pipeline | `05_orchestration_jobs.ipynb` extended |
-| 5–6 | Lakeflow Pipelines → convert W1+W2 to a Lakeflow pipeline | [Lakeflow Pipelines quickstart](https://docs.databricks.com/en/dlt/tutorial-python.html) |
-| 7–8 | Unity Catalog governance features | [UC hands-on labs](https://docs.databricks.com/data-governance/unity-catalog/index.html) |
-| 9–10 | Exam prep — Databricks Academy Learning Path | [academy.databricks.com](https://academy.databricks.com) |
-| 11–12 | Practice exam + weak areas revision | [Udemy: Databricks DE Associate](https://www.udemy.com) |
-
----
-
-## 11. Community & Resources
+## 10. Community & Resources
 
 | Resource | Link |
 |----------|------|
