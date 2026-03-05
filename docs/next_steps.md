@@ -109,57 +109,60 @@ In the Databricks workspace:
 
 ### Step 2 — Write the Pipeline Code
 
-Create a notebook (`.py` or SQL) and attach it to the pipeline. Use `import dlt` — this is the Lakeflow Pipelines library:
+Create a Python (`.py`) file and attach it to the pipeline. The current API uses `from pyspark import pipelines as dp`:
 
 ```python
-import dlt
+from pyspark import pipelines as dp
 from pyspark.sql.functions import col, sum as _sum
 
 # ── BRONZE ──────────────────────────────────────────────────────────────────
-# Source: AutoLoader reads new files incrementally from cloud storage
-@dlt.table(
-    name="orders_bronze",
-    comment="Raw orders — append-only, no transformation",
-    table_properties={"quality": "bronze"}
+# 1. Declare the target streaming table (append-only, Auto Loader ingestion)
+dp.create_streaming_table(
+    "orders_bronze",
+    comment="Raw orders — append-only, no transformation"
 )
-def orders_bronze():
+
+# 2. Define the Append Flow that populates the table
+@dp.append_flow(target="orders_bronze", name="orders_bronze_flow")
+def orders_bronze_flow():
     return (
         spark.readStream
             .format("cloudFiles")
             .option("cloudFiles.format", "json")
-            .option("cloudFiles.schemaLocation", "/pipelines/retailhub/schema")
+            .option("cloudFiles.inferColumnTypes", "true")
             .load("/landing/orders/")
     )
 
 # ── SILVER ───────────────────────────────────────────────────────────────────
-# Data quality rules: rows that fail expect_or_drop are removed and counted
-@dlt.table(
-    name="orders_silver",
+# Quality rules are passed as a dict — rows that fail are dropped and counted
+dp.create_streaming_table(
+    "orders_silver",
     comment="Validated orders — nulls and negatives removed",
-    table_properties={"quality": "silver"}
+    expect_all_or_drop={
+        "valid_order_id":  "order_id IS NOT NULL",
+        "positive_amount": "total_amount > 0"
+    }
 )
-@dlt.expect_or_drop("valid_order_id",  "order_id IS NOT NULL")
-@dlt.expect_or_drop("positive_amount", "total_amount > 0")
-@dlt.expect("known_status",            "status IN ('PENDING','COMPLETED','CANCELLED')")
-def orders_silver():
-    # dlt.read_stream() references the Bronze table defined above
+
+@dp.append_flow(target="orders_silver", name="orders_silver_flow")
+def orders_silver_flow():
+    # spark.readStream.table() reads from a streaming table defined above
     # — Lakeflow resolves the dependency automatically
     return (
-        dlt.read_stream("orders_bronze")
+        spark.readStream.table("orders_bronze")
             .withColumn("order_date", col("order_datetime").cast("date"))
             .drop("order_datetime")
     )
 
 # ── GOLD ─────────────────────────────────────────────────────────────────────
-# Batch aggregation — dlt.read() (not read_stream) for materialised result
-@dlt.table(
+# Materialized view — batch aggregation, re-computed on each pipeline run
+@dp.table(
     name="revenue_by_day",
-    comment="Daily revenue per payment method",
-    table_properties={"quality": "gold"}
+    comment="Daily revenue per payment method"
 )
 def revenue_by_day():
     return (
-        dlt.read("orders_silver")
+        spark.read.table("orders_silver")
             .groupBy("order_date", "payment_method")
             .agg(_sum("total_amount").alias("daily_revenue"))
     )
@@ -169,12 +172,14 @@ def revenue_by_day():
 
 | Call | Purpose |
 |------|---------|
-| `@dlt.table()` | Declare a managed table (materialized view) |
-| `@dlt.expect_or_drop("rule", "condition")` | Drop rows that fail; log failure count |
-| `@dlt.expect_or_fail("rule", "condition")` | Halt the pipeline if any row fails |
-| `@dlt.expect("rule", "condition")` | Log failures but keep all rows |
-| `dlt.read_stream("table")` | Incremental read from another pipeline table |
-| `dlt.read("table")` | Full batch read from another pipeline table |
+| `dp.create_streaming_table(name, ...)` | Declare a streaming table (append-only target) |
+| `expect_all_or_drop={...}` | Drop rows that fail any rule; log failure count |
+| `expect_all_or_warn={...}` | Keep all rows but log failures as warnings |
+| `expect_all={...}` | Fail the pipeline if any row violates a rule |
+| `@dp.append_flow(target, name)` | Define the flow (query) that populates a streaming table |
+| `@dp.table(name, comment)` | Declare a materialized view (batch, re-computed each run) |
+| `spark.readStream.table("table")` | Incremental read from another pipeline streaming table |
+| `spark.read.table("table")` | Full batch read from another pipeline table |
 
 ---
 
@@ -204,14 +209,14 @@ Failed rows go into a **quarantine table** (`_quarantined`) — they are not los
 
 | | Manual Notebooks (Workflows) | Lakeflow Pipelines |
 |---|---|---|
-| Execution order | You define task dependencies manually | Inferred automatically from `dlt.read()` |
-| Data quality | You write `assert` / custom checks | `@dlt.expect_*` built-in with metrics UI |
+| Execution order | You define task dependencies manually | Inferred automatically from table references |
+| Data quality | You write `assert` / custom checks | `expect_all_or_drop` / `expect_all_or_warn` built-in with metrics UI |
 | Incremental load | Write manually with watermarks | Default — handled by the framework |
 | Recovery on failure | Rerun the whole job from the start | Rerun only the failed table downstream |
 | Observability | Logs / `print()` | Live visual DAG + quality dashboard |
 | Schema evolution | Manual `mergeSchema` | Automatic with `cloudFiles.inferColumnTypes` |
 
-📖 [Lakeflow Pipelines docs](https://docs.databricks.com/en/dlt/index.html)
+📖 [Lakeflow Spark Declarative Pipelines docs](https://docs.databricks.com/aws/en/ldp/)
 
 ---
 
