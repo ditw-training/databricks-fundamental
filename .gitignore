@@ -57,3 +57,20 @@ logs/
 *.dmg
 *.exe
 *.zip
+
+# PDF build workspace
+.build/
+
+# ── Terraform (infra/terraform) ───────────────────────────────────────────────
+# State holds resource IDs and can hold secrets; tfvars holds your subscription.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+tfplan*
+crash.log
+
+# ── Local agent handoff (tenant/subscription IDs, participant e-mails) ────────
+AGENTS.md
+docs/agent-handoff/
