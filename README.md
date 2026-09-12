@@ -149,12 +149,15 @@ Databricks-Fundamental/
 |   products/
 |       products.csv              # 2,000 records — product catalog
 |
-| docs/                           # PDF reference materials
-|   ENG-Databricks-Fundamentals.pdf        # Training slides (EN)
-|   cheatsheet_databricks_fundamental.pdf  # Cheatsheet: PySpark, Delta SQL, Workflows
-|   quiz_databricks_fundamental.pdf        # Self-assessment quiz (10 questions)
-|   external_connection_guide.pdf          # Connecting Databricks to Power BI, VS Code, ADF
-|   next_steps.pdf                         # Post-training learning guide
+| docs/                           # PDF reference documents
+|   ENG/                          # English versions
+|   |   ENG-Databricks-Fundamentals.pdf        # Training slides
+|   |   cheatsheet_databricks_fundamental.pdf  # Reference guide for all modules
+|   |   quiz_databricks_fundamental.pdf        # Quiz: 40 questions with answer key
+|   |   next_steps.pdf                         # What to learn next
+|   |   external_connection_guide.pdf          # Connecting Unity Catalog to ADLS Gen2
+|   |   pyspark_vs_sparksql_m03.pdf            # Module 03 in PySpark and Spark SQL
+|   PL/                           # Polish versions (same documents, no slides)
 |
 | materials/
 |   orchestration/                # Sample notebooks for Workflows demo (M05)
@@ -220,12 +223,17 @@ unit_cost, list_price, weight_kg, status
 
 ### docs/
 
+Reference documents in two language versions with identical file names: `docs/ENG/` (English) and `docs/PL/` (Polish). The training slides are in `docs/ENG/` only.
+
 | File | When to use |
 |------|-------------|
-| `cheatsheet_databricks_fundamental.pdf` | Quick reference — PySpark commands, Delta SQL, Workflow steps |
-| `quiz_databricks_fundamental.pdf` | Self-assessment after training — 10 questions across 6 sections |
-| `external_connection_guide.pdf` | Connecting Databricks to Power BI, VS Code, Azure Data Factory |
-| `next_steps.pdf` | Post-training learning guide: AutoLoader, Lakeflow, Streaming, MLflow |
+| `cheatsheet_databricks_fundamental.pdf` | Reference guide for all seven modules: PySpark, Delta Lake SQL, Lakeflow Jobs, Unity Catalog |
+| `quiz_databricks_fundamental.pdf` | Self-assessment after the training: 40 questions with an answer key |
+| `next_steps.pdf` | What to learn next: certification, Auto Loader, Lakeflow Pipelines, streaming, performance |
+| `external_connection_guide.pdf` | Step-by-step connection of Unity Catalog to ADLS Gen2 |
+| `pyspark_vs_sparksql_m03.pdf` | Module 03 operations shown side by side in PySpark and Spark SQL |
+
+The PDFs are built from Markdown sources with `scripts/build_pdfs.sh` (pandoc and WeasyPrint).
 
 ### materials/orchestration/
 
