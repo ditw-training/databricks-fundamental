@@ -62,7 +62,7 @@ For the next training, replace `participants` and run `plan`/`apply` again — u
 the list are removed from the workspace and from the training group.
 
 Terraform also creates the workspace group `training_group_name` (trainer + participants, read by
-`00_pre_config`) and a shared single-node training cluster in standard access mode — the group can restart it
+`00_pre_config`) and a shared autoscaling training cluster in standard access mode (Standard_DS3_v2 workers, 2–10, Standard_D4ds_v5 driver) — the group can restart it
 (`terraform output -raw training_cluster_id`).
 Participants with Contributor on the resource group become workspace admins when they first log in —
 that is Azure's behaviour, not something this code grants.

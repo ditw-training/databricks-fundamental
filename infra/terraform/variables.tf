@@ -82,9 +82,27 @@ variable "training_group_name" {
 }
 
 variable "cluster_node_type" {
-  description = "VM size of the shared single-node training cluster. 8 vCPU / 32 GB carries ~10 light notebook sessions; lab subscriptions often have low vCPU quotas."
+  description = "Worker VM size of the shared training cluster (4 vCPU / 14 GB each)."
   type        = string
-  default     = "Standard_D8ds_v5"
+  default     = "Standard_DS3_v2"
+}
+
+variable "cluster_driver_node_type" {
+  description = "Driver VM size of the shared training cluster."
+  type        = string
+  default     = "Standard_D4ds_v5"
+}
+
+variable "cluster_min_workers" {
+  description = "Autoscaling lower bound."
+  type        = number
+  default     = 2
+}
+
+variable "cluster_max_workers" {
+  description = "Autoscaling upper bound. 10 x DS3_v2 + D4ds_v5 driver needs 44 vCPU of quota (DSv2 and Ddsv5 families) — lab subscriptions often have less."
+  type        = number
+  default     = 10
 }
 
 variable "cluster_autotermination_minutes" {
