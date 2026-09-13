@@ -1,0 +1,101 @@
+store_id,store_name,city,state,store_format,opened_date,floor_area_m2
+STORE001,RetailHub Columbus Outlet,Columbus,OH,Outlet,2017-02-12,1950
+STORE002,RetailHub Virginia Beach High Street,Virginia Beach,VA,High Street,2015-02-23,2350
+STORE003,RetailHub Dallas Mall,Dallas,TX,Mall,2015-02-19,2100
+STORE004,RetailHub San Francisco High Street,San Francisco,CA,High Street,2021-01-28,1850
+STORE005,RetailHub Ann Arbor Mall,Ann Arbor,MI,Mall,2021-10-26,1600
+STORE006,RetailHub Jersey City Mall,Jersey City,NJ,Mall,2012-01-23,1600
+STORE007,RetailHub Pittsburgh High Street,Pittsburgh,PA,High Street,2022-02-18,3100
+STORE008,RetailHub Atlanta High Street,Atlanta,GA,High Street,2016-10-11,500
+STORE009,RetailHub Albany High Street,Albany,NY,High Street,2019-10-16,650
+STORE010,RetailHub Naperville High Street,Naperville,IL,High Street,2022-07-18,1450
+STORE011,RetailHub Orlando Retail Park,Orlando,FL,Retail Park,2014-07-02,2150
+STORE012,RetailHub Raleigh High Street,Raleigh,NC,High Street,2021-09-01,1900
+STORE013,RetailHub Cincinnati Mall,Cincinnati,OH,Mall,2020-06-22,3050
+STORE014,RetailHub Arlington Outlet,Arlington,VA,Outlet,2023-03-23,650
+STORE015,RetailHub Dallas High Street,Dallas,TX,High Street,2019-12-15,2500
+STORE016,RetailHub Los Angeles Outlet,Los Angeles,CA,Outlet,2021-03-15,2850
+STORE017,RetailHub Grand Rapids Mall,Grand Rapids,MI,Mall,2023-12-27,2450
+STORE018,RetailHub Jersey City High Street,Jersey City,NJ,High Street,2023-12-17,1850
+STORE019,RetailHub Pittsburgh Outlet,Pittsburgh,PA,Outlet,2013-02-10,700
+STORE020,RetailHub Atlanta Outlet,Atlanta,GA,Outlet,2020-12-09,1700
+STORE021,RetailHub Albany Retail Park,Albany,NY,Retail Park,2016-11-24,2500
+STORE022,RetailHub Naperville Outlet,Naperville,IL,Outlet,2024-08-19,1100
+STORE023,RetailHub Orlando Mall,Orlando,FL,Mall,2024-04-28,600
+STORE024,RetailHub Raleigh High Street,Raleigh,NC,High Street,2022-08-12,2950
+STORE025,RetailHub Columbus Outlet,Columbus,OH,Outlet,2017-05-28,1200
+STORE026,RetailHub Virginia Beach High Street,Virginia Beach,VA,High Street,2014-03-08,2700
+STORE027,RetailHub Dallas Outlet,Dallas,TX,Outlet,2022-06-16,2650
+STORE028,RetailHub San Francisco Outlet,San Francisco,CA,Outlet,2018-05-01,2800
+STORE029,RetailHub Grand Rapids Retail Park,Grand Rapids,MI,Retail Park,2017-11-11,1700
+STORE030,RetailHub Newark Mall,Newark,NJ,Mall,2015-11-10,1000
+STORE031,RetailHub Philadelphia Outlet,Philadelphia,PA,Outlet,2020-09-21,2000
+STORE032,RetailHub Atlanta High Street,Atlanta,GA,High Street,2024-01-05,1600
+STORE033,RetailHub Albany Outlet,Albany,NY,Outlet,2014-10-07,750
+STORE034,RetailHub Chicago Retail Park,Chicago,IL,Retail Park,2016-01-12,500
+STORE035,RetailHub Tampa Mall,Tampa,FL,Mall,2013-12-28,1650
+STORE036,RetailHub Raleigh Outlet,Raleigh,NC,Outlet,2015-05-24,900
+STORE037,RetailHub Cleveland Outlet,Cleveland,OH,Outlet,2012-05-08,700
+STORE038,RetailHub Virginia Beach High Street,Virginia Beach,VA,High Street,2012-04-03,1150
+STORE039,RetailHub Austin Retail Park,Austin,TX,Retail Park,2023-09-27,800
+STORE040,RetailHub San Francisco Outlet,San Francisco,CA,Outlet,2023-08-05,2400
+STORE041,RetailHub Detroit Outlet,Detroit,MI,Outlet,2022-12-19,2800
+STORE042,RetailHub Jersey City Mall,Jersey City,NJ,Mall,2017-02-11,2950
+STORE043,RetailHub Philadelphia Outlet,Philadelphia,PA,Outlet,2017-08-07,1800
+STORE044,RetailHub Savannah High Street,Savannah,GA,High Street,2022-05-03,1000
+STORE045,RetailHub Buffalo Retail Park,Buffalo,NY,Retail Park,2015-09-08,650
+STORE046,RetailHub Chicago Mall,Chicago,IL,Mall,2014-03-03,2200
+STORE047,RetailHub Miami Mall,Miami,FL,Mall,2016-09-10,1050
+STORE048,RetailHub Raleigh Outlet,Raleigh,NC,Outlet,2019-02-27,1900
+STORE049,RetailHub Cleveland Retail Park,Cleveland,OH,Retail Park,2022-08-26,750
+STORE050,RetailHub Virginia Beach Retail Park,Virginia Beach,VA,Retail Park,2024-03-05,1550
+STORE051,RetailHub Austin Retail Park,Austin,TX,Retail Park,2016-03-15,2950
+STORE052,RetailHub San Francisco Mall,San Francisco,CA,Mall,2015-03-16,800
+STORE053,RetailHub Detroit Mall,Detroit,MI,Mall,2024-03-11,2550
+STORE054,RetailHub Jersey City Outlet,Jersey City,NJ,Outlet,2023-03-23,1900
+STORE055,RetailHub Philadelphia Retail Park,Philadelphia,PA,Retail Park,2021-10-15,2700
+STORE056,RetailHub Augusta High Street,Augusta,GA,High Street,2022-01-14,2300
+STORE057,RetailHub Buffalo Mall,Buffalo,NY,Mall,2014-12-23,2000
+STORE058,RetailHub Springfield Mall,Springfield,IL,Mall,2012-12-08,400
+STORE059,RetailHub Miami Retail Park,Miami,FL,Retail Park,2022-07-16,1650
+STORE060,RetailHub Durham Outlet,Durham,NC,Outlet,2016-02-19,950
+STORE061,RetailHub Cincinnati Outlet,Cincinnati,OH,Outlet,2014-04-02,650
+STORE062,RetailHub Virginia Beach Retail Park,Virginia Beach,VA,Retail Park,2013-06-22,800
+STORE063,RetailHub Dallas Mall,Dallas,TX,Mall,2023-03-02,1050
+STORE064,RetailHub Los Angeles Outlet,Los Angeles,CA,Outlet,2024-01-19,1400
+STORE065,RetailHub Grand Rapids Mall,Grand Rapids,MI,Mall,2023-07-09,1950
+STORE066,RetailHub Trenton Outlet,Trenton,NJ,Outlet,2013-01-23,1350
+STORE067,RetailHub Philadelphia High Street,Philadelphia,PA,High Street,2019-02-16,2850
+STORE068,RetailHub Augusta High Street,Augusta,GA,High Street,2019-01-12,1800
+STORE069,RetailHub Albany Retail Park,Albany,NY,Retail Park,2016-08-08,1750
+STORE070,RetailHub Springfield Retail Park,Springfield,IL,Retail Park,2014-01-09,1500
+STORE071,RetailHub Orlando Retail Park,Orlando,FL,Retail Park,2012-03-03,1700
+STORE072,RetailHub Raleigh Retail Park,Raleigh,NC,Retail Park,2020-10-07,2650
+STORE073,RetailHub Cleveland Retail Park,Cleveland,OH,Retail Park,2021-07-17,600
+STORE074,RetailHub Richmond High Street,Richmond,VA,High Street,2023-02-18,2900
+STORE075,RetailHub Austin High Street,Austin,TX,High Street,2020-08-11,1600
+STORE076,RetailHub San Francisco Mall,San Francisco,CA,Mall,2016-01-07,1200
+STORE077,RetailHub Ann Arbor Outlet,Ann Arbor,MI,Outlet,2021-10-24,2850
+STORE078,RetailHub Jersey City High Street,Jersey City,NJ,High Street,2021-07-10,400
+STORE079,RetailHub Pittsburgh Outlet,Pittsburgh,PA,Outlet,2014-06-01,1050
+STORE080,RetailHub Savannah High Street,Savannah,GA,High Street,2020-02-19,2900
+STORE081,RetailHub Buffalo High Street,Buffalo,NY,High Street,2022-06-17,850
+STORE082,RetailHub Chicago Outlet,Chicago,IL,Outlet,2017-12-15,2900
+STORE083,RetailHub Tampa Mall,Tampa,FL,Mall,2016-05-03,400
+STORE084,RetailHub Raleigh High Street,Raleigh,NC,High Street,2022-12-26,2950
+STORE085,RetailHub Columbus Mall,Columbus,OH,Mall,2024-06-12,450
+STORE086,RetailHub Arlington Outlet,Arlington,VA,Outlet,2015-08-10,2400
+STORE087,RetailHub Dallas High Street,Dallas,TX,High Street,2024-01-10,2500
+STORE088,RetailHub Los Angeles Outlet,Los Angeles,CA,Outlet,2013-12-15,1800
+STORE089,RetailHub Ann Arbor Retail Park,Ann Arbor,MI,Retail Park,2023-04-27,500
+STORE090,RetailHub Newark High Street,Newark,NJ,High Street,2023-01-28,1450
+STORE091,RetailHub Allentown Outlet,Allentown,PA,Outlet,2023-12-20,2950
+STORE092,RetailHub Atlanta Mall,Atlanta,GA,Mall,2015-01-17,2250
+STORE093,RetailHub New York Mall,New York,NY,Mall,2018-11-08,650
+STORE094,RetailHub Naperville Mall,Naperville,IL,Mall,2021-01-28,600
+STORE095,RetailHub Orlando Retail Park,Orlando,FL,Retail Park,2022-01-26,1650
+STORE096,RetailHub Raleigh Retail Park,Raleigh,NC,Retail Park,2013-02-25,2600
+STORE097,RetailHub Cincinnati High Street,Cincinnati,OH,High Street,2012-02-09,1450
+STORE098,RetailHub Virginia Beach Retail Park,Virginia Beach,VA,Retail Park,2012-04-10,1050
+STORE099,RetailHub Houston High Street,Houston,TX,High Street,2023-12-17,2800
+STORE100,RetailHub Los Angeles Retail Park,Los Angeles,CA,Retail Park,2015-05-25,1150

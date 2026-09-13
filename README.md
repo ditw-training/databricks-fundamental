@@ -164,6 +164,9 @@ Databricks-Fundamental/
 |       task_01_validate.ipynb
 |       task_02_transform.ipynb
 |       task_03_report.ipynb
+|   volume_upload/                # Files uploaded BY HAND in the M01 Volume demo (not copied by setup)
+|       stores.csv
+|       promotions.json
 |
 | assets/
 |   images/                       # Screenshots used in notebooks
@@ -238,9 +241,16 @@ The PDFs are built from Markdown sources with `scripts/build_pdfs.sh` (pandoc an
 ### materials/orchestration/
 
 Three sample notebooks used in the Workflows demo (M05):
-- `task_01_validate.ipynb` — input data validation
-- `task_02_transform.ipynb` — Bronze → Silver transformation
-- `task_03_report.ipynb` — Gold report generation
+- `task_01_validate.ipynb` — validates the source row count and passes it on as a task value
+- `task_02_transform.ipynb` — adds trip duration and cost per mile, passes the averages on as task values
+- `task_03_report.ipynb` — prints the report, including the values from the transform task
+
+### materials/volume_upload/
+
+Two small files for the M01 demo *Upload your own files to a Volume*. `00_pre_config` copies only `dataset/`,
+so these files are **not** in any volume — the trainer uploads them by hand in Catalog Explorer:
+- `stores.csv` — 100 RetailHub stores (`store_id` matches `orders_batch.json`)
+- `promotions.json` — 7 promotions for Dec 2024 – Jan 2025, JSON Lines
 
 ---
 
