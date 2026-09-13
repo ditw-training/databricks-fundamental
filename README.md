@@ -150,14 +150,14 @@ Databricks-Fundamental/
 |       products.csv              # 2,000 records — product catalog
 |
 | docs/                           # PDF reference documents
+|   Databricks_Fundamentals_Altkom_PL.pptx       # Training slides (Polish, editable)
 |   ENG/                          # English versions
-|   |   ENG-Databricks-Fundamentals.pdf        # Training slides
 |   |   cheatsheet_databricks_fundamental.pdf  # Reference guide for all modules
 |   |   quiz_databricks_fundamental.pdf        # Quiz: 40 questions with answer key
 |   |   next_steps.pdf                         # What to learn next
 |   |   external_connection_guide.pdf          # Connecting Unity Catalog to ADLS Gen2
-|   |   pyspark_vs_sparksql_m03.pdf            # Module 03 in PySpark and Spark SQL
-|   PL/                           # Polish versions (same documents, no slides)
+|   |   pyspark_vs_sparksql.pdf                # Module 03 in PySpark and Spark SQL
+|   PL/                           # Polish versions (same documents + Databricks_Fundamentals_Altkom_PL.pdf slides)
 |
 | materials/
 |   orchestration/                # Sample notebooks for Workflows demo (M05)
@@ -223,7 +223,7 @@ unit_cost, list_price, weight_kg, status
 
 ### docs/
 
-Reference documents in two language versions with identical file names: `docs/ENG/` (English) and `docs/PL/` (Polish). The training slides are in `docs/ENG/` only.
+Reference documents in two language versions with identical file names: `docs/ENG/` (English) and `docs/PL/` (Polish). The training slides are in Polish: `docs/PL/Databricks_Fundamentals_Altkom_PL.pdf` (editable source: `docs/Databricks_Fundamentals_Altkom_PL.pptx`).
 
 | File | When to use |
 |------|-------------|
@@ -231,7 +231,7 @@ Reference documents in two language versions with identical file names: `docs/EN
 | `quiz_databricks_fundamental.pdf` | Self-assessment after the training: 40 questions with an answer key |
 | `next_steps.pdf` | What to learn next: certification, Auto Loader, Lakeflow Pipelines, streaming, performance |
 | `external_connection_guide.pdf` | Step-by-step connection of Unity Catalog to ADLS Gen2 |
-| `pyspark_vs_sparksql_m03.pdf` | Module 03 operations shown side by side in PySpark and Spark SQL |
+| `pyspark_vs_sparksql.pdf` | Module 03 operations shown side by side in PySpark and Spark SQL |
 
 The PDFs are built from Markdown sources with `scripts/build_pdfs.sh` (pandoc and WeasyPrint).
 
