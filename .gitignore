@@ -74,3 +74,8 @@ crash.log
 # ── Local agent handoff (tenant/subscription IDs, participant e-mails) ────────
 AGENTS.md
 docs/agent-handoff/
+.claude/
+
+# ── Kept locally only ─────────────────────────────────────────────────────────
+infra/
+docs/Databricks_Fundamentals_Altkom_PL.pptx

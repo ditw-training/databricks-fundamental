@@ -150,7 +150,6 @@ Databricks-Fundamental/
 |       products.csv              # 2,000 records — product catalog
 |
 | docs/                           # PDF reference documents
-|   Databricks_Fundamentals_Altkom_PL.pptx       # Training slides (Polish, editable)
 |   ENG/                          # English versions
 |   |   cheatsheet_databricks_fundamental.pdf  # Reference guide for all modules
 |   |   quiz_databricks_fundamental.pdf        # Quiz: 40 questions with answer key
@@ -226,7 +225,7 @@ unit_cost, list_price, weight_kg, status
 
 ### docs/
 
-Reference documents in two language versions with identical file names: `docs/ENG/` (English) and `docs/PL/` (Polish). The training slides are in Polish: `docs/PL/Databricks_Fundamentals_Altkom_PL.pdf` (editable source: `docs/Databricks_Fundamentals_Altkom_PL.pptx`).
+Reference documents in two language versions with identical file names: `docs/ENG/` (English) and `docs/PL/` (Polish). The training slides are in Polish: `docs/PL/Databricks_Fundamentals_Altkom_PL.pdf`.
 
 | File | When to use |
 |------|-------------|
