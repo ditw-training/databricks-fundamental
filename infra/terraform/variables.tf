@@ -81,13 +81,13 @@ variable "training_group_name" {
   default     = "alt_trn_gr"
 }
 
-variable "trainer_cluster_node_type" {
-  description = "VM size of the trainer's single-node cluster. Lab subscriptions often have low vCPU quotas — keep it small."
+variable "cluster_node_type" {
+  description = "VM size of the shared single-node training cluster. 8 vCPU / 32 GB carries ~10 light notebook sessions; lab subscriptions often have low vCPU quotas."
   type        = string
-  default     = "Standard_D4ds_v5"
+  default     = "Standard_D8ds_v5"
 }
 
-variable "trainer_cluster_autotermination_minutes" {
+variable "cluster_autotermination_minutes" {
   type    = number
   default = 30
 }

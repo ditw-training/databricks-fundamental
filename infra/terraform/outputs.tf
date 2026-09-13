@@ -20,9 +20,9 @@ output "external_location_name" {
   value = databricks_external_location.training.name
 }
 
-output "trainer_cluster_id" {
-  description = "For the Databricks CLI / jobs submit."
-  value       = databricks_cluster.trainer.id
+output "training_cluster_id" {
+  description = "Shared training cluster — for the Databricks CLI / jobs submit."
+  value       = databricks_cluster.training.id
 }
 
 output "training_group" {

@@ -1,22 +1,27 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Trainer's cluster: single node, dedicated to the trainer, auto-terminating.
-# Participants create their own compute during the course.
+# Training cluster: single node in standard (shared) access mode, used by the
+# trainer and all participants, auto-terminating. Unity Catalog isolates users,
+# and every group member can restart the cluster after auto-termination.
 # ─────────────────────────────────────────────────────────────────────────────
 
 data "databricks_spark_version" "lts" {
   long_term_support = true
 }
 
-resource "databricks_cluster" "trainer" {
-  cluster_name            = "trainer-${local.name}"
+moved {
+  from = databricks_cluster.trainer
+  to   = databricks_cluster.training
+}
+
+resource "databricks_cluster" "training" {
+  cluster_name            = "training-${local.name}"
   spark_version           = data.databricks_spark_version.lts.id
-  node_type_id            = var.trainer_cluster_node_type
-  autotermination_minutes = var.trainer_cluster_autotermination_minutes
+  node_type_id            = var.cluster_node_type
+  autotermination_minutes = var.cluster_autotermination_minutes
 
   kind               = "CLASSIC_PREVIEW"
   is_single_node     = true
-  data_security_mode = "SINGLE_USER"
-  single_user_name   = data.databricks_current_user.trainer.user_name
+  data_security_mode = "DATA_SECURITY_MODE_STANDARD"
 
   custom_tags = local.tags
 
@@ -28,5 +33,14 @@ resource "databricks_cluster" "trainer" {
   # show an in-place update that restarts the cluster.
   lifecycle {
     ignore_changes = [custom_tags, spark_conf]
+  }
+}
+
+resource "databricks_permissions" "training_cluster" {
+  cluster_id = databricks_cluster.training.id
+
+  access_control {
+    group_name       = databricks_group.training.display_name
+    permission_level = "CAN_RESTART"
   }
 }
