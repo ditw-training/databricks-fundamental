@@ -79,3 +79,6 @@ docs/agent-handoff/
 # ── Kept locally only ─────────────────────────────────────────────────────────
 infra/
 docs/Databricks_Fundamentals_Altkom_PL.pptx
+
+# ── Participant credentials (local only, never commit) ────────────────────────
+access/
