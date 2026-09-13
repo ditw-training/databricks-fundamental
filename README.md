@@ -122,7 +122,7 @@ Databricks-Fundamental/
 |   |   04_delta_fundamentals.ipynb  # ACID, Time Travel, MERGE, VACUUM
 |   |   05_orchestration_jobs.ipynb  # Workflows, CRON, Lakeflow Pipelines
 |   |   06_unity_catalog.ipynb       # UC, permissions, Lineage, Delta Sharing
-|   |   07_aibi_dashboards.ipynb     # BONUS: Dashboards, Genie Space
+|   |   07_aibi_dashboards.ipynb     # Optional: Dashboards, Genie Space
 |   |
 |   workshops/                    # Hands-on exercises (participants)
 |   |   WORKSHOP_ingestion.ipynb  # After M03
@@ -143,11 +143,13 @@ Databricks-Fundamental/
 |   customers/
 |   |   customers.csv             # 10,000 records — historical customer data
 |   |   customers_new.csv         # 114 records — batch update (MERGE demo)
+|   |   customers_extented.xlsx   # Excel import demo (M03 BONUS; the typo in the name is intentional)
 |   orders/
 |   |   orders_batch.json         # Orders — JSON format (batch)
 |   |   stream/                   # Orders — JSON format (3 streaming files)
 |   products/
 |       products.csv              # 2,000 records — product catalog
+|       products.parquet          # Same catalog in Parquet (M03)
 |
 | docs/                           # PDF reference documents
 |   ENG/                          # English versions
@@ -172,7 +174,6 @@ Databricks-Fundamental/
 |
 | scripts/                        # Utility scripts (generation, fixes)
 |
-| utilization/                    # Internal project documentation
 ```
 
 ---
@@ -235,7 +236,7 @@ Reference documents in two language versions with identical file names: `docs/EN
 | `external_connection_guide.pdf` | Step-by-step connection of Unity Catalog to ADLS Gen2 |
 | `pyspark_vs_sparksql.pdf` | Module 03 operations shown side by side in PySpark and Spark SQL |
 
-The PDFs are built from Markdown sources with `scripts/build_pdfs.sh` (pandoc and WeasyPrint).
+The PDFs are built with `scripts/build_pdfs.sh` (pandoc and WeasyPrint) from Markdown sources kept outside the repository.
 
 ### materials/orchestration/
 
