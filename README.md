@@ -57,6 +57,9 @@ After completing the training, participants will be able to:
 
 ## Quick Start
 
+> **Learning on your own?** The whole course runs on Databricks Free Edition —
+> see the self-study guide: [English](docs/ENG/free_edition_guide.pdf) | [Polski](docs/PL/free_edition_guide.pdf).
+
 ### 1. Environment setup (trainer)
 
 ```
@@ -235,6 +238,7 @@ Reference documents in two language versions with identical file names: `docs/EN
 | `next_steps.pdf` | What to learn next: certification, Auto Loader, Lakeflow Pipelines, streaming, performance |
 | `external_connection_guide.pdf` | Step-by-step connection of Unity Catalog to ADLS Gen2 |
 | `pyspark_vs_sparksql.pdf` | Module 03 operations shown side by side in PySpark and Spark SQL |
+| `free_edition_guide.pdf` | Taking the whole course on your own in Databricks Free Edition: setup, module-by-module notes, jobs, troubleshooting |
 
 The PDFs are built with `scripts/build_pdfs.sh` (pandoc and WeasyPrint) from Markdown sources kept outside the repository.
 
