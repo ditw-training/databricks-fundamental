@@ -2,7 +2,7 @@
 # Training plan, quiz sources, cheatsheet sources — local reference only
 utilization/
 _old/
-scripts/
+/scripts/
 
 # ── Pre-configuration notebook (contains env-specific secrets/paths) ──────────
 notebooks/setup/00_pre_config.ipynb
