@@ -96,23 +96,25 @@ Use that printed name wherever the materials say `retailhub_<your_name>`.
 
 Same agenda as in `notebooks/modules/00_intro.ipynb`.
 
-| Time | Min | Block | CORE |
-|------|-----|-------|------|
-| 09:00 – 09:15 | 15 | **M00** Intro | Objectives, agenda, `%run ../setup/00_setup` as the environment check |
-| 09:15 – 10:20 | 65 | **M01** Platform, costs, GUI | Platform map, workspace + Catalog Explorer, three-level namespace, Volumes (DBFS is legacy), Serverless / classic / SQL warehouse, costs (formula, Jobs vs All-purpose, autoscaling, auto-termination), magic commands + `%sql`, Edit Chart + Data Profile, Genie Code; one billing query as a trainer demo |
-| 10:20 – 10:35 | 15 | **M02** How Spark works | Driver/executors, lazy evaluation, "SQL = PySpark, same engine", one sentence on shuffle |
-| 10:35 – 10:50 | 15 | Break | |
-| 10:50 – 11:45 | 55 | **M03** Medallion + ingestion | Python in 5 minutes, CSV/JSON/`read_files`, DDL schema, `display`/`show`/`describe`/`summary`, `select`/`filter`, `withColumn` + `cast` (ANSI, `try_cast`) + `when`, `groupBy.agg`, temp view + SQL, **write to Delta**; every operation with its SQL equivalent |
-| 11:45 – 12:25 | 40 | **Workshop: Ingestion** | At most 8 tasks, the rest ⭐ OPTIONAL |
-| 12:25 – 13:05 | 40 | Lunch | |
-| 13:05 – 13:45 | 40 | **M04** Delta Lake | Table, schema enforcement/evolution, DML, MERGE, HISTORY, time travel, RESTORE; as concepts: VACUUM, UNDROP, predictive optimization / liquid clustering |
-| 13:45 – 14:20 | 35 | **Workshop: Delta Lake** | 7 tasks (01, 03, 05+06, 08, 10, 12), SQL in `%sql`; 02/04/07/09/11 ⭐ OPTIONAL |
-| 14:20 – 14:30 | 10 | Break | |
-| 14:30 – 15:05 | 35 | **M05** Lakeflow Jobs | Ready notebooks from `materials/orchestration`, compute for jobs, parameters, simple task values, schedule, Repair run |
-| 15:05 – 15:20 | 15 | **M06** Unity Catalog | Groups, `GRANT` / `SHOW GRANTS` / `REVOKE` (3 lines), Permissions tab |
-| 15:20 – 16:25 | 65 | **Final Project** | Bronze ready → Silver/Gold TODO + CHECK → job with a schedule → SQL; after 25 min you may switch to the ready solutions |
-| 16:25 – 16:40 | 15 | Wrap-up, quiz, next steps | |
-| (optional) | (10) | **M07** Genie Agents / dashboard | Trainer demo, only if time is left |
+| Time | Block | Topics |
+|------|-------|--------|
+| 09:00 – 09:15 | **M00** Intro | Objectives, agenda, environment check |
+| 09:15 – 10:20 | **M01** Platform, costs, GUI | Platform, workspace, Volumes, compute and costs, notebook GUI, Genie Code |
+| 10:20 – 10:35 | **M02** How Spark works | How Spark runs your code; one engine for SQL and PySpark |
+| 10:35 – 10:50 | Break | |
+| 10:50 – 11:45 | **M03** Medallion + ingestion | Python primer, reading CSV/JSON, transforming data, writing to Delta |
+| 11:45 – 12:25 | **Workshop: Ingestion** | At most 8 tasks, the rest ⭐ OPTIONAL |
+| 12:25 – 13:05 | Lunch | |
+| 13:05 – 13:45 | **M04** Delta Lake | Delta tables, changing data, MERGE, history, time travel, RESTORE |
+| 13:45 – 14:20 | **Workshop: Delta Lake** | 7 tasks in SQL, the rest ⭐ OPTIONAL |
+| 14:20 – 14:30 | Break | |
+| 14:30 – 15:05 | **M05** Lakeflow Jobs | A job from ready notebooks: parameters, schedule, repair run |
+| 15:05 – 15:20 | **M06** Unity Catalog | Groups and permissions: `GRANT`, `SHOW GRANTS`, `REVOKE` |
+| 15:20 – 16:25 | **Final Project** | Bronze → Silver → Gold pipeline as a scheduled job; ready solutions if you fall behind |
+| 16:25 – 16:40 | Wrap-up, quiz, next steps | |
+| (optional) | **M07** Genie Agents / dashboard | Trainer demo, only if time is left |
+
+Detailed topics and minutes per block: `notebooks/TRAINER_GUIDE.md`.
 
 **Teaching time: 395 min (6 h 35 min)** plus 65 min of breaks and lunch. Sections marked ⊕ BONUS in the
 notebooks are outside this schedule and stay in the material for self-study.
