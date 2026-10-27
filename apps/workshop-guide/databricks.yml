@@ -5,7 +5,7 @@ variables:
   sql_warehouse_id:
     description: SQL Warehouse ID
   trainer_emails_scope:
-    description: Secret scope holding the comma-separated trainer e-mails
+    description: Secret scope holding trainer-emails and trainer-accounts (comma separated)
     default: workshop-guide
 
 resources:
@@ -18,9 +18,11 @@ resources:
       # Start the app automatically on deploy.
       lifecycle:
         started: true
-      # Uncomment to enable on behalf of user API scopes. Available scopes: sql, dashboards.genie, files.files, serving.serving-endpoints
-      # user_api_scopes:
-      #   - sql
+      # On-behalf-of-user: the Check button runs each step's check as the participant
+      # (token in X-Forwarded-Access-Token). Participants also need CAN_USE on the
+      # warehouse (README, "Check button").
+      user_api_scopes:
+        - sql
 
       # The resources which this app has access to.
       resources:
@@ -32,6 +34,11 @@ resources:
           secret:
             scope: ${var.trainer_emails_scope}
             key: trainer-emails
+            permission: READ
+        - name: trainer-accounts
+          secret:
+            scope: ${var.trainer_emails_scope}
+            key: trainer-accounts
             permission: READ
 
 targets:

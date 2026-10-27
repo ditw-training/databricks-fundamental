@@ -64,7 +64,7 @@ export function validateProgressPost(body: unknown, guides: Map<string, Guide>):
   const step = guide.steps.find((s) => s.id === post.step);
   if (!step) return { ok: false, status: 404, error: `Unknown step "${post.step}" in ${post.workshop}` };
   if (step.check !== 'app') {
-    return { ok: false, status: 409, error: `Step "${post.step}" is graded by check() in the notebook` };
+    return { ok: false, status: 409, error: `Step "${post.step}" is graded with the Check button (POST /api/check)` };
   }
   return { ok: true, post, step };
 }
@@ -75,4 +75,21 @@ export function buildProgressInsert(table: string): string {
   (user_email, workshop, step, step_type, status, message, hints_used, attempts, source, ts)
 VALUES
   (:user_email, :workshop, :step, :step_type, :status, :message, :hints_used, :attempts, 'app', current_timestamp())`;
+}
+
+/** Row of a Check result (POST /api/check): hints from the app, attempts NULL (count = runs). */
+export function buildCheckInsert(table: string): string {
+  return `INSERT INTO ${resolveProgressTable(table)}
+  (user_email, workshop, step, step_type, status, message, hints_used, attempts, source, ts)
+VALUES
+  (:user_email, :workshop, :step, :step_type, :status, :message, :hints_used, NULL, 'app', current_timestamp())`;
+}
+
+/**
+ * "Reset my progress": removes only the caller's rows of one workshop. user_email is
+ * compared in lower case because notebook rows carry current_user() as typed.
+ */
+export function buildProgressReset(table: string): string {
+  return `DELETE FROM ${resolveProgressTable(table)}
+WHERE lower(user_email) = :user_email AND workshop = :workshop`;
 }

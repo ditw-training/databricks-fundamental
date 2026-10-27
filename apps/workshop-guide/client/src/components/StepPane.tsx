@@ -1,8 +1,8 @@
 import { Badge, Button } from '@databricks/appkit-ui/react';
-import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Target } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Loader2, PlayCircle, Target } from 'lucide-react';
 import { useState } from 'react';
 import type { Guide, Step } from '../../../shared/guide-schema';
-import { postProgress } from '../lib/api';
+import { postCheck, postProgress } from '../lib/api';
 import type { ParticipantRow } from '../lib/progress';
 import { formatAgo, parseTs, toStatus } from '../lib/status';
 import { stepKey, useStoredState } from '../lib/storage';
@@ -70,6 +70,35 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
       .finally(() => setSaving(false));
   };
 
+  // Check button (notebook-graded steps): the server runs the step's SQL as the participant.
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const [notRecorded, setNotRecorded] = useState(false);
+  const runCheck = () => {
+    if (checking) return;
+    setChecking(true);
+    setCheckError(null);
+    setNotRecorded(false);
+    postCheck({ workshop: guide.id, step: step.id, hints_used: Math.min(hintsUsed, 20) })
+      .then((result) => {
+        setNotRecorded(!result.recorded);
+        // Show the result (and the status dot) immediately; the next poll confirms it.
+        onLocalResult({
+          step: step.id,
+          step_type: step.type,
+          status: result.status,
+          message: result.message,
+          hints_used: Math.min(hintsUsed, 20),
+          attempts: null,
+          source: 'app',
+          ts: new Date().toISOString(),
+          runs: (row?.runs ?? 0) + 1,
+        });
+      })
+      .catch((err: unknown) => setCheckError((err as Error).message))
+      .finally(() => setChecking(false));
+  };
+
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-6" aria-labelledby="step-title">
       <header className="space-y-2">
@@ -123,7 +152,14 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
         {step.type === 'code' && <CodeExercise step={step} />}
       </section>
 
-      <LiveStatus guide={guide} step={step} row={row} error={progressError} saveError={saveError} />
+      <LiveStatus
+        step={step}
+        number={number}
+        row={row}
+        error={progressError}
+        saveError={saveError}
+        check={step.check === 'notebook' ? { busy: checking, error: checkError, notRecorded, onCheck: runCheck } : undefined}
+      />
 
       <Hints hints={step.hints} revealed={hintsUsed} onReveal={setHintsUsed} />
 
@@ -158,24 +194,32 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
   );
 }
 
+interface CheckControl {
+  busy: boolean;
+  error: string | null;
+  notRecorded: boolean;
+  onCheck: () => void;
+}
+
 interface LiveStatusProps {
-  guide: Guide;
   step: Step;
+  /** Step number as in the notebook heading, e.g. "03". */
+  number: string;
   row: ParticipantRow | undefined;
   error: string | null;
   saveError: string | null;
+  /** Present for steps graded with the Check button. */
+  check?: CheckControl;
 }
 
 /** Latest result for this step from the progress table (or the app's own check). */
-function LiveStatus({ guide, step, row, error, saveError }: LiveStatusProps) {
+function LiveStatus({ step, number, row, error, saveError, check }: LiveStatusProps) {
   const status = toStatus(row?.status);
-  const notebook = step.check === 'notebook';
-  const checkCall = `check("${guide.id}", "${step.id}")`;
   const when = parseTs(row?.ts);
   const announcement = useStatusAnnouncement(step, status, row?.message ?? null);
 
   const title =
-    status === 'pass' ? 'Passed' : status === 'fail' ? 'Not yet — see the message' : notebook ? 'Waiting for your check' : 'Not checked yet';
+    status === 'pass' ? 'Passed' : status === 'fail' ? 'Not yet — see the message' : 'Not checked yet';
 
   return (
     <section aria-labelledby="status-heading" className={`wg-status wg-status-${status}`}>
@@ -186,11 +230,28 @@ function LiveStatus({ guide, step, row, error, saveError }: LiveStatusProps) {
             {title}
           </h3>
           {row?.message && <p className="text-sm">{row.message}</p>}
-          {notebook && status !== 'pass' && (
+          {check && status !== 'pass' && (
             <p className="text-sm text-muted-foreground">
-              Run <code className="wg-inline-code">{checkCall}</code> in the notebook cell below your code. This status updates
-              within a few seconds.
+              Run the Step {number} cell in the notebook to the end (its last line saves your result), then press{' '}
+              <strong className="font-medium text-foreground">Check</strong>.
             </p>
+          )}
+          {check && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button type="button" size="sm" onClick={check.onCheck} disabled={check.busy} aria-describedby="status-heading">
+                {check.busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <PlayCircle className="size-4" aria-hidden />}
+                {check.busy ? 'Checking…' : status === 'none' ? 'Check' : 'Check again'}
+              </Button>
+              {check.busy && <span className="text-xs text-muted-foreground">Running the check on the SQL warehouse…</span>}
+            </div>
+          )}
+          {check?.error && (
+            <p role="alert" className="text-sm text-[var(--destructive)]">
+              Check could not run: {check.error}
+            </p>
+          )}
+          {check?.notRecorded && (
+            <p className="text-xs text-[var(--destructive)]">The result is shown here but was not saved to your progress. Press Check again.</p>
           )}
           <p className="text-xs text-muted-foreground">
             {when ? `Last check ${formatAgo(when)} · ${row?.runs ?? 1} run${(row?.runs ?? 1) === 1 ? '' : 's'}` : 'No result recorded yet'}

@@ -40,3 +40,17 @@ export function useStoredState<T>(key: string, fallback: T) {
 
 export const stepKey = (email: string, workshop: string, step: string, what: string) =>
   `wg:${email}:${workshop}:${step}:${what}`;
+
+/** Removes stored values whose key starts with `prefix` and ends with one of `suffixes`. */
+export function clearStoredPrefix(prefix: string, suffixes: string[]): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k?.startsWith(prefix) && suffixes.some((s) => k.endsWith(s))) keys.push(k);
+    }
+    for (const k of keys) window.localStorage.removeItem(k);
+  } catch {
+    /* storage unavailable */
+  }
+}

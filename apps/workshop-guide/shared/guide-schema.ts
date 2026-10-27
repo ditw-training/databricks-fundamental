@@ -74,6 +74,8 @@ export const BLANK_PATTERN = /\{\{(b\d+)\}\}/g;
 export const guideSchema = z
   .object({
     id: z.string().regex(idPattern),
+    /** Order of the day: 1 = Ingestion, 2 = Delta Lake (SPEC section 7). */
+    number: z.number().int().min(1).max(99).optional(),
     title: z.string().min(1),
     notebook: z.string().min(1),
     intro: z.string().default(''),
@@ -133,6 +135,21 @@ export type CodeStep = z.infer<typeof codeStepSchema>;
 export type Step = z.infer<typeof stepSchema>;
 export type Guide = z.infer<typeof guideSchema>;
 export type StepType = Step['type'];
+
+/** Topic of a workshop without the "Workshop — " / "Workshop 2 — " prefix: "Delta Lake". */
+export function workshopTopic(guide: Pick<Guide, 'title'>): string {
+  return guide.title.replace(/^Workshop(\s+\d+)?\s*[—–-]\s*/i, '').trim() || guide.title;
+}
+
+/** "Workshop 2 — Delta Lake" when the guide has a number, else its title. */
+export function workshopLabel(guide: Pick<Guide, 'title' | 'number'>): string {
+  return guide.number ? `Workshop ${guide.number} — ${workshopTopic(guide)}` : guide.title;
+}
+
+/** Guides in the order of the day: by number (unnumbered last), then id. */
+export function sortGuides<G extends Pick<Guide, 'id' | 'number'>>(guides: G[]): G[] {
+  return [...guides].sort((a, b) => (a.number ?? 1e9) - (b.number ?? 1e9) || a.id.localeCompare(b.id));
+}
 
 /** Who grades the final result of a step. */
 export function gradedBy(step: Step): 'notebook' | 'app' {

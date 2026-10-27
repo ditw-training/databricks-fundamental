@@ -20,14 +20,16 @@ import {
 import { ArrowRight, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import type { Guide } from '../../../shared/guide-schema';
+import { workshopLabel, workshopTopic, type Guide } from '../../../shared/guide-schema';
 import { Markdown } from '../components/Markdown';
 import { NotebookLocation } from '../components/NotebookLocation';
+import { ResetProgress } from '../components/ResetProgress';
 import { StatusDot } from '../components/StatusDot';
 import { StepPane } from '../components/StepPane';
 import { OPTIONAL_LABEL, TYPE_LABEL } from '../lib/labels';
 import { useParticipantProgress, type ParticipantRow } from '../lib/progress';
 import { formatAgo, parseTs, toStatus } from '../lib/status';
+import { clearStoredPrefix, stepKey } from '../lib/storage';
 
 export function ParticipantPage({ guides, email }: { guides: Guide[]; email: string }) {
   const [params, setParams] = useSearchParams();
@@ -63,7 +65,7 @@ function WorkshopPicker({ guides, unknown, onPick }: { guides: Guide[]; unknown:
           return (
             <Card key={g.id} className="flex flex-col">
               <CardHeader>
-                <CardTitle className="text-lg">{g.title}</CardTitle>
+                <CardTitle className="text-lg">{workshopLabel(g)}</CardTitle>
                 <CardDescription className="flex flex-col gap-1.5">
                   <span className="inline-flex items-center gap-1">
                     <ListChecks className="size-3.5" aria-hidden /> {required} steps
@@ -77,7 +79,7 @@ function WorkshopPicker({ guides, unknown, onPick }: { guides: Guide[]; unknown:
               </CardContent>
               <CardFooter>
                 <Button type="button" onClick={() => onPick(g.id)}>
-                  Open {g.title.replace(/^Workshop\s*[—-]\s*/i, '')} <ArrowRight className="size-4" aria-hidden />
+                  Open {g.number ? `Workshop ${g.number}` : workshopTopic(g)} <ArrowRight className="size-4" aria-hidden />
                 </Button>
               </CardFooter>
             </Card>
@@ -100,13 +102,26 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
   const [stepsOpen, setStepsOpen] = useState(false);
   const progress = useParticipantProgress(guide.id);
   const [local, setLocal] = useState<Record<string, ParticipantRow>>({});
+  // After "Reset my progress": ignore polled rows requested before the reset.
+  const [resetAt, setResetAt] = useState<Date | null>(null);
+  const [resetGen, setResetGen] = useState(0);
+  const label = workshopLabel(guide);
 
   const rows = useMemo(() => {
     const byStep = new Map<string, ParticipantRow>();
-    for (const r of progress.rows ?? []) byStep.set(r.step, r);
+    const stale = resetAt !== null && (progress.requestedAt === null || progress.requestedAt < resetAt);
+    for (const r of stale ? [] : (progress.rows ?? [])) byStep.set(r.step, r);
     for (const [step, r] of Object.entries(local)) byStep.set(step, newer(byStep.get(step), r) ?? r);
     return byStep;
-  }, [progress.rows, local]);
+  }, [progress.rows, progress.requestedAt, resetAt, local]);
+
+  const afterReset = () => {
+    setLocal({});
+    setResetAt(new Date());
+    // Hint and attempt counters of this workshop start again; typed code is kept.
+    clearStoredPrefix(stepKey(email, guide.id, '', '').replace(/::$/, ':'), [':hints', ':attempts']);
+    setResetGen((n) => n + 1);
+  };
 
   const stepIndex = Math.max(
     0,
@@ -177,14 +192,17 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <div className="min-w-0 space-y-0.5">
-          <h2 className="text-lg font-semibold">{guide.title}</h2>
+          <h2 className="text-lg font-semibold">{label}</h2>
           <NotebookLocation guide={guide} />
         </div>
-        {isMobile && (
-          <Button type="button" variant="outline" size="sm" className="ml-auto" onClick={() => setStepsOpen(true)}>
-            <ListChecks className="size-4" aria-hidden /> Steps ({passedRequired}/{required.length})
-          </Button>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          <ResetProgress workshop={guide.id} label={label} onReset={afterReset} />
+          {isMobile && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setStepsOpen(true)}>
+              <ListChecks className="size-4" aria-hidden /> Steps ({passedRequired}/{required.length})
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[280px_minmax(0,1fr)] lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -196,7 +214,7 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
         <div className="min-w-0">
           {step ? (
             <StepPane
-              key={`${guide.id}:${step.id}`}
+              key={`${guide.id}:${step.id}:${resetGen}`}
               guide={guide}
               step={step}
               index={stepIndex}
@@ -220,7 +238,7 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
       <Sheet open={stepsOpen && isMobile} onOpenChange={setStepsOpen}>
         <SheetContent side="left" className="overflow-y-auto p-4">
           <SheetHeader className="px-0">
-            <SheetTitle>{guide.title}</SheetTitle>
+            <SheetTitle>{label}</SheetTitle>
           </SheetHeader>
           {stepList}
         </SheetContent>

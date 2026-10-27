@@ -41,8 +41,12 @@ by `notebooks/setup/00_setup.ipynb`; created by Terraform and by `00_pre_config`
 | `ts` | TIMESTAMP | `current_timestamp()` |
 
 Append-only. The latest row per (`user_email`, `workshop`, `step`) is the state.
-Grants: training group `MODIFY` + `SELECT`, app service principal `SELECT` + `MODIFY`,
-`USE CATALOG` / `USE SCHEMA` for both.
+Grants (classroom): app service principal `SELECT` + `MODIFY` + `USE CATALOG` / `USE SCHEMA`;
+participants get **no** privilege on the table (27.10). The app grades Check and the quiz on the
+server and Reset deletes only the caller's rows; `MODIFY` would let a participant bypass that from a
+notebook and `SELECT` would show everyone's quiz answers. The `_checks` notebooks still run in class
+but print "Progress not saved". Self-study (Free Edition, single-user mode): the participant owns
+the table, so `_checks` writes to it.
 
 ## 3. Guide files
 
@@ -116,7 +120,8 @@ small cells, one idea each, no timings, no "CORE path" text.
 
 ## 6. App (AppKit, analytics)
 
-- Name `workshop-guide`; SQL warehouse resource; service-principal auth (no OBO).
+- Name `workshop-guide`; SQL warehouse resource; service-principal auth for progress reads and
+  writes, on-behalf-of-user (`sql` scope) only for the step checks (section 7).
 - User identity from the `X-Forwarded-Email` header (server side).
 - Participant view: workshop picker → step list with status dots → step pane
   (explain, interactive exercise, hints, docs, expected result, live status from
@@ -125,8 +130,17 @@ small cells, one idea each, no timings, no "CORE path" text.
   matrix participant × step (pass / fail / not started), hints used, last activity.
 - Polling every 5 s with SQL files in `config/queries/`.
 - `POST /api/progress` for `order` / `match` results (INSERT via the app SP).
+- `POST /api/check` and `DELETE /api/progress/me` (section 7).
 
-## 7. Planned v2 (decided 27.10, not implemented yet): "Check" button in the app
+## 7. v2: "Check" button in the app (decided 27.10, implemented 27.10)
+
+Implemented in `apps/workshop-guide` (README "Check button", "Reset my progress"): `POST /api/check`
+runs `server/checks/ws_*.ts` as the user (`appkit.analytics.asUser(req)`), `DELETE /api/progress/me`
+resets one workshop, `user_api_scopes: [sql]` in `databricks.yml` and Terraform, participants get
+`CAN_USE` on the warehouse (Terraform `databricks_permissions`, authoritative: lists the training group
+and the app service principal). `TRAINER_ACCOUNTS` reaches the app as the secret resource
+`trainer-accounts` (`none` = empty). This section supersedes the `check()` parts of sections 1, 4 and 6
+for the classroom; they still describe the `_checks` self-study path.
 
 - Each notebook-graded step gets a **Check** button in the app. The participant no longer runs
   `check()` in the notebook; the notebook check cells are removed from the classroom notebooks.
@@ -134,13 +148,14 @@ small cells, one idea each, no timings, no "CORE path" text.
   `user_api_scopes: [sql]`, token from `X-Forwarded-Access-Token`), so it sees only what the
   participant can see in their own catalog `retailhub_<slug>` (catalog name resolved from the
   e-mail with the same slug rules as `00_setup`).
-- Check definitions live next to the guide steps (e.g. `check_sql` + expected values / assertions
-  evaluated server-side) and return PASS / FAIL with the same messages as today; the result is
-  written to the progress table by the app (source = `app`).
+- Check definitions live in the app (`apps/workshop-guide/server/checks/ws_*.ts`, one function per
+  step: SQL plus assertions evaluated server-side) and return PASS / FAIL with the same messages as
+  the `_checks` notebooks; the result is written to the progress table by the app (source = `app`).
 - Steps whose result is only a DataFrame in the notebook session get one pre-filled line in the
   template that saves it to a scratch table in the participant's catalog
   (e.g. `<catalog>.default._ws_<workshop>_<step>`), which the app check reads.
 - The `_checks/*` notebooks stay for the static HTML guide / Free Edition self-study path.
+- "Reset my progress" (per workshop, after confirmation) deletes only the caller's rows of that workshop.
 - Workshops are numbered in the order of the day: **Workshop 1 — Ingestion**, **Workshop 2 — Delta Lake**.
   Guide JSON gets `"number": 1|2` and the app lists and labels workshops by it (picker, headings,
   trainer view, static HTML). Notebook titles, 00_intro / README / TRAINER_GUIDE agenda rows use the
@@ -160,3 +175,9 @@ small cells, one idea each, no timings, no "CORE path" text.
   `source = 'app'`.
 - Trainer view: Quiz tab with first-attempt score and completion per participant and the
   first-attempt correct rate per question, hardest first.
+- **Learning tool, not an assessment (decided 27.10).** The participant PDF
+  `docs/*/quiz_databricks_fundamental.pdf` is public and ends with the answer key, so the correct
+  options are public anyway (also in git history). The private volume keeps only the explanations
+  out of the repo and makes the feedback come from the server. Scores show the trainer where the
+  group struggled; they are not a secret test and must not be used to grade people. Participants
+  cannot read each other's quiz rows (no grant on the progress table, section 2).

@@ -1,7 +1,7 @@
 import type { CodeStep } from '../../../../shared/guide-schema';
 import { CopyButton } from '../CopyButton';
 
-/** Free coding step: optional starter skeleton; the result is graded by check() in the notebook. */
+/** Free coding step: optional starter skeleton; the result is graded with the Check button. */
 export function CodeExercise({ step }: { step: CodeStep }) {
   if (!step.starter) {
     return (

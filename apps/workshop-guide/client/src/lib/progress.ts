@@ -27,6 +27,8 @@ export interface PolledState<Row> {
   error: string | null;
   /** When the server read the rows from the progress table. */
   updatedAt: Date | null;
+  /** Browser time when the request that returned `rows` was sent (to drop results older than a reset). */
+  requestedAt: Date | null;
 }
 
 async function fetchRows<Row>(url: string, schema: z.ZodType<Row>, signal: AbortSignal) {
@@ -46,21 +48,22 @@ async function fetchRows<Row>(url: string, schema: z.ZodType<Row>, signal: Abort
 }
 
 export function usePolledRows<Row>(url: string, schema: z.ZodType<Row>): PolledState<Row> {
-  const [state, setState] = useState<PolledState<Row>>({ rows: null, error: null, updatedAt: null });
+  const [state, setState] = useState<PolledState<Row>>({ rows: null, error: null, updatedAt: null, requestedAt: null });
 
   useEffect(() => {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let controller: AbortController | undefined;
-    setState({ rows: null, error: null, updatedAt: null });
+    setState({ rows: null, error: null, updatedAt: null, requestedAt: null });
 
     const poll = async () => {
       timer = undefined; // in flight: a visibility change must not start a second poll
       controller = new AbortController();
       const timeout = setTimeout(() => controller?.abort(), REQUEST_TIMEOUT_MS);
+      const requestedAt = new Date();
       try {
         const { rows, fetchedAt } = await fetchRows(url, schema, controller.signal);
-        if (!stopped) setState({ rows, error: null, updatedAt: new Date(fetchedAt) });
+        if (!stopped) setState({ rows, error: null, updatedAt: new Date(fetchedAt), requestedAt });
       } catch (err) {
         if (!stopped) {
           const message = (err as Error).name === 'AbortError' ? 'Request timed out' : (err as Error).message;

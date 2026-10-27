@@ -1,6 +1,10 @@
 import type { Request, Response } from 'express';
 import { analytics, createApp, createWorkspaceClient, server, sql } from '@databricks/appkit';
-import type { GuidesResponse, MeResponse } from '../shared/guide-schema';
+import { sortGuides, type GuidesResponse, type MeResponse } from '../shared/guide-schema';
+import { resetQuerySchema, type CheckResponse, type ResetResponse } from '../shared/check-schema';
+import type { Row } from './checks/framework';
+import { runCheck, validateCheckPost } from './checks';
+import { catalogFor } from './slug';
 import type { ParticipantRow, ProgressResponse, TrainerRow } from '../shared/progress-schema';
 import { loadGuides } from './guides';
 import { quizLangSchema, type QuizAnswerResponse, type QuizProgressRow, type QuizResponse } from '../shared/quiz-schema';
@@ -13,7 +17,9 @@ import {
   trainerRows,
 } from './progress-reader';
 import {
+  buildCheckInsert,
   buildProgressInsert,
+  buildProgressReset,
   parseEmailList,
   resolveProgressTable,
   resolveUserEmail,
@@ -39,6 +45,13 @@ const guides = loadGuides();
 const progressTable = resolveProgressTable();
 const insertStatement = buildProgressInsert(progressTable);
 const trainerEmails = parseEmailList(process.env.TRAINER_EMAILS);
+// Same list as TRAINER_ACCOUNTS in 00_setup: these accounts use the catalog retailhub_trainer.
+// `none` is the placeholder for "no trainer accounts" (a secret cannot be empty).
+const trainerAccounts = new Set([...parseEmailList(process.env.TRAINER_ACCOUNTS)].filter((a) => a !== 'none'));
+const checkInsert = buildCheckInsert(progressTable);
+const progressReset = buildProgressReset(progressTable);
+// Local development only: run Check with the CLI identity when there is no user token.
+const devCheckAsCli = process.env.NODE_ENV !== 'production' && process.env.DEV_CHECK_AS_CLI === '1';
 const latestProgressSql = loadLatestProgressSql(progressTable);
 const quiz = loadQuizQuestions();
 const quizKeyPath = resolveQuizKeyPath();
@@ -78,6 +91,9 @@ createApp({
       quizRowsFromResult(await appkit.analytics.query(quizProgressSql, {})),
     );
     const limiter = new RateLimiter(5, 60_000);
+    // Check: at most one run per user every 3 s (each run is a few warehouse statements).
+    const checkLimiter = new RateLimiter(1, 3_000);
+    const resetLimiter = new RateLimiter(3, 60_000);
     const answerLock = new KeyedLock();
     if (keyStore) void keyStore.get().then((s) => s.reason && console.warn(`[workshop-guide] quiz not configured: ${s.reason}`));
 
@@ -222,7 +238,7 @@ createApp({
       });
 
       app.get('/api/guides', (_req, res) => {
-        const body: GuidesResponse = { guides: [...guides.values()] };
+        const body: GuidesResponse = { guides: sortGuides([...guides.values()]) };
         res.json(body);
       });
 
@@ -269,6 +285,109 @@ createApp({
       app.get('/api/progress/matrix', (req, res) => readProgress(req, res, 'matrix'));
 
       registerQuizRoutes(app);
+
+      // ── Check (SPEC section 7): the step's SQL runs as the signed-in user (OBO) ──
+      app.post('/api/check', (req, res) => {
+        const email = resolveUserEmail(req);
+        if (!email) {
+          res.status(401).json({ error: 'No user identity' });
+          return;
+        }
+        const hasToken = Boolean(req.header('x-forwarded-access-token')?.trim());
+        if (!hasToken && !devCheckAsCli) {
+          res.status(401).json({
+            error:
+              'Check needs your Databricks token (X-Forwarded-Access-Token), which only the deployed app gets ' +
+              'with the user API scope "sql". Locally: set DEV_CHECK_AS_CLI=1 to check as the CLI profile.',
+          });
+          return;
+        }
+        const result = validateCheckPost(req.body, guides);
+        if (!result.ok) {
+          res.status(result.status).json({ error: result.error });
+          return;
+        }
+        if (!checkLimiter.allow(email)) {
+          res.status(429).json({ error: 'One check every 3 seconds. Wait a moment and press Check again.' });
+          return;
+        }
+        const { post, step, check } = result;
+        void (async () => {
+          // Inside the async block: asUser() throws when the user headers are incomplete.
+          const sqlAsUser = hasToken ? appkit.analytics.asUser(req) : appkit.analytics;
+          const run = async (statement: string): Promise<Row[]> => {
+            const out = (await sqlAsUser.query(statement, {})) as { data?: Row[] } | null | undefined;
+            return out?.data ?? [];
+          };
+          const outcome = await runCheck(check, { catalog: catalogFor(email, trainerAccounts), run });
+          if (outcome.kind === 'error') {
+            console.warn(`[workshop-guide] check ${post.workshop}/${post.step} could not run: ${outcome.error}`);
+            res.status(502).json({ error: outcome.error });
+            return;
+          }
+          let recorded = true;
+          try {
+            // The progress row is written by the app service principal, like POST /api/progress.
+            await appkit.analytics.query(checkInsert, {
+              user_email: sql.string(email),
+              workshop: sql.string(post.workshop),
+              step: sql.string(post.step),
+              step_type: sql.string(step.type),
+              status: sql.string(outcome.status),
+              message: sql.string(outcome.message),
+              hints_used: sql.int(post.hints_used),
+            });
+            progressCache.invalidate(post.workshop);
+          } catch (err) {
+            recorded = false;
+            console.error('[workshop-guide] check result insert failed', err);
+          }
+          const body: CheckResponse = { status: outcome.status, message: outcome.message, recorded };
+          res.json(body);
+        })().catch((err: unknown) => {
+          console.error('[workshop-guide] check failed', err);
+          if (res.headersSent) return;
+          // asUser() needs X-Forwarded-Access-Token and X-Forwarded-User (both set by the
+          // Databricks Apps proxy); retrying does not help, so say what is missing.
+          if ((err as { code?: unknown } | null)?.code === 'AUTHENTICATION_ERROR') {
+            res.status(401).json({
+              error: 'Check could not identify you to Databricks (user token or X-Forwarded-User missing). Reload the app; if it persists, tell the trainer.',
+            });
+            return;
+          }
+          res.status(502).json({ error: 'The check could not run. Try again in a moment.' });
+        });
+      });
+
+      // ── Reset my progress: only the caller's rows of one workshop ──
+      app.delete('/api/progress/me', (req, res) => {
+        const email = resolveUserEmail(req);
+        if (!email) {
+          res.status(401).json({ error: 'No user identity' });
+          return;
+        }
+        const query = resetQuerySchema.safeParse(req.query);
+        if (!query.success || !guides.has(query.data.workshop)) {
+          res.status(404).json({ error: 'Unknown workshop' });
+          return;
+        }
+        if (!resetLimiter.allow(email)) {
+          res.status(429).json({ error: 'Too many resets. Wait a minute.' });
+          return;
+        }
+        const { workshop } = query.data;
+        appkit.analytics
+          .query(progressReset, { user_email: sql.string(email), workshop: sql.string(workshop) })
+          .then(() => {
+            progressCache.invalidate(workshop);
+            const body: ResetResponse = { ok: true };
+            res.json(body);
+          })
+          .catch((err: unknown) => {
+            console.error('[workshop-guide] progress reset failed', err);
+            res.status(502).json({ error: 'Could not reset your progress. Try again in a moment.' });
+          });
+      });
 
       app.post('/api/progress', (req, res) => {
         const email = resolveUserEmail(req);

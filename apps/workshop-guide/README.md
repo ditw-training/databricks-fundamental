@@ -4,8 +4,12 @@ Databricks App (AppKit, TypeScript/React) that walks participants through the wo
 of the Databricks Fundamental training step by step. Contract with the notebooks, the
 check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guide.md).
 
-- Participants write and run code in their notebook. `check("ws_delta", "t08")` appends a
-  row to the progress table.
+- Workshops are numbered in the order of the day: **Workshop 1 — Ingestion** (`ws_ingestion`),
+  **Workshop 2 — Delta Lake** (`ws_delta`), from `"number"` in the guide files.
+- Participants write and run code in their notebook. The last line of a step cell saves the
+  result to their catalog; the **Check** button in the app then runs the step's check as SQL
+  on the SQL warehouse **as the participant** (on-behalf-of-user) and appends a row to the
+  progress table. See [Check button](#check-button).
 - The app shows the step (explanation, blanks, drag and drop, hints, doc links) and polls
   `GET /api/progress/me` every 5 s for the live status. The server reads the progress
   table at most once per workshop every 4 s and shares the result between all users.
@@ -30,8 +34,11 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 | `scripts/quiz-from-md.mjs` | builds `config/quiz/questions.json` and the private key from `../../utilization/` |
 | `server/sql/quiz_progress.sql` | quiz state per participant and question (first answer, solved, attempts); server only |
 | `server/quiz.ts`, `shared/quiz-schema.ts` | key loading and caching, grading, attempt numbering, rate limit; zod schemas |
-| `shared/guide-schema.ts` | zod schema of the guide files and the POST body |
-| `server/` | `/api/me`, `/api/guides`, `/api/progress`, `/api/progress/me`, `/api/progress/matrix`, `/api/quiz*`; guide loading and validation |
+| `shared/guide-schema.ts` | zod schema of the guide files and the POST body; workshop labels and order |
+| `server/checks/` | one check per Check-graded step (`ws_ingestion.ts`, `ws_delta.ts`), helpers (`framework.ts`), registry and error handling (`index.ts`), tests |
+| `server/slug.ts` | e-mail → `retailhub_<slug>`, same rules as `user_slug_for()` in `notebooks/setup/00_setup` |
+| `shared/check-schema.ts` | body of `POST /api/check`, query of `DELETE /api/progress/me` |
+| `server/` | `/api/me`, `/api/guides`, `/api/check`, `/api/progress`, `/api/progress/me` (GET, DELETE), `/api/progress/matrix`, `/api/quiz*`; guide loading and validation |
 | `client/src/` | participant view (`/`), quiz (`/quiz`), trainer view (`/trainer`, tabs Workshops / Quiz) |
 
 ## Environment variables
@@ -40,9 +47,11 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 |---|---|---|
 | `DATABRICKS_WAREHOUSE_ID` | `app.yaml` (`valueFrom: sql-warehouse`), `.env` locally | SQL warehouse for queries and the INSERT |
 | `PROGRESS_TABLE` | `app.yaml` | progress table for the INSERT and the SELECT, default `retailhub_trainer.default.workshop_progress` |
-| `TRAINER_EMAILS` | `app.yaml` | comma-separated emails that may open `/trainer` |
+| `TRAINER_EMAILS` | `app.yaml` (`valueFrom: trainer-emails`) | comma-separated emails that may open `/trainer` |
+| `TRAINER_ACCOUNTS` | `app.yaml` (`valueFrom: trainer-accounts`) | `TRAINER_ACCOUNTS` of `00_setup` (e-mails or logins, comma separated): their catalog is `retailhub_trainer`. `none` = no trainer accounts |
 | `QUIZ_KEY_PATH` | `app.yaml` | private quiz key in a UC volume, default `/Volumes/retailhub_trainer/default/workshop_guide_private/quiz_key.json` |
 | `DEV_USER_EMAIL` | `.env` (local only) | identity when there is no `X-Forwarded-Email` header; ignored when `NODE_ENV=production` |
+| `DEV_CHECK_AS_CLI` | `.env` (local only) | `1` = run Check with the CLI identity when there is no user token; ignored when `NODE_ENV=production` |
 | `DATABRICKS_CONFIG_PROFILE` | `.env` (local only) | CLI profile for local development |
 
 `PROGRESS_TABLE` must be a plain `catalog.schema.table` name. The server checks it at
@@ -74,6 +83,67 @@ number of participants. Unknown workshops return 404.
 
 The `useAnalyticsQuery` hook is not used for polling. It cannot re-run a query with
 unchanged parameters (no refetch), so live status stopped after the first load.
+
+## Check button
+
+Every step with `"check": "notebook"` in the guide (the name is historical: the result is
+still produced in the notebook) has a **Check** button. The classroom notebooks have no
+`check()` cells any more.
+
+1. The participant runs the step cell. Its last line saves the result: steps that change a
+   real table (Bronze table, `lab_delta_cust_ws`) need nothing more; steps whose result is
+   only a DataFrame or a Python value save it to the scratch table
+   `<catalog>.default._ws_<workshop>_<step>`, e.g. `retailhub_jan_kowalski.default._ws_ws_ingestion_t07`.
+   Steps with two DataFrames save both in one table with a `_part` column.
+2. Check sends `POST /api/check {workshop, step, hints_used}`.
+3. The server resolves the catalog from `X-Forwarded-Email` (`retailhub_<slug>`, or
+   `retailhub_trainer` for `TRAINER_ACCOUNTS`) and runs the step's SQL with
+   `appkit.analytics.asUser(req)`: the Statement Execution API on `DATABRICKS_WAREHOUSE_ID`
+   with the user's token from `X-Forwarded-Access-Token`. The check sees only what the
+   participant can see.
+4. The assertions are evaluated on the server (`server/checks/ws_*.ts`, the same rules and
+   messages as `notebooks/workshops/_checks/ws_*.ipynb`). The result is appended to the
+   progress table by the app service principal (`source = 'app'`, `step_type` from the guide,
+   `hints_used` from the browser, `attempts` NULL) and returned as `{status, message, recorded}`.
+   The status dot changes at once; the next poll confirms it.
+
+| Response | When |
+|---|---|
+| 200 `{status: pass\|fail, message}` | the check ran; a SQL error in the participant's tables is a FAIL with its first line |
+| 401 | no user identity, or no user token (local development without `DEV_CHECK_AS_CLI=1`, or the app has no `sql` user scope), or no `X-Forwarded-User` (AppKit `asUser()` needs it; set by the Apps proxy, send it yourself when testing `npm start` locally) |
+| 404 / 409 / 501 | unknown workshop or step / step graded in the app / no check defined |
+| 429 | more than one Check per user every 3 s (in memory, per app instance) |
+| 502 | the app could not run SQL as the user (no `CAN_USE` on the warehouse, token or scope problem); nothing is recorded |
+
+A check takes 1 to 10 SQL statements (about 2 to 25 s on a warm 2X-Small warehouse, step
+07 of Workshop 1 is the slowest). Checks look at the current state of the tables, like the
+notebook checks did: press Check right after the step, before the next step changes the table.
+
+The rules match the `_checks` notebooks, which read the same saved tables. A table has no row
+order, so no check tests sorting (the order is graded in the guide where it matters). Workshop 2
+step 01 counts `customers.csv` with `read_files`; step 12 accepts both forms of a DELETE without
+WHERE in the history (`[]` and `["true"]`; the SQL warehouse and serverless write `["true"]`).
+
+The `_checks` notebooks stay for the static HTML guide and Databricks Free Edition.
+
+### Permissions for Check
+
+- The app declares `user_api_scopes: [sql]` (`databricks.yml`; Terraform `databricks_app.user_api_scopes`).
+  After adding a scope, users are asked to consent again the next time they open the app.
+- Participants need `CAN_USE` on the app's SQL warehouse. Terraform sets the warehouse ACL with
+  `databricks_permissions` (authoritative), so it lists both the training group and the app
+  service principal. In the lab the `users` group already has `CAN_USE` on the warehouse.
+- The participant's own catalog is theirs (`00_pre_config`), so no extra Unity Catalog grant
+  is needed. `CATALOG_OVERRIDE` in `00_setup` is not known to the app: with an override, Check
+  looks in the default catalog.
+
+## Reset my progress
+
+The participant view has **Reset my progress** next to the workshop title. After confirmation,
+`DELETE /api/progress/me?workshop=ws_delta` deletes the caller's rows of that workshop only
+(`WHERE lower(user_email) = <caller> AND workshop = :workshop`, run by the app service principal),
+clears the browser's hint and attempt counters for that workshop and invalidates the server cache.
+Notebook code and tables stay. At most 3 resets per user per minute.
 
 ## Guides
 
@@ -133,6 +203,10 @@ How it works:
   After a correct answer the question is closed (409). At most 5 answers per question per
   minute and user (429; in memory, per app instance).
 - Score = questions answered correctly on the **first** attempt. Retries are for learning.
+- The quiz is a learning tool, not an assessment. The participant PDF
+  (`docs/*/quiz_databricks_fundamental.pdf`) ends with the answer key, so the correct options
+  are public; the private key file keeps the explanations out of the repo and makes grading
+  server-side, nothing more. Do not use the scores to grade people.
 
 | Route | Who | Returns |
 |---|---|---|
@@ -174,7 +248,11 @@ databricks apps validate --profile <profile>
 it generates an empty query registry. Rows from the server routes are validated with
 zod on the server and in the browser (`shared/progress-schema.ts`).
 
-Lab state (2026-10-27): `retailhub_trainer.default.workshop_progress` exists in the lab
+Lab state (2026-10-27): every Check of Workshop 1 passes against the solved notebook in the lab
+(run with the CLI identity, not yet through the deployed app with a user token). For Workshop 2
+the checks that do not depend on the moment (02, 03, 04, 09, 10, 11, 12) pass on the finished
+table; the others need the state right after their step. The lab warehouse already gives `users`
+`CAN_USE`. `retailhub_trainer.default.workshop_progress` exists in the lab
 workspace, and `databricks apps validate --profile ditwlab-admin` passes. The volume
 `retailhub_trainer.default.workshop_guide_private` holds `quiz_key.json`, and the lab app's service
 principal has `READ VOLUME` on it.
@@ -192,14 +270,20 @@ Grants the app service principal needs: `USE CATALOG` on `retailhub_trainer`,
 `USE SCHEMA` on `default`, `SELECT` and `MODIFY` on the progress table, `READ VOLUME` on
 `workshop_guide_private` (quiz key).
 
-Participants only need `MODIFY` on the table (for `check()` in the notebook). SPEC
-section 2 also gives them `SELECT`, which lets anyone read the whole group's progress
-from a notebook. Consider dropping that grant in Terraform.
+Participants get no privilege on the progress table (Terraform grants it to the app service
+principal only; `00_pre_config` section 4 revokes `SELECT, MODIFY` from participants). Check,
+the quiz and Reset write as the app service principal, which grades on the server and deletes
+only the caller's rows; a participant with `MODIFY` could bypass that from a notebook, and with
+`SELECT` read everyone's quiz answers. The `_checks` notebooks still show PASS / FAIL in class
+and print `Progress not saved` once. Self-study in Free Edition owns its own table.
+
+Participants need `CAN_USE` on the SQL warehouse for Check ([Permissions for Check](#permissions-for-check)).
 
 Two deploy paths. Use exactly one per workspace, never both:
 
 **Training environment (Terraform created the app).** Terraform owns the app, its
-`sql-warehouse` and `trainer-emails` resources and the secret. Deploy only the code:
+`user_api_scopes`, its `sql-warehouse`, `trainer-emails` and `trainer-accounts` resources,
+the secrets and the warehouse ACL. Deploy only the code:
 
 ```bash
 npm run sync-guides   # then commit config/guides/
@@ -216,6 +300,8 @@ Create the secret first, then deploy:
 ```bash
 databricks secrets create-scope workshop-guide --profile <profile>
 databricks secrets put-secret workshop-guide trainer-emails --string-value "trainer@example.com" --profile <profile>
+# TRAINER_ACCOUNTS of 00_setup, or none
+databricks secrets put-secret workshop-guide trainer-accounts --string-value "none" --profile <profile>
 databricks bundle deploy --profile <profile> --var sql_warehouse_id=<id>
 databricks bundle run app --profile <profile>
 ```
@@ -223,10 +309,26 @@ databricks bundle run app --profile <profile>
 Running `bundle deploy` against a Terraform-built workspace would create a second owner
 for the same app; do not do it there.
 
+The secret scope and both secrets must exist before `bundle deploy`: `app.yaml` reads
+`trainer-emails` and `trainer-accounts` through secret resources, and a deploy without them fails.
+
+### After deploy
+
+1. `databricks apps get workshop-guide --profile <profile> -o json | jq '.user_api_scopes, .resources'`
+   shows `["sql"]` and the `sql-warehouse`, `trainer-emails`, `trainer-accounts` resources.
+2. Open the app as a **non-admin participant** (not the trainer). Adding the `sql` scope makes
+   every user accept a new consent screen once. Run 00_setup, save one step's result, press
+   **Check**: PASS or FAIL means it works. "Check could not identify you to Databricks" (401)
+   means the scope or the user token is missing; a permission error means the participant lacks
+   `CAN_USE` on the warehouse.
+3. As that participant, run `SELECT * FROM retailhub_trainer.default.workshop_progress` in a
+   notebook: it must fail with a permission error.
+
 ## Known limits
 
-- Hints used are only stored for app-graded steps (POST). For notebook-graded steps the
-  spec has notebooks write `hints_used = NULL`, so the trainer view shows no hint count there.
+- Hints used are stored by the app (POST and Check). Rows from the `_checks` notebooks
+  (self-study) have `hints_used = NULL`.
+- Check rate limit and quiz rate limit live in memory per app instance.
 - Polling keeps the SQL warehouse busy during the workshop (about one statement per 5 s
   per active workshop). Browsers poll every 30 s while the tab is hidden. AppKit's own
   query cache is turned off (`cache.enabled=false`); the 4 s server cache replaces it.

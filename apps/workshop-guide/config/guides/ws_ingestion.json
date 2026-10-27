@@ -1,8 +1,9 @@
 {
  "id": "ws_ingestion",
- "title": "Workshop — Ingestion",
+ "number": 1,
+ "title": "Workshop 1 — Ingestion",
  "notebook": "notebooks/workshops/WORKSHOP_ingestion.ipynb",
- "intro": "You are a data engineer at RetailHub. Load raw customer (CSV) and order (JSON) files into DataFrames, transform them with PySpark and its SQL equivalents, and write a Bronze Delta table with load metadata. Code runs in your notebook `WORKSHOP_ingestion`; after each step run its `check(...)` cell and this guide marks the step. Steps marked ⭐ OPTIONAL can be skipped. A DataFrame is a table Spark holds for you, like the result of a SELECT; `spark` and `display()` are ready in every Databricks notebook.",
+ "intro": "You are a data engineer at RetailHub. Load raw customer (CSV) and order (JSON) files into DataFrames, transform them with PySpark and its SQL equivalents, and write a Bronze Delta table with load metadata. Code runs in your notebook `WORKSHOP_ingestion`; after each step run its cell, then click **Check** here: the app checks your result and marks the step. The last line of a step cell saves your result to a table `default._ws_...` in your catalog; keep it. Steps marked ⭐ OPTIONAL can be skipped. A DataFrame is a table Spark holds for you, like the result of a SELECT; `spark` and `display()` are ready in every Databricks notebook.",
  "steps": [
   {
    "id": "t01",
@@ -60,7 +61,7 @@
    "title": "Load CSV with an inferred schema",
    "type": "order",
    "optional": false,
-   "explain": "`spark.read` returns a reader that you configure step by step: reader with its format, options, load, then display. `header` says the first row holds the column names; `inferSchema` makes Spark scan the file to guess the types, which costs an extra pass over the data. The parentheses let one Python statement span several lines, one method per line. Two blocks are not needed.\n\nSQL equivalent: `SELECT * FROM read_files('<path>/customers.csv', format => 'csv', header => true)`.",
+   "explain": "`spark.read` returns a reader that you configure step by step: reader with its format, options, load, then display. `header` says the first row holds the column names; `inferSchema` makes Spark scan the file to guess the types, which costs an extra pass over the data. The parentheses let one Python statement span several lines, one method per line. Two blocks are not needed.\n\nSQL equivalent: `SELECT * FROM read_files('<path>/customers.csv', format => 'csv', header => true)`.\n\nPaste your code above the last line of the notebook cell: that line saves `customers_infer_df` to a table so the app can check it.",
    "expected": "`customers_infer_df` with 10 named columns (`customer_id`, `first_name`, ...) and 10,000 rows.",
    "language": "python",
    "blocks": [
@@ -134,7 +135,7 @@
    "explain": "A DDL string is the column list you would write in `CREATE TABLE`: `\"customer_id STRING, first_name STRING, ...\"`. Pass it to `.schema(...)` instead of `inferSchema`: Spark skips the extra scan and you control every type. CSV columns are matched by position, so the order must follow the file. `registration_date` is in `YYYY-MM-DD` format, so `DATE` parses it directly.\n\nSQL equivalent: `read_files('<path>/customers.csv', format => 'csv', header => true, schema => 'customer_id STRING, ...')`.",
    "expected": "`customers_df` with 10 columns in the CSV order, `registration_date` as DATE, the rest STRING; 10,000 rows.",
    "language": "python",
-   "template": "# Schema as a DDL string: 10 columns in the CSV order\ncustomers_schema = (\n    \"customer_id STRING, first_name STRING, last_name STRING, email STRING, phone STRING, \"\n    \"city STRING, state STRING, country STRING, registration_date {{b1}}, customer_segment STRING\"\n)\n\n# Load the CSV with the explicit schema (no inferSchema)\ncustomers_df = (\n    spark.read\n    .format(\"csv\")\n    .option(\"{{b2}}\", \"true\")\n    .{{b3}}(customers_schema)\n    .load({{b4}})\n)\ndisplay(customers_df.limit(5))",
+   "template": "# Schema as a DDL string: 10 columns in the CSV order\ncustomers_schema = (\n    \"customer_id STRING, first_name STRING, last_name STRING, email STRING, phone STRING, \"\n    \"city STRING, state STRING, country STRING, registration_date {{b1}}, customer_segment STRING\"\n)\n\n# Load the CSV with the explicit schema (no inferSchema)\ncustomers_df = (\n    spark.read\n    .format(\"csv\")\n    .option(\"{{b2}}\", \"true\")\n    .{{b3}}(customers_schema)\n    .load({{b4}})\n)\ndisplay(customers_df.limit(5))\n\n# saves your result so the app can check it\ncustomers_df.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t03\")",
    "blanks": {
     "b1": {
      "answers": [
@@ -187,11 +188,11 @@
    "explain": "Before transforming data, look at it. `.count()` returns the number of rows as a Python integer. `.select(\"country\").distinct().count()` counts unique values, and `.summary()` returns a DataFrame with count, mean, min, max and percentiles per column.\n\nStore the results in `total_rows` (int), `distinct_countries` (int) and `summary_df` (DataFrame).\n\nSQL equivalent: `SELECT count(*), count(DISTINCT country) FROM customers_view`.",
    "expected": "`total_rows` = 10,000, `distinct_countries` = 1 (all customers are from the USA), `summary_df` is a DataFrame.",
    "language": "python",
-   "starter": "# Step 04 — your code\n# total_rows         = number of rows in customers_df (int)\n# distinct_countries = number of distinct values in country (int)\n# summary_df         = summary statistics of customers_df (DataFrame)",
+   "starter": "# Step 04 — your code\n# total_rows         = number of rows in customers_df (int)\n# distinct_countries = number of distinct values in country (int)\n# summary_df         = summary statistics of customers_df (DataFrame)\n\n# saves your result so the app can check it\n(spark.createDataFrame([(total_rows, distinct_countries)], \"total_rows BIGINT, distinct_countries BIGINT\")\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t04\"))",
    "hints": [
     "Three separate one-liners on `customers_df`. Counting returns a Python `int`, `summary()` returns a DataFrame.",
     "Pattern: `df.count()`, `df.select(\"col\").distinct().count()`, `df.summary()`.",
-    "Full solution:\n```python\n# Step 04 — row count, distinct countries, summary statistics\ntotal_rows = customers_df.count()\ndistinct_countries = customers_df.select(\"country\").distinct().count()\nsummary_df = customers_df.summary()\n\nprint(f\"Total rows: {total_rows:,} | distinct countries: {distinct_countries}\")\ndisplay(summary_df)\n```"
+    "Full solution:\n```python\n# Step 04 — row count, distinct countries, summary statistics\ntotal_rows = customers_df.count()\ndistinct_countries = customers_df.select(\"country\").distinct().count()\nsummary_df = customers_df.summary()\n\nprint(f\"Total rows: {total_rows:,} | distinct countries: {distinct_countries}\")\ndisplay(summary_df)\n\n# saves your result so the app can check it\n(spark.createDataFrame([(total_rows, distinct_countries)], \"total_rows BIGINT, distinct_countries BIGINT\")\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t04\"))\n```"
    ],
    "docs": [
     {
@@ -213,7 +214,7 @@
    "explain": "`orders_batch.json` is JSON Lines: one JSON object per line. The reader chain is the same as for CSV, only the format changes. JSON has no header option, and fields are matched by name, so the column order in the schema does not matter. `order_datetime` stays a STRING here; you convert it in step 07.\n\nSQL equivalent: `SELECT * FROM read_files('<path>/orders_batch.json', format => 'json', schema => 'order_id STRING, ...')`.",
    "expected": "`orders_df` with 8 columns, `total_amount` DOUBLE, `order_datetime` STRING; 100,000 rows.",
    "language": "python",
-   "template": "# The orders schema as a DDL string (JSON fields are matched by name)\norders_schema = (\n    \"order_id STRING, customer_id STRING, order_datetime STRING, quantity INT, \"\n    \"unit_price DOUBLE, total_amount DOUBLE, payment_method STRING, discount_percent DOUBLE\"\n)\n\n# Load ORDERS_JSON with this schema\norders_df = spark.read.format(\"{{b1}}\").{{b2}}(orders_schema).{{b3}}(ORDERS_JSON)\ndisplay(orders_df.limit(5))",
+   "template": "# The orders schema as a DDL string (JSON fields are matched by name)\norders_schema = (\n    \"order_id STRING, customer_id STRING, order_datetime STRING, quantity INT, \"\n    \"unit_price DOUBLE, total_amount DOUBLE, payment_method STRING, discount_percent DOUBLE\"\n)\n\n# Load ORDERS_JSON with this schema\norders_df = spark.read.format(\"{{b1}}\").{{b2}}(orders_schema).{{b3}}(ORDERS_JSON)\ndisplay(orders_df.limit(5))\n\n# saves your result so the app can check it\norders_df.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t05\")",
    "blanks": {
     "b1": {
      "answers": [
@@ -259,11 +260,11 @@
    "explain": "`df.filter(condition)` keeps the rows where the condition is true, like SQL `WHERE`. A list match is `F.col(\"state\").isin([\"NY\", \"CA\"])`, the SQL `IN`. The year of a date is `F.year(F.col(\"registration_date\"))`. You can also write the query in SQL on `customers_view` and assign it with `spark.sql(...)`.\n\nSQL equivalent: `SELECT * FROM customers_view WHERE state IN ('NY', 'CA')`.",
    "expected": "`customers_ny_ca` contains only NY and CA (about 1,600 rows); `customers_recent` has no row registered before 2025.",
    "language": "python",
-   "starter": "# Step 06 — your code\n# customers_ny_ca  = customers from the states NY or CA\n# customers_recent = customers registered in 2025 or later (PySpark or spark.sql)",
+   "starter": "# Step 06 — your code\n# customers_ny_ca  = customers from the states NY or CA\n# customers_recent = customers registered in 2025 or later (PySpark or spark.sql)\n\n# saves your result so the app can check it\n(customers_ny_ca.withColumn(\"_part\", F.lit(\"ny_ca\")).unionByName(customers_recent.withColumn(\"_part\", F.lit(\"recent\")), allowMissingColumns=True)\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t06\"))",
    "hints": [
     "Two `filter` calls on `customers_df`, or one of them as `spark.sql(\"SELECT ... FROM customers_view WHERE ...\")`.",
     "Building blocks: `F.col(\"state\").isin([...])` and `F.year(F.col(\"registration_date\")) >= 2025`.",
-    "Full solution:\n```python\n# Step 06 — PySpark filter with isin\ncustomers_ny_ca = customers_df.filter(F.col(\"state\").isin([\"NY\", \"CA\"]))\n\n# SQL option on the temp view (PySpark: F.year(F.col(\"registration_date\")) >= 2025)\ncustomers_recent = spark.sql(\"SELECT * FROM customers_view WHERE year(registration_date) >= 2025\")\n\nprint(f\"NY or CA: {customers_ny_ca.count():,} | recent: {customers_recent.count():,}\")\n```"
+    "Full solution:\n```python\n# Step 06 — PySpark filter with isin\ncustomers_ny_ca = customers_df.filter(F.col(\"state\").isin([\"NY\", \"CA\"]))\n\n# SQL option on the temp view (PySpark: F.year(F.col(\"registration_date\")) >= 2025)\ncustomers_recent = spark.sql(\"SELECT * FROM customers_view WHERE year(registration_date) >= 2025\")\n\nprint(f\"NY or CA: {customers_ny_ca.count():,} | recent: {customers_recent.count():,}\")\n\n# saves your result so the app can check it\n(customers_ny_ca.withColumn(\"_part\", F.lit(\"ny_ca\")).unionByName(customers_recent.withColumn(\"_part\", F.lit(\"recent\")), allowMissingColumns=True)\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t06\"))\n```"
    ],
    "docs": [
     {
@@ -285,7 +286,7 @@
    "explain": "`df.withColumn(\"name\", expression)` returns a new DataFrame with one more column; chain several calls inside parentheses. `F.concat_ws(\" \", a, b)` joins strings with a separator and skips NULL. `.cast(\"timestamp\")` converts text such as `2024-12-31T23:56:00`; NULL stays NULL. If a text value cannot be converted, Databricks raises an error; `try_cast` returns NULL instead. In the second blank, type the separator together with its quotes: `\" \"`.\n\nSQL equivalent: `SELECT *, concat_ws(' ', first_name, last_name) AS full_name, year(registration_date) AS registration_year FROM customers_view` and `SELECT *, CAST(order_datetime AS TIMESTAMP) AS order_ts FROM orders_view`.",
    "expected": "`customers_enriched` has `full_name` (STRING) and `registration_year` (INT); `orders_typed` has `order_ts` (TIMESTAMP) and no new NULLs.",
    "language": "python",
-   "template": "# customers_enriched: full_name and registration_year\ncustomers_enriched = (\n    customers_df\n    .{{b1}}(\"full_name\", F.concat_ws({{b2}}, F.col(\"first_name\"), F.col(\"last_name\")))\n    .withColumn(\"registration_year\", F.{{b3}}(F.col(\"registration_date\")))\n)\n\n# orders_typed: order_datetime (STRING) cast to TIMESTAMP\norders_typed = orders_df.withColumn(\"order_ts\", F.col(\"order_datetime\").{{b4}}(\"timestamp\"))\n\ndisplay(customers_enriched.select(\"customer_id\", \"full_name\", \"registration_year\").limit(5))\ndisplay(orders_typed.select(\"order_id\", \"order_datetime\", \"order_ts\").limit(5))",
+   "template": "# customers_enriched: full_name and registration_year\ncustomers_enriched = (\n    customers_df\n    .{{b1}}(\"full_name\", F.concat_ws({{b2}}, F.col(\"first_name\"), F.col(\"last_name\")))\n    .withColumn(\"registration_year\", F.{{b3}}(F.col(\"registration_date\")))\n)\n\n# orders_typed: order_datetime (STRING) cast to TIMESTAMP\norders_typed = orders_df.withColumn(\"order_ts\", F.col(\"order_datetime\").{{b4}}(\"timestamp\"))\n\ndisplay(customers_enriched.select(\"customer_id\", \"full_name\", \"registration_year\").limit(5))\ndisplay(orders_typed.select(\"order_id\", \"order_datetime\", \"order_ts\").limit(5))\n\n# saves your result so the app can check it\n(customers_enriched.withColumn(\"_part\", F.lit(\"customers\")).unionByName(orders_typed.withColumn(\"_part\", F.lit(\"orders\")), allowMissingColumns=True)\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t07\"))",
    "blanks": {
     "b1": {
      "answers": [
@@ -342,7 +343,7 @@
    "explain": "`F.when(condition, value)` starts a conditional expression, `.when(...)` adds branches and `.otherwise(value)` is the `ELSE`. The first matching branch wins, so test `>= 2025` before `>= 2024`. Without `.otherwise()` unmatched rows get NULL. Rules: `registration_year` >= 2025 → New, >= 2024 → Regular, otherwise Loyal.\n\nSQL equivalent: `CASE WHEN year(registration_date) >= 2025 THEN 'New' WHEN ... ELSE 'Loyal' END AS customer_tier`.",
    "expected": "`customers_tiered` has `customer_tier` with exactly the values New, Regular and Loyal, and no NULLs.",
    "language": "python",
-   "template": "# customer_tier: >= 2025 -> New, >= 2024 -> Regular, otherwise -> Loyal\ncustomers_tiered = customers_enriched.withColumn(\n    \"customer_tier\",\n    F.when(F.col(\"registration_year\") >= {{b1}}, \"New\")\n    .{{b2}}(F.col(\"registration_year\") >= 2024, \"Regular\")\n    .{{b3}}(\"Loyal\")\n)\n\ndisplay(customers_tiered.groupBy(\"customer_tier\").count().orderBy(\"customer_tier\"))",
+   "template": "# customer_tier: >= 2025 -> New, >= 2024 -> Regular, otherwise -> Loyal\ncustomers_tiered = customers_enriched.withColumn(\n    \"customer_tier\",\n    F.when(F.col(\"registration_year\") >= {{b1}}, \"New\")\n    .{{b2}}(F.col(\"registration_year\") >= 2024, \"Regular\")\n    .{{b3}}(\"Loyal\")\n)\n\ndisplay(customers_tiered.groupBy(\"customer_tier\").count().orderBy(\"customer_tier\"))\n\n# saves your result so the app can check it\ncustomers_tiered.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t08\")",
    "blanks": {
     "b1": {
      "answers": [
@@ -385,7 +386,7 @@
    "title": "Aggregate orders by payment method",
    "type": "order",
    "optional": false,
-   "explain": "`groupBy(...)` says which column forms the groups, `.agg(...)` computes one value per group, and `.orderBy(...)` sorts the result. The order matters: you can only sort by `total_revenue` after `.agg` has created it. `.alias(...)` is SQL `AS`; without it Spark names the column `count(1)`. Rows with a NULL payment method form their own group. Two blocks are not needed.\n\nSQL equivalent: `SELECT payment_method, COUNT(*) AS order_count, SUM(total_amount) AS total_revenue, AVG(total_amount) AS avg_order_value FROM orders_view GROUP BY payment_method ORDER BY total_revenue DESC`.",
+   "explain": "`groupBy(...)` says which column forms the groups, `.agg(...)` computes one value per group, and `.orderBy(...)` sorts the result. The order matters: you can only sort by `total_revenue` after `.agg` has created it. `.alias(...)` is SQL `AS`; without it Spark names the column `count(1)`. Rows with a NULL payment method form their own group. Two blocks are not needed.\n\nSQL equivalent: `SELECT payment_method, COUNT(*) AS order_count, SUM(total_amount) AS total_revenue, AVG(total_amount) AS avg_order_value FROM orders_view GROUP BY payment_method ORDER BY total_revenue DESC`.\n\nPaste your code above the last line of the notebook cell: that line saves `payment_stats` to a table so the app can check it.",
    "expected": "`payment_stats` with one row per payment method (5 rows including NULL), columns `payment_method`, `order_count`, `total_revenue`, `avg_order_value`, sorted by `total_revenue` descending.",
    "language": "python",
    "blocks": [
@@ -464,11 +465,11 @@
    "explain": "`df.createOrReplaceTempView(\"name\")` (the pre-filled cells after steps 03 and 05) gives a DataFrame a name for SQL until the notebook is detached or the cluster restarts; no data is copied. `spark.sql(\"SELECT ...\")` returns a regular DataFrame. A temp view is not saved anywhere; a view created with `CREATE VIEW catalog.schema.name` stays.\n\nReturn the columns `state` and `customer_count`, sorted by `customer_count` descending, 5 rows. All customers are from the USA, so the ranking is by state.",
    "expected": "`top_states` with 5 rows and the columns `state`, `customer_count`, sorted by `customer_count` descending.",
    "language": "python",
-   "starter": "# Step 10 — your code\n# top_states = spark.sql(...) on customers_view: columns state, customer_count; top 5 by count",
+   "starter": "# Step 10 — your code\n# top_states = spark.sql(...) on customers_view: columns state, customer_count; top 5 by count\n\n# saves your result so the app can check it\ntop_states.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t10\")",
    "hints": [
     "Plain SQL inside `spark.sql(\"\"\"...\"\"\")`: group by state, count, sort, limit.",
     "Skeleton: `SELECT state, COUNT(*) AS customer_count FROM customers_view GROUP BY ... ORDER BY ... LIMIT 5`.",
-    "Full solution:\n```python\n# Step 10 — top 5 states by number of customers\ntop_states = spark.sql(\"\"\"\n    SELECT state, COUNT(*) AS customer_count\n    FROM customers_view\n    GROUP BY state\n    ORDER BY customer_count DESC\n    LIMIT 5\n\"\"\")\ndisplay(top_states)\n```"
+    "Full solution:\n```python\n# Step 10 — top 5 states by number of customers\ntop_states = spark.sql(\"\"\"\n    SELECT state, COUNT(*) AS customer_count\n    FROM customers_view\n    GROUP BY state\n    ORDER BY customer_count DESC\n    LIMIT 5\n\"\"\")\ndisplay(top_states)\n\n# saves your result so the app can check it\ntop_states.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t10\")\n```"
    ],
    "docs": [
     {
@@ -546,11 +547,11 @@
    "explain": "A left join keeps every order; customer columns are NULL where there is no match. `orders_df.join(customers_df, on=\"customer_id\", how=\"left\")` joins on the shared column and keeps a single `customer_id`, so a plain `.select(\"order_id\", ...)` works. Select `order_id`, `customer_id`, `first_name`, `last_name`, `country`, `total_amount`, `payment_method`, then count orders and sum revenue per `country`, sorted by `total_revenue` descending.\n\nSQL equivalent: `SELECT order_id, customer_id, first_name, ... FROM orders_view LEFT JOIN customers_view USING (customer_id)`.",
    "expected": "`orders_enriched` has the 7 columns and 105,064 rows: `orders_df` has 100,000, but 266 customer IDs appear twice in the raw customers file, so a few orders match twice (deduplication is a Silver task). `orders_by_country` has `country`, `order_count`, `total_revenue` and two rows: USA and NULL (orders without a matching customer); that is expected.",
    "language": "python",
-   "starter": "# Step 12 — your code\n# orders_enriched   = orders_df LEFT JOIN customers_df on customer_id, 7 columns\n# orders_by_country = order_count and total_revenue per country, total_revenue DESC",
+   "starter": "# Step 12 — your code\n# orders_enriched   = orders_df LEFT JOIN customers_df on customer_id, 7 columns\n# orders_by_country = order_count and total_revenue per country, total_revenue DESC\n\n# saves your result so the app can check it\n(orders_enriched.withColumn(\"_part\", F.lit(\"enriched\")).unionByName(orders_by_country.withColumn(\"_part\", F.lit(\"by_country\")), allowMissingColumns=True)\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t12\"))",
    "hints": [
     "Two parts: `orders_df.join(customers_df, on=\"customer_id\", how=\"left\").select(...)`, then `groupBy(\"country\").agg(...)` as in step 09.",
     "Another way to write the condition: `orders_df[\"customer_id\"] == customers_df[\"customer_id\"]`. Then both `customer_id` columns stay, and in `.select` you must write `orders_df[\"customer_id\"]` to avoid an ambiguous reference. With `on=\"customer_id\"` you don't need that.",
-    "Full solution:\n```python\n# Step 12 — left join orders with customers\norders_enriched = (\n    orders_df\n    .join(customers_df, on=\"customer_id\", how=\"left\")\n    .select(\"order_id\", \"customer_id\", \"first_name\", \"last_name\",\n            \"country\", \"total_amount\", \"payment_method\")\n)\n\n# Orders and revenue per country\norders_by_country = (\n    orders_enriched.groupBy(\"country\")\n    .agg(F.count(\"*\").alias(\"order_count\"), F.sum(\"total_amount\").alias(\"total_revenue\"))\n    .orderBy(F.desc(\"total_revenue\"))\n)\ndisplay(orders_by_country)\n```"
+    "Full solution:\n```python\n# Step 12 — left join orders with customers\norders_enriched = (\n    orders_df\n    .join(customers_df, on=\"customer_id\", how=\"left\")\n    .select(\"order_id\", \"customer_id\", \"first_name\", \"last_name\",\n            \"country\", \"total_amount\", \"payment_method\")\n)\n\n# Orders and revenue per country\norders_by_country = (\n    orders_enriched.groupBy(\"country\")\n    .agg(F.count(\"*\").alias(\"order_count\"), F.sum(\"total_amount\").alias(\"total_revenue\"))\n    .orderBy(F.desc(\"total_revenue\"))\n)\ndisplay(orders_by_country)\n\n# saves your result so the app can check it\n(orders_enriched.withColumn(\"_part\", F.lit(\"enriched\")).unionByName(orders_by_country.withColumn(\"_part\", F.lit(\"by_country\")), allowMissingColumns=True)\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t12\"))\n```"
    ],
    "docs": [
     {

@@ -19,7 +19,7 @@ import {
 import { Lock, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router';
-import type { Guide } from '../../../shared/guide-schema';
+import { workshopLabel, type Guide } from '../../../shared/guide-schema';
 import { Kpi } from '../components/Kpi';
 import { StatusDot } from '../components/StatusDot';
 import { statusLabel, TYPE_LABEL } from '../lib/labels';
@@ -75,7 +75,7 @@ export function TrainerPage({ guides, isTrainer }: { guides: Guide[]; isTrainer:
               <SelectContent>
                 {guides.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
-                    {g.title}
+                    {workshopLabel(g)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -132,7 +132,7 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
             </EmptyMedia>
             <EmptyTitle>No results yet</EmptyTitle>
             <EmptyDescription>
-              Participants appear here after their first <code>check()</code> in the notebook or their first checked exercise in the
+              Participants appear here after their first Check or their first checked exercise in the
               guide.
             </EmptyDescription>
           </EmptyHeader>
@@ -144,7 +144,7 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
             <div className="relative max-w-full overflow-x-auto">
               <table className="wg-matrix">
                 <caption className="sr-only">
-                  {guide.title}: result per participant and step
+                  {workshopLabel(guide)}: result per participant and step
                 </caption>
                 <thead>
                   <tr>

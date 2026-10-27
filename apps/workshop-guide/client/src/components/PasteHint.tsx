@@ -9,10 +9,12 @@ interface Props {
   number: string;
 }
 
-/** One line under "Copy to notebook": which notebook cell to paste into and what to run next. */
+/** One line under "Copy to notebook": which notebook cell to paste into and what to do next. */
 export function PasteHint({ guide, step, number }: Props) {
   // SQL steps are %sql cells in the notebooks; the copied code does not include the magic line.
   const sqlCell = step.language === 'sql';
+  // Most fill templates already end with the save line (`..._ws_<workshop>_<step>`); order blocks do not.
+  const copiedSaveLine = (step.type === 'fill' ? step.template : '').includes('._ws_');
   return (
     <p className="flex items-start gap-2 text-xs text-muted-foreground">
       <ClipboardPaste className="mt-0.5 size-3.5 shrink-0" aria-hidden />
@@ -22,12 +24,13 @@ export function PasteHint({ guide, step, number }: Props) {
         {sqlCell ? (
           <>
             {' '}
-            (replace the code, keep the first line <code className="wg-inline-code">%sql</code>)
+            (replace the code, keep the first line <code className="wg-inline-code">%sql</code>
           </>
         ) : (
-          ' (replace the code that is there)'
+          ' (replace the code that is there'
         )}
-        , then run the <code className="wg-inline-code">{`check("${guide.id}", "${step.id}")`}</code> cell below it.
+        {copiedSaveLine ? ')' : '; if the cell ends with a line that saves your result, keep it as the last line)'}
+        . Run the cell to the end{step.check === 'notebook' ? ', then press Check below' : ''}.
       </span>
     </p>
   );
