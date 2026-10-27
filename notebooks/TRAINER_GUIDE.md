@@ -57,10 +57,10 @@ Sum: 15 + 65 + 15 + 55 + 40 + 40 + 35 + 35 + 15 + 65 + 15 = 395 min. The minutes
 
 ### M00 Intro (`00_intro`): 15 min
 
-- **CORE:** *Learning Objectives*, *Day Schedule*, *How the Notebooks Are Marked*, *Environment Check*
-  (`%run ../setup/00_setup`, prints `CATALOG`), *Training Rules*, *RetailHub Scenario*.
-- **Live:** if the Git folder is not cloned yet, do it together (*Getting the training materials*).
-- **Skip in class:** *Training Materials* tables and *What's Next*: point to them, come back in the wrap-up.
+- **CORE:** *1. About This Training* (incl. *What you will learn today*), *2. Day Schedule*, *3. How the Notebooks Are Marked*,
+  *5. Environment Check* (`%run ../setup/00_setup`, prints `CATALOG`), *7. Training Rules*, *8. RetailHub Scenario*.
+- **Live:** if the Git folder is not cloned yet, do it together (*4. Getting the Training Materials: Git Folder*).
+- **Skip in class:** *6. Training Materials* tables and *What's Next* (BONUS): point to them, come back in the wrap-up.
 - If *Catalog not found*: the participant's login is not in the training group, or `00_pre_config` was not re-run after a late joiner.
 
 ### M01 Platform, costs, GUI (`01_platform_workspace`): 65 min
@@ -69,14 +69,14 @@ Minutes per section (by heading):
 
 | Section | Min |
 |---|---|
-| Databricks Platform Elements: setup, Lakehouse, key components | 8 |
-| Workspace Exploration, Catalog Explorer, 3-level namespace, Git Folders | 10 |
-| Volumes vs DBFS + Demo: upload your own files to a Volume (trainer) | 8 |
-| Compute Resources: serverless, classic clusters, SQL warehouse | 10 |
-| Cost Management + billing demo (trainer only; participants skip the query cell) | 10 |
-| Magic Commands, `%sql`, Mixing Python + SQL | 7 |
-| Demo Table in Unity Catalog, Edit Chart, Data Profiling | 8 |
-| Genie Code | 4 |
+| 1. Databricks Platform Elements: setup, Lakehouse, key components | 8 |
+| 2. Workspace and Catalog Explorer: 3-level namespace, Git folders | 10 |
+| 3. Volumes vs DBFS + Demo: Upload Your Own Files to a Volume (trainer) | 8 |
+| 4. Compute Resources: serverless, classic clusters, SQL warehouse | 10 |
+| 5. Cost Management + billing demo (trainer only; participants skip the query cell) | 10 |
+| 6. Magic Commands: `%sql`, Mixing Python + SQL | 7 |
+| 7. Demo Table and Charts Without Code: Edit Chart, Data Profile | 8 |
+| 8. Genie Code + 9. Quick Reference + Summary | 4 |
 
 - **CORE:** platform map, workspace and Catalog Explorer, three-level namespace, Volumes (DBFS legacy:
   not available in new workspaces from 8 October 2026), compute types (Serverless, classic, SQL warehouse),
@@ -87,6 +87,15 @@ Minutes per section (by heading):
 - **⊕ BONUS:** Hive metastore vs Unity Catalog, managed vs external tables, cluster info and monitoring,
   creating a SQL warehouse + Power BI, the other billing queries, Spot/Photon, Widgets, `%pip`, Cluster Policies,
   PySpark vs SQL comparison.
+- BONUS notes (moved from the notebook): skip all BONUS blocks in the standard schedule. Cover them for:
+  SQL warehouse + Power BI: BI-oriented groups that will connect Power BI themselves; Spot/Photon: groups that manage
+  their own classic clusters; Cluster Policies and Cost Tags: admin-oriented groups and the 2-day format; more billing
+  queries: admins and FinOps-oriented groups; `%pip`: groups that need third-party libraries (it restarts Python, 1–2 min
+  per participant); Hive metastore: groups that maintain older workspaces; PySpark vs SQL: groups from a pure-SQL
+  background; Widgets: only if the group has time or asks about interactive notebooks.
+  One-liners to say instead: "Admins cap cluster size and auto-termination with policies, and tag resources to see who
+  spends what"; "`%pip install` works in a notebook and is scoped to that notebook only"; "Both compile to the same
+  Catalyst plan — pick whichever reads better".
 
 ### M02 How Spark works (`02_spark_architecture`): 15 min
 
@@ -104,6 +113,10 @@ Minutes per section (by heading):
 - **⊕ BONUS:** DAG, stages and shuffle in detail, Catalyst and AQE, Spark UI / query profile, Common Errors,
   Cache and Persist.
 - Serverless and Free Edition have no Spark UI; use the query profile under the cell result.
+- BONUS notes (moved from the notebook): skip all BONUS sections in the standard schedule; cover them for advanced groups
+  and the 2-day format. If asked, say in one line: "Spark has an optimizer, you don't need to read the plan";
+  "when a query is slow, look at its execution: Query Profile on serverless, Spark UI on classic";
+  "if you reuse a DataFrame many times, `.cache()` it once".
 
 ### M03 Medallion + ingestion (`03_medallion_ingestion`): 55 min
 
@@ -130,6 +143,16 @@ Minutes per section (by heading):
   `withColumnRenamed` / `drop` / `distinct` / `orderBy` / `isin` / min-max / HAVING variants, fillna / dropna,
   string functions, global temporary views, complex SQL.
 - Hand out `docs/*/pyspark_vs_sparksql.pdf` to SQL-only participants.
+- **Moved from the notebook (trainer notes):**
+  - Section 4, wrong schema: the schema is wrong on purpose (columns mapped by position, no error raised).
+    Ask the group what went wrong before showing the Note and the corrected schema.
+  - BONUS 13–14 (reader options): reference only; point participants to the Databricks documentation.
+  - BONUS 15 (Parquet), 17 (inferSchema benchmark), 20 (string operations): give the one-line message verbally
+    ("Parquet carries its own schema", "inferSchema scans the file twice", "like / contains / startswith = SQL LIKE");
+    show the cells to advanced groups or in the 2-day format.
+  - BONUS 16 (Excel): cover only if the group works with Excel files.
+  - BONUS 18 (more column operations): show when participants ask how to write these SQL steps in PySpark.
+  - BONUS 22 (joins): cover it before the optional Workshop Task 12.
 
 ### Workshop: Ingestion (`WORKSHOP_ingestion`): 40 min
 
@@ -158,6 +181,13 @@ Minutes per section (by heading):
   DROP + UNDROP for managed tables; predictive optimization and liquid clustering on Unity Catalog managed tables.
 - **⊕ BONUS:** identity and generated columns, constraints, `_delta_log` internals, VACUUM demo,
   external tables, multi-table transactions, troubleshooting.
+- **Trainer notes moved from the notebook (BONUS blocks):** skip all BONUS blocks in the standard schedule.
+  Identity/generated columns: return to them for groups building production data models.
+  Constraints: say verbally (30 s) "A CHECK constraint rejects every write that breaks the rule — the whole transaction fails";
+  cover for advanced groups and the 2-day format. `_delta_log` internals: say verbally "Every Delta operation is recorded
+  as a JSON file — that's what enables Time Travel"; return for engineers who want ACID at the storage level.
+  VACUUM demo: advanced groups and the 2-day format. External tables: core message "Managed tables = Databricks manages
+  the data lifecycle. Use them by default."
 
 ### Workshop: Delta Lake (`WORKSHOP_delta`): 35 min
 
@@ -190,6 +220,10 @@ Minutes per section (by heading):
   A wrong name makes the task fail, which is a good lead-in to Repair run.
 - **⊕ BONUS:** Lakeflow Spark Declarative Pipelines (formerly Delta Live Tables), system tables beyond one
   trainer query, If/Else and For Each tasks.
+- **Trainer notes moved from the notebook (BONUS blocks):** skip both BONUS blocks in the standard schedule.
+  System tables: say verbally (30 s) "Every job run is also logged in `system.lakeflow.job_run_timeline` — admins query it
+  for run history and duration"; participants use the **Runs** tab of the job (Step 7); the two queries are a trainer demo.
+  Lakeflow Spark Declarative Pipelines: say verbally (1 min) the five bullet points at the top of the pipelines section.
 
 ### M06 Unity Catalog (`06_unity_catalog`): 15 min
 
@@ -217,6 +251,9 @@ Minutes per section (by heading):
 - **Cut-off:** after 25 min participants who are behind switch to the ready solution notebooks and still build the job.
 - Expected: Bronze 100,000 rows; Gold 32 rows (one per day, 2024-12-31 to 2025-01-31).
 - **Optional:** SQL checks 3–4, an active trigger a few minutes ahead.
+- Time split (moved from the notebook): sections 2–4 (setup, Silver/Gold, smoke test) 30 min, section 5 (job) 25 min,
+  section 6 (SQL check) 10 min. The notebook says "when the trainer calls time": announce the 25-min cut-off aloud.
+- The read-only solutions folder for the cut-off is prepared by `00_pre_config`; give participants its path.
 
 ### Wrap-up: 15 min
 
@@ -228,6 +265,8 @@ Minutes per section (by heading):
 - Requirements: pro or serverless SQL warehouse, Databricks SQL entitlement, partner-powered AI features enabled.
   Check them in the training workspace before the day.
 - The dashboard builder is self-study.
+- Participants do not build anything in class; they watch the Genie Agent demo on the demo tables.
+- Symptom of partner-powered AI features being off: **Genie Agents** shows in the sidebar, but agents cannot be opened.
 
 ---
 
