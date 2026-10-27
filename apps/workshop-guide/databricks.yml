@@ -1,0 +1,34 @@
+bundle:
+  name: workshop-guide
+
+variables:
+  sql_warehouse_id:
+    description: SQL Warehouse ID
+
+resources:
+  apps:
+    app:
+      name: "workshop-guide"
+      description: "Step-by-step guide for the Databricks Fundamental workshops with live progress"
+      source_code_path: ./
+
+      # Start the app automatically on deploy.
+      lifecycle:
+        started: true
+      # Uncomment to enable on behalf of user API scopes. Available scopes: sql, dashboards.genie, files.files, serving.serving-endpoints
+      # user_api_scopes:
+      #   - sql
+
+      # The resources which this app has access to.
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.sql_warehouse_id}
+            permission: CAN_USE
+
+targets:
+  # Workspace comes from the CLI profile (--profile <name>); the warehouse id from
+  # terraform output workshop_guide_warehouse_id:
+  #   databricks bundle deploy --profile <profile> --var sql_warehouse_id=<id>
+  default:
+    default: true

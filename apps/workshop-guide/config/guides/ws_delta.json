@@ -1,0 +1,482 @@
+{
+ "id": "ws_delta",
+ "title": "Workshop — Delta Lake",
+ "notebook": "notebooks/workshops/WORKSHOP_delta.ipynb",
+ "intro": "You manage the RetailHub customer table. You create it as a Delta table, change its schema and data (INSERT, UPDATE, MERGE), then use the table history to read old versions and undo an accidental delete. Write the code in the notebook `WORKSHOP_delta` and run each `check()` cell: the step turns green here. ⭐ OPTIONAL steps are extra practice; the next steps do not need them.",
+ "steps": [
+  {
+   "id": "t01",
+   "title": "Create the Delta table",
+   "type": "fill",
+   "optional": false,
+   "explain": "`CREATE TABLE ... AS SELECT` (CTAS) creates a table and loads the rows of a query in one statement. On Databricks every new table is a Delta table by default, so you do not need `USING DELTA`. Without a `LOCATION` the table is *managed*: Unity Catalog stores the files for you. `OR REPLACE` lets you run the cell again without an error.",
+   "expected": "The table `lab_delta_cust_ws` exists, its format is `delta` and it has as many rows as `customers_csv` (10,000).",
+   "language": "sql",
+   "template": "CREATE OR REPLACE {{b1}} lab_delta_cust_ws {{b2}}\nSELECT * FROM {{b3}}",
+   "blanks": {
+    "b1": {
+     "answers": [
+      "TABLE"
+     ],
+     "case_sensitive": false,
+     "width": 6
+    },
+    "b2": {
+     "answers": [
+      "AS"
+     ],
+     "case_sensitive": false,
+     "width": 4
+    },
+    "b3": {
+     "answers": [
+      "customers_csv"
+     ],
+     "width": 14
+    }
+   },
+   "hints": [
+    "You create a table from the result of a query: the statement is `CREATE OR REPLACE TABLE <name> AS <query>`.",
+    "The query reads every column of the temporary view: `SELECT * FROM customers_csv`.",
+    "CREATE OR REPLACE TABLE lab_delta_cust_ws AS\nSELECT * FROM customers_csv"
+   ],
+   "docs": [
+    {
+     "label": "Tutorial: Delta Lake tables",
+     "url": "https://learn.microsoft.com/azure/databricks/delta/tutorial"
+    },
+    {
+     "label": "CREATE TABLE [USING]",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-ddl-create-table-using"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t02",
+   "title": "Schema enforcement",
+   "type": "code",
+   "optional": true,
+   "explain": "Delta checks every write against the table schema (*schema enforcement*). A DataFrame with a column the table does not have is rejected, and nothing is written: the write fails as a whole. Here you append `bad_df` inside the ready `try` block, so the error is stored in `enforcement_error` instead of stopping the notebook. SQL equivalent: `INSERT INTO lab_delta_cust_ws (customer_id, mood) VALUES ('BAD001', 'happy')` fails the same way.",
+   "expected": "`enforcement_error` holds an error message, the table has no `mood` column and no row `BAD001`.",
+   "language": "python",
+   "starter": "# Step 02: append bad_df to TABLE inside the try block\nenforcement_error = None\ntry:\n    # YOUR CODE HERE: append bad_df to TABLE\n    pass\nexcept Exception as e:\n    enforcement_error = str(e)\nprint(f\"Error caught: {enforcement_error[:150] if enforcement_error else 'None'}\")",
+   "hints": [
+    "Use the DataFrame writer: `bad_df.write`, then the save mode, then the target table.",
+    "The write chain is `bad_df.write.mode(\"append\").saveAsTable(TABLE)`. Put it in place of `pass`.",
+    "enforcement_error = None\ntry:\n    bad_df.write.mode(\"append\").saveAsTable(TABLE)\nexcept Exception as e:\n    enforcement_error = str(e)\nprint(f\"Error caught: {enforcement_error[:150] if enforcement_error else 'None'}\")"
+   ],
+   "docs": [
+    {
+     "label": "Schema enforcement",
+     "url": "https://learn.microsoft.com/azure/databricks/tables/schema-enforcement"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t03",
+   "title": "Schema evolution: add a column",
+   "type": "fill",
+   "optional": false,
+   "explain": "Sometimes the schema has to change on purpose: this is *schema evolution*. `ALTER TABLE ... ADD COLUMN` adds a column by changing only the table metadata in the transaction log; no data files are rewritten. Existing rows show `NULL` in the new column until you update them.",
+   "expected": "The table has a `loyalty_tier` column of type `STRING`; existing rows have `NULL` in it.",
+   "language": "sql",
+   "template": "ALTER TABLE lab_delta_cust_ws {{b1}} {{b2}} STRING",
+   "blanks": {
+    "b1": {
+     "answers": [
+      "ADD COLUMN",
+      "ADD COLUMNS"
+     ],
+     "case_sensitive": false,
+     "width": 11
+    },
+    "b2": {
+     "answers": [
+      "loyalty_tier"
+     ],
+     "width": 13
+    }
+   },
+   "hints": [
+    "The statement that changes a table's structure is `ALTER TABLE`; the clause you need adds a column.",
+    "Pattern: `ALTER TABLE <table> ADD COLUMN <name> <type>`.",
+    "ALTER TABLE lab_delta_cust_ws ADD COLUMN loyalty_tier STRING"
+   ],
+   "docs": [
+    {
+     "label": "ALTER TABLE ... COLUMN",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-ddl-alter-table-manage-column"
+    },
+    {
+     "label": "Schema evolution",
+     "url": "https://learn.microsoft.com/azure/databricks/tables/update-schema"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t04",
+   "title": "CHECK constraint",
+   "type": "code",
+   "optional": true,
+   "explain": "A `CHECK` constraint is a rule that Delta tests on every write. `ALTER TABLE ... ADD CONSTRAINT` first verifies the existing rows, then rejects any later write that breaks the rule. You add `valid_country` with the condition `country IS NOT NULL`, then insert customer `BAD_C` with a `NULL` country inside the ready `try` block. Run SQL from Python with `spark.sql(f\"...\")` and use `{TABLE}` for the table name. The first line is ready: it drops the constraint if it exists, so you can re-run the cell.",
+   "expected": "`SHOW TBLPROPERTIES` lists `delta.constraints.valid_country`, `constraint_error` holds the error and `BAD_C` is not in the table.",
+   "language": "python",
+   "starter": "# Step 04: add the constraint, then try to break it\nconstraint_error = None\nspark.sql(f\"ALTER TABLE {TABLE} DROP CONSTRAINT IF EXISTS valid_country\")  # lets you re-run this cell\n# 1. Add the CHECK constraint valid_country: country IS NOT NULL\n# YOUR CODE HERE\n\n# 2. Insert customer_id 'BAD_C' with country NULL (it must fail)\ntry:\n    # YOUR CODE HERE\n    pass\nexcept Exception as e:\n    constraint_error = str(e)\nprint(f\"Insert rejected: {constraint_error is not None}\")",
+   "hints": [
+    "Two statements: `ALTER TABLE ... ADD CONSTRAINT <name> CHECK (<condition>)`, then an `INSERT` with `NULL` in `country`.",
+    "The SQL is `ALTER TABLE ... ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)`, then `INSERT INTO ... (customer_id, country) VALUES ('BAD_C', NULL)`. In Python, `spark.sql(f\"...\")` runs one SQL statement and `{TABLE}` inserts the table name.",
+    "constraint_error = None\nspark.sql(f\"ALTER TABLE {TABLE} DROP CONSTRAINT IF EXISTS valid_country\")  # lets you re-run this cell\nspark.sql(f\"ALTER TABLE {TABLE} ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)\")\ntry:\n    spark.sql(f\"INSERT INTO {TABLE} (customer_id, country) VALUES ('BAD_C', NULL)\")\nexcept Exception as e:\n    constraint_error = str(e)\nprint(f\"Insert rejected: {constraint_error is not None}\")"
+   ],
+   "docs": [
+    {
+     "label": "Constraints on Azure Databricks",
+     "url": "https://learn.microsoft.com/azure/databricks/tables/constraints"
+    },
+    {
+     "label": "ADD CONSTRAINT clause",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-ddl-alter-table-add-constraint"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t05",
+   "title": "INSERT test customers",
+   "type": "fill",
+   "optional": false,
+   "explain": "`INSERT INTO ... VALUES` adds rows to a table. List the columns after the table name; columns you leave out (here `loyalty_tier`, `phone`, ...) get `NULL`. One statement with several rows in `VALUES` is one atomic write and one new table version. Run the cell once: running it twice inserts the rows twice.",
+   "expected": "The table contains `TEST001`, `TEST002` and `TEST003` exactly once each, all with country `TestLand`.",
+   "language": "sql",
+   "template": "INSERT INTO lab_delta_cust_ws (customer_id, first_name, last_name, email, country)\n{{b1}} ('TEST001', 'Alice', 'Test', 'alice@test.com', {{b2}}),\n       ('TEST002', 'Bob',   'Test', 'bob@test.com',   'TestLand'),\n       ('TEST003', 'Carol', 'Test', 'carol@test.com', 'TestLand')",
+   "blanks": {
+    "b1": {
+     "answers": [
+      "VALUES"
+     ],
+     "case_sensitive": false,
+     "width": 7
+    },
+    "b2": {
+     "answers": [
+      "'TestLand'"
+     ],
+     "width": 11
+    }
+   },
+   "hints": [
+    "The keyword before the list of rows is the same as in standard SQL `INSERT`.",
+    "String literals need single quotes: the country of `TEST001` is `'TestLand'`, like the two rows below it.",
+    "INSERT INTO lab_delta_cust_ws (customer_id, first_name, last_name, email, country)\nVALUES ('TEST001', 'Alice', 'Test', 'alice@test.com', 'TestLand'),\n       ('TEST002', 'Bob',   'Test', 'bob@test.com',   'TestLand'),\n       ('TEST003', 'Carol', 'Test', 'carol@test.com', 'TestLand')"
+   ],
+   "docs": [
+    {
+     "label": "INSERT",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-dml-insert-into"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t06",
+   "title": "UPDATE one customer",
+   "type": "fill",
+   "optional": false,
+   "explain": "`UPDATE ... SET ... WHERE` changes the columns of the rows that match the condition. `SET` can change several columns at once, separated by commas. Always add `WHERE`: without it every row in the table is updated. The old values stay readable with time travel until `VACUUM` removes the old files.",
+   "expected": "`TEST001` has country `Poland` and loyalty tier `Gold`; no other row has tier `Gold`.",
+   "language": "sql",
+   "template": "UPDATE lab_delta_cust_ws\nSET country = 'Poland', {{b1}} = 'Gold'\n{{b2}} customer_id = 'TEST001'",
+   "blanks": {
+    "b1": {
+     "answers": [
+      "loyalty_tier"
+     ],
+     "width": 13
+    },
+    "b2": {
+     "answers": [
+      "WHERE"
+     ],
+     "case_sensitive": false,
+     "width": 6
+    }
+   },
+   "hints": [
+    "The second column to change is the one you added in step 03.",
+    "The last line limits the update to one customer: it starts with the keyword that filters rows.",
+    "UPDATE lab_delta_cust_ws\nSET country = 'Poland', loyalty_tier = 'Gold'\nWHERE customer_id = 'TEST001'"
+   ],
+   "docs": [
+    {
+     "label": "UPDATE",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-update"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t07",
+   "title": "DELETE rows",
+   "type": "code",
+   "optional": true,
+   "explain": "`DELETE FROM ... WHERE` removes the rows that match the condition. `IN ('a', 'b')` matches several values of one column in one condition, so one statement is enough. Like every change, the delete is a new table version: the rows stay readable with time travel until `VACUUM`.",
+   "expected": "`TEST002` and `TEST003` are gone, `TEST001` is still there, and `DELETE` appears in the table history.",
+   "language": "sql",
+   "starter": "-- Step 07: delete TEST002 and TEST003 in one statement\n-- YOUR CODE HERE",
+   "hints": [
+    "Pattern: `DELETE FROM <table> WHERE <condition>`.",
+    "The condition uses `IN`: `customer_id IN ('TEST002', 'TEST003')`.",
+    "DELETE FROM lab_delta_cust_ws\nWHERE customer_id IN ('TEST002', 'TEST003')"
+   ],
+   "docs": [
+    {
+     "label": "DELETE FROM",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-delete-from"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t08",
+   "title": "MERGE INTO (upsert)",
+   "type": "order",
+   "optional": false,
+   "explain": "`MERGE INTO` combines update and insert in one atomic statement (an *upsert*). `ON` says how a source row finds its target row: here by `customer_id`. `WHEN MATCHED` updates customers that already exist, `WHEN NOT MATCHED` inserts new ones. Arrange the blocks in the app, then paste the statement into the notebook. Two blocks are traps.",
+   "expected": "2 customers updated (`TEST001` becomes `MergedAlice`, tier `Platinum`), 1 inserted (`MERGE_NEW`), all other customers unchanged.",
+   "language": "sql",
+   "blocks": [
+    {
+     "id": "m1",
+     "code": "MERGE INTO lab_delta_cust_ws AS t"
+    },
+    {
+     "id": "m2",
+     "code": "USING updates_view AS s"
+    },
+    {
+     "id": "m3",
+     "code": "ON t.customer_id = s.customer_id"
+    },
+    {
+     "id": "m4",
+     "code": "WHEN MATCHED THEN UPDATE SET\n  first_name = s.first_name, last_name = s.last_name, email = s.email,\n  country = s.country, loyalty_tier = s.loyalty_tier"
+    },
+    {
+     "id": "m5",
+     "code": "WHEN NOT MATCHED THEN INSERT (customer_id, first_name, last_name, email, country, loyalty_tier)\n  VALUES (s.customer_id, s.first_name, s.last_name, s.email, s.country, s.loyalty_tier)"
+    },
+    {
+     "id": "d1",
+     "code": "WHEN NOT MATCHED BY SOURCE THEN DELETE"
+    },
+    {
+     "id": "d2",
+     "code": "ON t.email = s.email"
+    }
+   ],
+   "solution": [
+    "m1",
+    "m2",
+    "m3",
+    "m4",
+    "m5"
+   ],
+   "distractors": [
+    "d1",
+    "d2"
+   ],
+   "hints": [
+    "The statement reads like a sentence: target table, source, join condition, then what to do with matched and unmatched rows.",
+    "The key that identifies a customer is `customer_id`, not `email` (emails change in this batch). `WHEN NOT MATCHED BY SOURCE THEN DELETE` would delete every customer that is not in the batch.",
+    "MERGE INTO lab_delta_cust_ws AS t\nUSING updates_view AS s\nON t.customer_id = s.customer_id\nWHEN MATCHED THEN UPDATE SET\n  first_name = s.first_name, last_name = s.last_name, email = s.email,\n  country = s.country, loyalty_tier = s.loyalty_tier\nWHEN NOT MATCHED THEN INSERT (customer_id, first_name, last_name, email, country, loyalty_tier)\n  VALUES (s.customer_id, s.first_name, s.last_name, s.email, s.country, s.loyalty_tier)"
+   ],
+   "docs": [
+    {
+     "label": "Upsert into a Delta table using merge",
+     "url": "https://learn.microsoft.com/azure/databricks/delta/merge"
+    },
+    {
+     "label": "MERGE INTO",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-merge-into"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t09",
+   "title": "Version history",
+   "type": "code",
+   "optional": true,
+   "explain": "Every committed change is a new *version* in the Delta transaction log. `DESCRIBE HISTORY` returns one row per version with `version`, `timestamp`, `operation` and `operationParameters`. You may also see `OPTIMIZE` versions you did not run: Databricks compacts small files of managed tables automatically. SQL equivalent: `DESCRIBE HISTORY lab_delta_cust_ws` in a `%sql` cell. `spark.sql(...)` runs the same statement from Python and returns a DataFrame (a table you can keep in a variable).",
+   "expected": "`full_history` has an `operation` column and contains at least the `UPDATE` and `MERGE` versions.",
+   "language": "python",
+   "starter": "# Step 09: store the result of DESCRIBE HISTORY in full_history\nfull_history = None  # YOUR CODE HERE\nif full_history is not None:\n    display(full_history.select(\"version\", \"timestamp\", \"operation\").orderBy(F.desc(\"version\")))",
+   "hints": [
+    "Run a SQL statement from Python with `spark.sql(...)`; it returns a DataFrame.",
+    "The statement is `DESCRIBE HISTORY <table>`; use the f-string `f\"DESCRIBE HISTORY {TABLE}\"`.",
+    "full_history = spark.sql(f\"DESCRIBE HISTORY {TABLE}\")\nif full_history is not None:\n    display(full_history.select(\"version\", \"timestamp\", \"operation\").orderBy(F.desc(\"version\")))"
+   ],
+   "docs": [
+    {
+     "label": "Work with table history",
+     "url": "https://learn.microsoft.com/azure/databricks/tables/history"
+    },
+    {
+     "label": "DESCRIBE HISTORY",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-describe-history"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t10",
+   "title": "Time travel by version",
+   "type": "order",
+   "optional": false,
+   "explain": "*Time travel* reads an older version of a Delta table. Add `VERSION AS OF <n>` right after the table name in `FROM`. Version 0 is the `CREATE TABLE ... AS SELECT` from step 01: before the new column and before any change. You save the result as a temporary view so the check can compare it with the current table. Python equivalent: `spark.read.option(\"versionAsOf\", 0).table(TABLE)`.",
+   "expected": "`customers_v0` has the 10,000 original rows, no `loyalty_tier` column and no `TEST001`.",
+   "language": "sql",
+   "blocks": [
+    {
+     "id": "v1",
+     "code": "CREATE OR REPLACE TEMP VIEW customers_v0 AS"
+    },
+    {
+     "id": "v2",
+     "code": "SELECT *"
+    },
+    {
+     "id": "v3",
+     "code": "FROM lab_delta_cust_ws"
+    },
+    {
+     "id": "v4",
+     "code": "VERSION AS OF 0"
+    },
+    {
+     "id": "x1",
+     "code": "TIMESTAMP AS OF 0"
+    },
+    {
+     "id": "x2",
+     "code": "WHERE version = 0"
+    }
+   ],
+   "solution": [
+    "v1",
+    "v2",
+    "v3",
+    "v4"
+   ],
+   "distractors": [
+    "x1",
+    "x2"
+   ],
+   "hints": [
+    "Time travel is not a filter in `WHERE`: it is a clause attached to the table name.",
+    "`TIMESTAMP AS OF` needs a date or time, not a version number. Use `VERSION AS OF 0` right after `FROM lab_delta_cust_ws`.",
+    "CREATE OR REPLACE TEMP VIEW customers_v0 AS\nSELECT *\nFROM lab_delta_cust_ws\nVERSION AS OF 0"
+   ],
+   "docs": [
+    {
+     "label": "Work with table history: time travel",
+     "url": "https://learn.microsoft.com/azure/databricks/tables/history"
+    },
+    {
+     "label": "Table reference: AS OF syntax",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-qry-select-table-reference"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t11",
+   "title": "Time travel by timestamp",
+   "type": "code",
+   "optional": true,
+   "explain": "Time travel also works with a point in time: `TIMESTAMP AS OF '<timestamp>'`. The `INSERT` from step 05 is the newest history row with `operation = 'WRITE'` and `operationParameters.mode = 'Append'`. Take its `timestamp` and read the table at that exact moment: `TEST001` still has country `TestLand`, before the `UPDATE` of step 06. Use the timestamp with microseconds (`%Y-%m-%d %H:%M:%S.%f`), otherwise a later commit in the same second can be included. SQL equivalent: `SELECT * FROM lab_delta_cust_ws TIMESTAMP AS OF '<ts>'`.",
+   "expected": "`ts_insert` is a Python `datetime`; `df_ts` contains `TEST001` with country `TestLand`.",
+   "language": "python",
+   "starter": "# Step 11: timestamp of the INSERT from step 05, then the table at that moment\nhistory_df = spark.sql(f\"DESCRIBE HISTORY {TABLE}\")\nts_insert = None  # YOUR CODE HERE: timestamp of the newest WRITE / Append version\nts_str = None     # YOUR CODE HERE: ts_insert as text with microseconds\ndf_ts = None      # YOUR CODE HERE: TABLE read TIMESTAMP AS OF ts_str",
+   "hints": [
+    "Filter `history_df` like this: `history_df.filter(F.col(\"operation\") == \"WRITE\")`. Add `& (F.col(\"operationParameters\")[\"mode\"] == \"Append\")` inside the brackets, sort with `.orderBy(F.desc(\"version\"))` and take `.first()[\"timestamp\"]`.",
+    "Format it with `ts_insert.strftime(\"%Y-%m-%d %H:%M:%S.%f\")` and read with `spark.sql(f\"SELECT * FROM {TABLE} TIMESTAMP AS OF '{ts_str}'\")`.",
+    "history_df = spark.sql(f\"DESCRIBE HISTORY {TABLE}\")\nts_insert = (\n    history_df\n    .filter((F.col(\"operation\") == \"WRITE\") & (F.col(\"operationParameters\")[\"mode\"] == \"Append\"))\n    .orderBy(F.desc(\"version\"))\n    .first()[\"timestamp\"]\n)\nts_str = ts_insert.strftime(\"%Y-%m-%d %H:%M:%S.%f\")\ndf_ts = spark.sql(f\"SELECT * FROM {TABLE} TIMESTAMP AS OF '{ts_str}'\")"
+   ],
+   "docs": [
+    {
+     "label": "Work with table history: time travel",
+     "url": "https://learn.microsoft.com/azure/databricks/tables/history"
+    }
+   ],
+   "check": "notebook"
+  },
+  {
+   "id": "t12",
+   "title": "RESTORE after an accidental delete",
+   "type": "order",
+   "optional": false,
+   "explain": "`DELETE FROM <table>` without `WHERE` removes every row, but the old version is still in the history. `RESTORE TABLE ... TO VERSION AS OF <n>` rolls the table back to version `n` and records the restore as a new version. `safe_version` (from the ready cell) is the version before the accident. Time travel is not a backup: after `VACUUM` removes the old data files, those versions are gone. SQL equivalent of the key line: `RESTORE TABLE lab_delta_cust_ws TO VERSION AS OF 12` (with your version number).",
+   "expected": "After the cell the table has the same row count as before the accident; the history shows `DELETE` and then `RESTORE`.",
+   "language": "python",
+   "blocks": [
+    {
+     "id": "r1",
+     "code": "spark.sql(f\"DELETE FROM {TABLE}\")"
+    },
+    {
+     "id": "r2",
+     "code": "print(f\"Rows after the accident: {spark.table(TABLE).count():,}\")"
+    },
+    {
+     "id": "r3",
+     "code": "spark.sql(f\"RESTORE TABLE {TABLE} TO VERSION AS OF {safe_version}\")"
+    },
+    {
+     "id": "r4",
+     "code": "print(f\"Rows after RESTORE: {spark.table(TABLE).count():,}\")"
+    },
+    {
+     "id": "y1",
+     "code": "spark.sql(f\"VACUUM {TABLE}\")"
+    },
+    {
+     "id": "y2",
+     "code": "spark.sql(f\"DROP TABLE {TABLE}\")"
+    }
+   ],
+   "solution": [
+    "r1",
+    "r2",
+    "r3",
+    "r4"
+   ],
+   "distractors": [
+    "y1",
+    "y2"
+   ],
+   "hints": [
+    "First the accident and its effect, then the fix and its effect.",
+    "You need `DELETE` and `RESTORE`. `VACUUM` would make old versions unrecoverable after the retention period, and `DROP TABLE` removes the table itself.",
+    "spark.sql(f\"DELETE FROM {TABLE}\")\nprint(f\"Rows after the accident: {spark.table(TABLE).count():,}\")\nspark.sql(f\"RESTORE TABLE {TABLE} TO VERSION AS OF {safe_version}\")\nprint(f\"Rows after RESTORE: {spark.table(TABLE).count():,}\")"
+   ],
+   "docs": [
+    {
+     "label": "RESTORE",
+     "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-restore"
+    },
+    {
+     "label": "Work with table history",
+     "url": "https://learn.microsoft.com/azure/databricks/tables/history"
+    },
+    {
+     "label": "VACUUM",
+     "url": "https://learn.microsoft.com/azure/databricks/tables/operations/vacuum"
+    }
+   ],
+   "check": "notebook"
+  }
+ ]
+}

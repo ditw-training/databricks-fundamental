@@ -1,0 +1,11 @@
+command: ['npm', 'run', 'start']
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse
+  # Append-only progress table (apps/SPEC_workshop_guide.md, section 2). Used for the INSERT
+  # from POST /api/progress and the SELECT in server/sql/latest_progress.sql.
+  - name: PROGRESS_TABLE
+    value: retailhub_trainer.default.workshop_progress
+  # Emails that may open /trainer (comma separated, case insensitive).
+  - name: TRAINER_EMAILS
+    value: ''
