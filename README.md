@@ -167,7 +167,7 @@ Databricks-Fundamental/
 | docs/                           # PDF reference documents
 |   ENG/                          # English versions
 |   |   cheatsheet_databricks_fundamental.pdf  # Reference guide for all modules
-|   |   quiz_databricks_fundamental.pdf        # Quiz: 40 questions with answer key
+|   |   quiz_databricks_fundamental.pdf        # Quiz: 40 questions (answers in the Workshop Guide app)
 |   |   next_steps.pdf                         # What to learn next
 |   |   external_connection_guide.pdf          # Connecting Unity Catalog to ADLS Gen2
 |   |   pyspark_vs_sparksql.pdf                # Module 03 in PySpark and Spark SQL
@@ -242,7 +242,7 @@ Reference documents in two language versions with identical file names: `docs/EN
 | File | When to use |
 |------|-------------|
 | `cheatsheet_databricks_fundamental.pdf` | Reference guide for all modules: PySpark, Delta Lake SQL, Lakeflow Jobs, Unity Catalog |
-| `quiz_databricks_fundamental.pdf` | Self-assessment after the training: 40 questions with an answer key |
+| `quiz_databricks_fundamental.pdf` | Self-assessment after the training: 40 questions; answers and explanations in the Workshop Guide app |
 | `next_steps.pdf` | What to learn next: Free Edition, accreditation and certification, Auto Loader, Lakeflow Connect, pipelines, liquid clustering |
 | `external_connection_guide.pdf` | Step-by-step connection of Unity Catalog to ADLS Gen2 |
 | `pyspark_vs_sparksql.pdf` | Module 03 operations shown side by side in PySpark and Spark SQL |

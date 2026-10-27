@@ -262,8 +262,9 @@ Minutes per section (by heading):
 ### Wrap-up: 15 min
 
 - Quiz (`docs/*/quiz_databricks_fundamental.pdf`), next steps (`docs/*/next_steps.pdf`), Free Edition guide for self-study.
-- The app quiz (`/quiz`) and the PDF are self-checks. The PDF ends with the answer key, so the scores in the trainer
-  Quiz tab show where the group struggled; do not use them to grade anyone.
+- The app quiz (`/quiz`) and the PDF are self-checks. The participant PDF has no answer key since 28.10.2026 (older
+  versions in git history do), so the trainer Quiz tab shows where the group struggled; do not use it to grade anyone.
+  Trainer copy with the key: `utilization/{en,pl}/quiz.md`.
 
 ### M07 Genie Agents / dashboard (`07_aibi_dashboards`): optional, 10 min
 
