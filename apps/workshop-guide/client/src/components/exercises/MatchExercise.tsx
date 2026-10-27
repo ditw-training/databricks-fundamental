@@ -91,7 +91,8 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Drag each term onto its description. Without a mouse: select a term, then select a description.
+        Drag each term onto its description, or tap a term and then tap <strong className="text-foreground">Place here</strong>{' '}
+        next to its description.
       </p>
       <DndContext
         sensors={sensors}
@@ -130,7 +131,7 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
                 onPlace={() => selected !== null && place(selected, slot)}
                 verdict={verdict}
               >
-                {term !== null && (
+                {term !== null ? (
                   <TermChip
                     term={term}
                     label={step.pairs[term].left}
@@ -138,7 +139,7 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
                     onSelect={() => setSelected(selected === term ? null : term)}
                     onRemove={() => place(term, 'bank')}
                   />
-                )}
+                ) : null}
               </Slot>
             );
           })}
@@ -236,7 +237,10 @@ function Slot({ slot, description, canPlace, onPlace, verdict, children }: SlotP
   return (
     <li ref={setNodeRef} className={`wg-slot ${tone} ${isOver ? 'wg-droparea-over' : ''}`}>
       <div className="wg-slot-target">
-        {children ?? (
+        {/* Test truthiness, not `??`: a `false` child must still show the empty drop target. */}
+        {children ? (
+          children
+        ) : (
           <button type="button" className="wg-slot-empty" disabled={!canPlace} onClick={onPlace} aria-label={`Place selected term on: ${description}`}>
             {canPlace ? 'Place here' : 'Drop a term'}
           </button>

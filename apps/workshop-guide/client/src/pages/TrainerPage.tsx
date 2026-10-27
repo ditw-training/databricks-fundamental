@@ -12,16 +12,21 @@ import {
   SelectTrigger,
   SelectValue,
   Skeleton,
+  Tabs,
+  TabsList,
+  TabsTrigger,
 } from '@databricks/appkit-ui/react';
 import { Lock, Users } from 'lucide-react';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import type { Guide } from '../../../shared/guide-schema';
+import { Kpi } from '../components/Kpi';
 import { StatusDot } from '../components/StatusDot';
 import { statusLabel, TYPE_LABEL } from '../lib/labels';
 import { useTrainerMatrix, type TrainerRow } from '../lib/progress';
 import { formatAgo, parseTs, toStatus } from '../lib/status';
 import { buildMatrix } from '../lib/trainer';
+import { QuizStatsView } from './QuizStatsView';
 
 export function TrainerPage({ guides, isTrainer }: { guides: Guide[]; isTrainer: boolean }) {
   const [params, setParams] = useSearchParams();
@@ -42,28 +47,43 @@ export function TrainerPage({ guides, isTrainer }: { guides: Guide[]; isTrainer:
     );
   }
 
+  const tab = params.get('tab') === 'quiz' ? 'quiz' : 'workshops';
   const guide = guides.find((g) => g.id === params.get('ws')) ?? guides[0];
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Group progress</h2>
-          <p className="text-sm text-muted-foreground">Latest result per participant and step. Refreshes every 5 seconds.</p>
+          <p className="text-sm text-muted-foreground">
+            {tab === 'quiz'
+              ? 'Quiz results per participant and question. Refreshes every 5 seconds.'
+              : 'Latest result per participant and step. Refreshes every 5 seconds.'}
+          </p>
         </div>
-        <Select value={guide.id} onValueChange={(id) => setParams({ ws: id })}>
-          <SelectTrigger className="w-72" aria-label="Workshop">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {guides.map((g) => (
-              <SelectItem key={g.id} value={g.id}>
-                {g.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-3">
+          <Tabs value={tab} onValueChange={(v) => setParams(v === 'quiz' ? { tab: 'quiz' } : { ws: guide.id })}>
+            <TabsList aria-label="Trainer view">
+              <TabsTrigger value="workshops">Workshops</TabsTrigger>
+              <TabsTrigger value="quiz">Quiz</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {tab === 'workshops' && (
+            <Select value={guide.id} onValueChange={(id) => setParams({ ws: id })}>
+              <SelectTrigger className="w-72" aria-label="Workshop">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {guides.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
-      <TrainerMatrix key={guide.id} guide={guide} />
+      {tab === 'quiz' ? <QuizStatsView /> : <TrainerMatrix key={guide.id} guide={guide} />}
     </div>
   );
 }
@@ -120,7 +140,8 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
       ) : (
         <Card className="overflow-hidden py-0">
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* relative: the cells' sr-only text is absolutely positioned and would otherwise widen the page. */}
+            <div className="relative max-w-full overflow-x-auto">
               <table className="wg-matrix">
                 <caption className="sr-only">
                   {guide.title}: result per participant and step
@@ -133,7 +154,7 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
                     {guide.steps.map((s, i) => (
                       <th key={s.id} scope="col" title={`${s.title} — ${TYPE_LABEL[s.type]}${s.optional ? ' (optional)' : ''}`}>
                         <span className={s.optional ? 'text-muted-foreground' : undefined}>{String(i + 1).padStart(2, '0')}</span>
-                        {s.optional && <span className="block text-[10px] font-normal text-muted-foreground">opt</span>}
+                        {s.optional && <span className="block text-[10px] font-normal text-muted-foreground">⭐ opt</span>}
                       </th>
                     ))}
                     <th scope="col">Done</th>
@@ -165,11 +186,15 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
                 <tfoot>
                   <tr>
                     <th scope="row" className="wg-matrix-sticky text-left">
-                      Pass rate
+                      Passed
                     </th>
                     {matrix.steps.map((s) => (
-                      <td key={s.stepId} className="text-center tabular-nums" title={`${s.passed} passed, ${s.attempted} tried`}>
-                        {s.passRate === null ? '—' : `${Math.round(s.passRate * 100)}%`}
+                      <td
+                        key={s.stepId}
+                        className="whitespace-nowrap text-center tabular-nums"
+                        title={`${s.passed} passed, ${s.attempted - s.passed} tried but not passed, ${matrix.participants.length - s.attempted} not started`}
+                      >
+                        {s.passed}/{matrix.participants.length}
                       </td>
                     ))}
                     <td colSpan={3} />
@@ -207,16 +232,6 @@ function Cell({ row, stepTitle }: { row: TrainerRow | undefined; stepTitle: stri
       {row?.hints_used ? <span className="wg-hint-count" aria-label={`${row.hints_used} hints`}>{row.hints_used}</span> : null}
       <span className="sr-only">{details}</span>
     </span>
-  );
-}
-
-function Kpi({ label, value, note }: { label: string; value: string | null; note: string }) {
-  return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-      {value === null ? <Skeleton className="mt-2 h-7 w-16" /> : <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>}
-      <div className="mt-1 text-xs text-muted-foreground">{note}</div>
-    </div>
   );
 }
 

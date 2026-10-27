@@ -111,7 +111,7 @@
    ],
    "hints": [
     "A read always starts with `spark.read` and ends with `.load(path)`. Writing (`.write`, `.saveAsTable`) does not belong here.",
-    "Order: assignment with `(`, `spark.read.format(\"csv\")`, the two options, `.load(CUSTOMERS_CSV)`, `)`, then `display(...)`.",
+    "Order: assignment with `(`, `spark.read.format(\"csv\")`, the options block (both `.option(...)` lines), `.load(CUSTOMERS_CSV)`, `)`, then `display(...)`.",
     "Full solution:\n```python\ncustomers_infer_df = (\n    spark.read.format(\"csv\")\n    .option(\"header\", \"true\")        # first row = column names\n    .option(\"inferSchema\", \"true\")   # let Spark guess the types\n    .load(CUSTOMERS_CSV)\n)\ndisplay(customers_infer_df.limit(5))\n```"
    ],
    "docs": [
@@ -282,7 +282,7 @@
    "title": "Add columns and cast types",
    "type": "fill",
    "optional": false,
-   "explain": "`df.withColumn(\"name\", expression)` returns a new DataFrame with one more column; chain several calls inside parentheses. `F.concat_ws(\" \", a, b)` joins strings with a separator and skips NULL. `.cast(\"timestamp\")` converts text such as `2024-12-31T23:56:00`; NULL stays NULL. If a text value cannot be converted, Databricks raises an error; `try_cast` returns NULL instead.\n\nSQL equivalent: `SELECT *, concat_ws(' ', first_name, last_name) AS full_name, year(registration_date) AS registration_year FROM customers_view` and `SELECT *, CAST(order_datetime AS TIMESTAMP) AS order_ts FROM orders_view`.",
+   "explain": "`df.withColumn(\"name\", expression)` returns a new DataFrame with one more column; chain several calls inside parentheses. `F.concat_ws(\" \", a, b)` joins strings with a separator and skips NULL. `.cast(\"timestamp\")` converts text such as `2024-12-31T23:56:00`; NULL stays NULL. If a text value cannot be converted, Databricks raises an error; `try_cast` returns NULL instead. In the second blank, type the separator together with its quotes: `\" \"`.\n\nSQL equivalent: `SELECT *, concat_ws(' ', first_name, last_name) AS full_name, year(registration_date) AS registration_year FROM customers_view` and `SELECT *, CAST(order_datetime AS TIMESTAMP) AS order_ts FROM orders_view`.",
    "expected": "`customers_enriched` has `full_name` (STRING) and `registration_year` (INT); `orders_typed` has `order_ts` (TIMESTAMP) and no new NULLs.",
    "language": "python",
    "template": "# customers_enriched: full_name and registration_year\ncustomers_enriched = (\n    customers_df\n    .{{b1}}(\"full_name\", F.concat_ws({{b2}}, F.col(\"first_name\"), F.col(\"last_name\")))\n    .withColumn(\"registration_year\", F.{{b3}}(F.col(\"registration_date\")))\n)\n\n# orders_typed: order_datetime (STRING) cast to TIMESTAMP\norders_typed = orders_df.withColumn(\"order_ts\", F.col(\"order_datetime\").{{b4}}(\"timestamp\"))\n\ndisplay(customers_enriched.select(\"customer_id\", \"full_name\", \"registration_year\").limit(5))\ndisplay(orders_typed.select(\"order_id\", \"order_datetime\", \"order_ts\").limit(5))",
@@ -487,7 +487,7 @@
    "title": "Write the Bronze Delta table",
    "type": "fill",
    "optional": false,
-   "explain": "Bronze keeps the source data unchanged, plus metadata: when it was loaded (`_load_ts`) and from which file (`_source_file`). Start from the raw `customers_df`: Bronze keeps the source columns unchanged. `_metadata` is a hidden column available on DataFrames read from files. No business columns here: `full_name` and `customer_tier` belong to Silver. Delta is the default table format; `overwriteSchema` lets you re-run the cell after changing columns.\n\nSQL equivalent: `CREATE OR REPLACE TABLE <TARGET_TABLE> AS SELECT *, _metadata.file_path AS _source_file, current_timestamp() AS _load_ts FROM read_files(...)`.",
+   "explain": "Bronze keeps the source data unchanged, plus metadata: when it was loaded (`_load_ts`) and from which file (`_source_file`). Start from the raw `customers_df`. `_metadata` is a hidden column available on DataFrames read from files. No business columns here: `full_name` and `customer_tier` belong to Silver. Delta is the default table format; `overwriteSchema` lets you re-run the cell after changing columns.\n\nSQL equivalent: `CREATE OR REPLACE TABLE <TARGET_TABLE> AS SELECT *, _metadata.file_path AS _source_file, current_timestamp() AS _load_ts FROM read_files(...)`.",
    "expected": "`TARGET_TABLE` exists with the 10 source columns plus `_load_ts` (TIMESTAMP) and `_source_file` (path ending in `customers.csv`); same row count as `customers_df`.",
    "language": "python",
    "template": "# Raw data + two metadata columns\ncustomers_bronze = (\n    customers_df\n    .withColumn(\"_source_file\", F.col(\"{{b1}}\"))\n    .withColumn(\"_load_ts\", F.{{b2}}())\n)\n\n# Managed Delta table, safe to re-run\n(\n    customers_bronze.write\n    .mode(\"{{b3}}\")\n    .option(\"overwriteSchema\", \"true\")\n    .{{b4}}(TARGET_TABLE)\n)\ndisplay(spark.table(TARGET_TABLE).limit(5))",

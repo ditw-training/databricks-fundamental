@@ -38,7 +38,7 @@
    "hints": [
     "You create a table from the result of a query: the statement is `CREATE OR REPLACE TABLE <name> AS <query>`.",
     "The query reads every column of the temporary view: `SELECT * FROM customers_csv`.",
-    "CREATE OR REPLACE TABLE lab_delta_cust_ws AS\nSELECT * FROM customers_csv"
+    "Full solution:\n```sql\nCREATE OR REPLACE TABLE lab_delta_cust_ws AS\nSELECT * FROM customers_csv\n```"
    ],
    "docs": [
     {
@@ -57,14 +57,14 @@
    "title": "Schema enforcement",
    "type": "code",
    "optional": true,
-   "explain": "Delta checks every write against the table schema (*schema enforcement*). A DataFrame with a column the table does not have is rejected, and nothing is written: the write fails as a whole. Here you append `bad_df` inside the ready `try` block, so the error is stored in `enforcement_error` instead of stopping the notebook. SQL equivalent: `INSERT INTO lab_delta_cust_ws (customer_id, mood) VALUES ('BAD001', 'happy')` fails the same way.",
+   "explain": "Delta checks every write against the table schema (*schema enforcement*). A DataFrame with a column the table does not have is rejected, and nothing is written: the write fails as a whole. Here you append `bad_df` inside the ready `try` block. `try` / `except` is Python's way to catch an error: if a line under `try:` fails, Python jumps to `except` and the error is stored in `enforcement_error` instead of stopping the notebook. You only replace `pass` with one line. SQL equivalent: `INSERT INTO lab_delta_cust_ws (customer_id, mood) VALUES ('BAD001', 'happy')` fails the same way.",
    "expected": "`enforcement_error` holds an error message, the table has no `mood` column and no row `BAD001`.",
    "language": "python",
    "starter": "# Step 02: append bad_df to TABLE inside the try block\nenforcement_error = None\ntry:\n    # YOUR CODE HERE: append bad_df to TABLE\n    pass\nexcept Exception as e:\n    enforcement_error = str(e)\nprint(f\"Error caught: {enforcement_error[:150] if enforcement_error else 'None'}\")",
    "hints": [
     "Use the DataFrame writer: `bad_df.write`, then the save mode, then the target table.",
     "The write chain is `bad_df.write.mode(\"append\").saveAsTable(TABLE)`. Put it in place of `pass`.",
-    "enforcement_error = None\ntry:\n    bad_df.write.mode(\"append\").saveAsTable(TABLE)\nexcept Exception as e:\n    enforcement_error = str(e)\nprint(f\"Error caught: {enforcement_error[:150] if enforcement_error else 'None'}\")"
+    "Full solution:\n```python\nenforcement_error = None\ntry:\n    bad_df.write.mode(\"append\").saveAsTable(TABLE)\nexcept Exception as e:\n    enforcement_error = str(e)\nprint(f\"Error caught: {enforcement_error[:150] if enforcement_error else 'None'}\")\n```"
    ],
    "docs": [
     {
@@ -79,7 +79,7 @@
    "title": "Schema evolution: add a column",
    "type": "fill",
    "optional": false,
-   "explain": "Sometimes the schema has to change on purpose: this is *schema evolution*. `ALTER TABLE ... ADD COLUMN` adds a column by changing only the table metadata in the transaction log; no data files are rewritten. Existing rows show `NULL` in the new column until you update them.",
+   "explain": "Sometimes the schema has to change on purpose: this is *schema evolution*. `ALTER TABLE ... ADD COLUMN` adds a column by changing only the table metadata in the transaction log; no data files are rewritten. Existing rows show `NULL` in the new column until you update them. The first blank holds the two-word clause `ADD COLUMN`; the second holds the column name.",
    "expected": "The table has a `loyalty_tier` column of type `STRING`; existing rows have `NULL` in it.",
    "language": "sql",
    "template": "ALTER TABLE lab_delta_cust_ws {{b1}} {{b2}} STRING",
@@ -102,7 +102,7 @@
    "hints": [
     "The statement that changes a table's structure is `ALTER TABLE`; the clause you need adds a column.",
     "Pattern: `ALTER TABLE <table> ADD COLUMN <name> <type>`.",
-    "ALTER TABLE lab_delta_cust_ws ADD COLUMN loyalty_tier STRING"
+    "Full solution:\n```sql\nALTER TABLE lab_delta_cust_ws ADD COLUMN loyalty_tier STRING\n```"
    ],
    "docs": [
     {
@@ -121,14 +121,14 @@
    "title": "CHECK constraint",
    "type": "code",
    "optional": true,
-   "explain": "A `CHECK` constraint is a rule that Delta tests on every write. `ALTER TABLE ... ADD CONSTRAINT` first verifies the existing rows, then rejects any later write that breaks the rule. You add `valid_country` with the condition `country IS NOT NULL`, then insert customer `BAD_C` with a `NULL` country inside the ready `try` block. Run SQL from Python with `spark.sql(f\"...\")` and use `{TABLE}` for the table name. The first line is ready: it drops the constraint if it exists, so you can re-run the cell.",
+   "explain": "A `CHECK` constraint is a rule that Delta tests on every write. `ALTER TABLE ... ADD CONSTRAINT` first verifies the existing rows, then rejects any later write that breaks the rule. You add `valid_country` with the condition `country IS NOT NULL`, then insert customer `BAD_C` with a `NULL` country inside the ready `try` block (if the `INSERT` fails, `except` stores the error in `constraint_error` and the notebook keeps running). Run SQL from Python with `spark.sql(f\"...\")` and use `{TABLE}` for the table name. The first line is ready: it drops the constraint if it exists, so you can re-run the cell.",
    "expected": "`SHOW TBLPROPERTIES` lists `delta.constraints.valid_country`, `constraint_error` holds the error and `BAD_C` is not in the table.",
    "language": "python",
    "starter": "# Step 04: add the constraint, then try to break it\nconstraint_error = None\nspark.sql(f\"ALTER TABLE {TABLE} DROP CONSTRAINT IF EXISTS valid_country\")  # lets you re-run this cell\n# 1. Add the CHECK constraint valid_country: country IS NOT NULL\n# YOUR CODE HERE\n\n# 2. Insert customer_id 'BAD_C' with country NULL (it must fail)\ntry:\n    # YOUR CODE HERE\n    pass\nexcept Exception as e:\n    constraint_error = str(e)\nprint(f\"Insert rejected: {constraint_error is not None}\")",
    "hints": [
     "Two statements: `ALTER TABLE ... ADD CONSTRAINT <name> CHECK (<condition>)`, then an `INSERT` with `NULL` in `country`.",
     "The SQL is `ALTER TABLE ... ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)`, then `INSERT INTO ... (customer_id, country) VALUES ('BAD_C', NULL)`. In Python, `spark.sql(f\"...\")` runs one SQL statement and `{TABLE}` inserts the table name.",
-    "constraint_error = None\nspark.sql(f\"ALTER TABLE {TABLE} DROP CONSTRAINT IF EXISTS valid_country\")  # lets you re-run this cell\nspark.sql(f\"ALTER TABLE {TABLE} ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)\")\ntry:\n    spark.sql(f\"INSERT INTO {TABLE} (customer_id, country) VALUES ('BAD_C', NULL)\")\nexcept Exception as e:\n    constraint_error = str(e)\nprint(f\"Insert rejected: {constraint_error is not None}\")"
+    "Full solution:\n```python\nconstraint_error = None\nspark.sql(f\"ALTER TABLE {TABLE} DROP CONSTRAINT IF EXISTS valid_country\")  # lets you re-run this cell\nspark.sql(f\"ALTER TABLE {TABLE} ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)\")\ntry:\n    spark.sql(f\"INSERT INTO {TABLE} (customer_id, country) VALUES ('BAD_C', NULL)\")\nexcept Exception as e:\n    constraint_error = str(e)\nprint(f\"Insert rejected: {constraint_error is not None}\")\n```"
    ],
    "docs": [
     {
@@ -169,7 +169,7 @@
    "hints": [
     "The keyword before the list of rows is the same as in standard SQL `INSERT`.",
     "String literals need single quotes: the country of `TEST001` is `'TestLand'`, like the two rows below it.",
-    "INSERT INTO lab_delta_cust_ws (customer_id, first_name, last_name, email, country)\nVALUES ('TEST001', 'Alice', 'Test', 'alice@test.com', 'TestLand'),\n       ('TEST002', 'Bob',   'Test', 'bob@test.com',   'TestLand'),\n       ('TEST003', 'Carol', 'Test', 'carol@test.com', 'TestLand')"
+    "Full solution:\n```sql\nINSERT INTO lab_delta_cust_ws (customer_id, first_name, last_name, email, country)\nVALUES ('TEST001', 'Alice', 'Test', 'alice@test.com', 'TestLand'),\n       ('TEST002', 'Bob',   'Test', 'bob@test.com',   'TestLand'),\n       ('TEST003', 'Carol', 'Test', 'carol@test.com', 'TestLand')\n```"
    ],
    "docs": [
     {
@@ -206,7 +206,7 @@
    "hints": [
     "The second column to change is the one you added in step 03.",
     "The last line limits the update to one customer: it starts with the keyword that filters rows.",
-    "UPDATE lab_delta_cust_ws\nSET country = 'Poland', loyalty_tier = 'Gold'\nWHERE customer_id = 'TEST001'"
+    "Full solution:\n```sql\nUPDATE lab_delta_cust_ws\nSET country = 'Poland', loyalty_tier = 'Gold'\nWHERE customer_id = 'TEST001'\n```"
    ],
    "docs": [
     {
@@ -228,7 +228,7 @@
    "hints": [
     "Pattern: `DELETE FROM <table> WHERE <condition>`.",
     "The condition uses `IN`: `customer_id IN ('TEST002', 'TEST003')`.",
-    "DELETE FROM lab_delta_cust_ws\nWHERE customer_id IN ('TEST002', 'TEST003')"
+    "Full solution:\n```sql\nDELETE FROM lab_delta_cust_ws\nWHERE customer_id IN ('TEST002', 'TEST003')\n```"
    ],
    "docs": [
     {
@@ -290,7 +290,7 @@
    "hints": [
     "The statement reads like a sentence: target table, source, join condition, then what to do with matched and unmatched rows.",
     "The key that identifies a customer is `customer_id`, not `email` (emails change in this batch). `WHEN NOT MATCHED BY SOURCE THEN DELETE` would delete every customer that is not in the batch.",
-    "MERGE INTO lab_delta_cust_ws AS t\nUSING updates_view AS s\nON t.customer_id = s.customer_id\nWHEN MATCHED THEN UPDATE SET\n  first_name = s.first_name, last_name = s.last_name, email = s.email,\n  country = s.country, loyalty_tier = s.loyalty_tier\nWHEN NOT MATCHED THEN INSERT (customer_id, first_name, last_name, email, country, loyalty_tier)\n  VALUES (s.customer_id, s.first_name, s.last_name, s.email, s.country, s.loyalty_tier)"
+    "Full solution:\n```sql\nMERGE INTO lab_delta_cust_ws AS t\nUSING updates_view AS s\nON t.customer_id = s.customer_id\nWHEN MATCHED THEN UPDATE SET\n  first_name = s.first_name, last_name = s.last_name, email = s.email,\n  country = s.country, loyalty_tier = s.loyalty_tier\nWHEN NOT MATCHED THEN INSERT (customer_id, first_name, last_name, email, country, loyalty_tier)\n  VALUES (s.customer_id, s.first_name, s.last_name, s.email, s.country, s.loyalty_tier)\n```"
    ],
    "docs": [
     {
@@ -316,7 +316,7 @@
    "hints": [
     "Run a SQL statement from Python with `spark.sql(...)`; it returns a DataFrame.",
     "The statement is `DESCRIBE HISTORY <table>`; use the f-string `f\"DESCRIBE HISTORY {TABLE}\"`.",
-    "full_history = spark.sql(f\"DESCRIBE HISTORY {TABLE}\")\nif full_history is not None:\n    display(full_history.select(\"version\", \"timestamp\", \"operation\").orderBy(F.desc(\"version\")))"
+    "Full solution:\n```python\nfull_history = spark.sql(f\"DESCRIBE HISTORY {TABLE}\")\nif full_history is not None:\n    display(full_history.select(\"version\", \"timestamp\", \"operation\").orderBy(F.desc(\"version\")))\n```"
    ],
    "docs": [
     {
@@ -377,7 +377,7 @@
    "hints": [
     "Time travel is not a filter in `WHERE`: it is a clause attached to the table name.",
     "`TIMESTAMP AS OF` needs a date or time, not a version number. Use `VERSION AS OF 0` right after `FROM lab_delta_cust_ws`.",
-    "CREATE OR REPLACE TEMP VIEW customers_v0 AS\nSELECT *\nFROM lab_delta_cust_ws\nVERSION AS OF 0"
+    "Full solution:\n```sql\nCREATE OR REPLACE TEMP VIEW customers_v0 AS\nSELECT *\nFROM lab_delta_cust_ws\nVERSION AS OF 0\n```"
    ],
    "docs": [
     {
@@ -396,14 +396,14 @@
    "title": "Time travel by timestamp",
    "type": "code",
    "optional": true,
-   "explain": "Time travel also works with a point in time: `TIMESTAMP AS OF '<timestamp>'`. The `INSERT` from step 05 is the newest history row with `operation = 'WRITE'` and `operationParameters.mode = 'Append'`. Take its `timestamp` and read the table at that exact moment: `TEST001` still has country `TestLand`, before the `UPDATE` of step 06. Use the timestamp with microseconds (`%Y-%m-%d %H:%M:%S.%f`), otherwise a later commit in the same second can be included. SQL equivalent: `SELECT * FROM lab_delta_cust_ws TIMESTAMP AS OF '<ts>'`.",
+   "explain": "Time travel also works with a point in time: `TIMESTAMP AS OF '<timestamp>'`. The `INSERT` from step 05 is the newest history row with `operation = 'WRITE'` and `operationParameters.mode = 'Append'`. Take its `timestamp` and read the table at that exact moment: `TEST001` still has country `TestLand`, before the `UPDATE` of step 06. Use the timestamp with microseconds (`%Y-%m-%d %H:%M:%S.%f`), otherwise a later commit in the same second can be included. SQL equivalent: `SELECT * FROM lab_delta_cust_ws TIMESTAMP AS OF '<ts>'`. Read the Python as SQL: `DESCRIBE HISTORY` cannot be used inside `SELECT ... FROM (...)`, so you run it with `spark.sql(...)` and work on the DataFrame. `.filter(...)` is `WHERE`; `F.col(\"operationParameters\")[\"mode\"]` reads one key of a map column (SQL: `operationParameters['mode']`); `.orderBy(F.desc(\"version\")).first()[\"timestamp\"]` is `ORDER BY version DESC LIMIT 1` and takes the value of one column. `strftime(...)` turns that datetime into text.",
    "expected": "`ts_insert` is a Python `datetime`; `df_ts` contains `TEST001` with country `TestLand`.",
    "language": "python",
    "starter": "# Step 11: timestamp of the INSERT from step 05, then the table at that moment\nhistory_df = spark.sql(f\"DESCRIBE HISTORY {TABLE}\")\nts_insert = None  # YOUR CODE HERE: timestamp of the newest WRITE / Append version\nts_str = None     # YOUR CODE HERE: ts_insert as text with microseconds\ndf_ts = None      # YOUR CODE HERE: TABLE read TIMESTAMP AS OF ts_str",
    "hints": [
     "Filter `history_df` like this: `history_df.filter(F.col(\"operation\") == \"WRITE\")`. Add `& (F.col(\"operationParameters\")[\"mode\"] == \"Append\")` inside the brackets, sort with `.orderBy(F.desc(\"version\"))` and take `.first()[\"timestamp\"]`.",
     "Format it with `ts_insert.strftime(\"%Y-%m-%d %H:%M:%S.%f\")` and read with `spark.sql(f\"SELECT * FROM {TABLE} TIMESTAMP AS OF '{ts_str}'\")`.",
-    "history_df = spark.sql(f\"DESCRIBE HISTORY {TABLE}\")\nts_insert = (\n    history_df\n    .filter((F.col(\"operation\") == \"WRITE\") & (F.col(\"operationParameters\")[\"mode\"] == \"Append\"))\n    .orderBy(F.desc(\"version\"))\n    .first()[\"timestamp\"]\n)\nts_str = ts_insert.strftime(\"%Y-%m-%d %H:%M:%S.%f\")\ndf_ts = spark.sql(f\"SELECT * FROM {TABLE} TIMESTAMP AS OF '{ts_str}'\")"
+    "Full solution:\n```python\nhistory_df = spark.sql(f\"DESCRIBE HISTORY {TABLE}\")\nts_insert = (\n    history_df\n    .filter((F.col(\"operation\") == \"WRITE\") & (F.col(\"operationParameters\")[\"mode\"] == \"Append\"))\n    .orderBy(F.desc(\"version\"))\n    .first()[\"timestamp\"]\n)\nts_str = ts_insert.strftime(\"%Y-%m-%d %H:%M:%S.%f\")\ndf_ts = spark.sql(f\"SELECT * FROM {TABLE} TIMESTAMP AS OF '{ts_str}'\")\n```"
    ],
    "docs": [
     {
@@ -460,7 +460,7 @@
    "hints": [
     "First the accident and its effect, then the fix and its effect.",
     "You need `DELETE` and `RESTORE`. `VACUUM` would make old versions unrecoverable after the retention period, and `DROP TABLE` removes the table itself.",
-    "spark.sql(f\"DELETE FROM {TABLE}\")\nprint(f\"Rows after the accident: {spark.table(TABLE).count():,}\")\nspark.sql(f\"RESTORE TABLE {TABLE} TO VERSION AS OF {safe_version}\")\nprint(f\"Rows after RESTORE: {spark.table(TABLE).count():,}\")"
+    "Full solution:\n```python\nspark.sql(f\"DELETE FROM {TABLE}\")\nprint(f\"Rows after the accident: {spark.table(TABLE).count():,}\")\nspark.sql(f\"RESTORE TABLE {TABLE} TO VERSION AS OF {safe_version}\")\nprint(f\"Rows after RESTORE: {spark.table(TABLE).count():,}\")\n```"
    ],
    "docs": [
     {

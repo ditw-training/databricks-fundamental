@@ -22,7 +22,8 @@
     "sync": "appkit plugin sync --write --silent",
     "typegen": "appkit generate-types",
     "setup": "appkit setup --write",
-    "sync-guides": "node scripts/sync-guides.mjs"
+    "sync-guides": "node scripts/sync-guides.mjs",
+    "quiz-from-md": "node scripts/quiz-from-md.mjs"
   },
   "keywords": [],
   "author": "",

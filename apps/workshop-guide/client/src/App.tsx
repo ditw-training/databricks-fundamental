@@ -6,6 +6,7 @@ import type { Guide, MeResponse } from '../../shared/guide-schema';
 import { ThemeToggle } from './components/ThemeToggle';
 import { useGuides, useMe } from './lib/api';
 import { ParticipantPage } from './pages/ParticipantPage';
+import { QuizPage } from './pages/QuizPage';
 import { TrainerPage } from './pages/TrainerPage';
 
 interface Session {
@@ -19,17 +20,23 @@ function Shell({ me, children }: { me: MeResponse | null; children: ReactNode })
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <div className="wg-accent-bar" aria-hidden />
       <header className="border-b bg-card/60 backdrop-blur">
-        <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-2.5 md:px-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
+        <div className="mx-auto flex max-w-[1400px] items-center gap-2 px-4 py-2.5 sm:gap-3 md:px-6">
+          <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold tracking-tight" aria-label="Workshop Guide">
             <span className="wg-logo" aria-hidden>
               <GraduationCap className="size-4" />
             </span>
-            <h1 className="text-base">Workshop Guide</h1>
+            <h1 className="text-base">
+              <span className="sr-only sm:hidden">Workshop Guide</span>
+              <span className="hidden sm:inline">Workshop Guide</span>
+            </h1>
           </Link>
-          <span className="hidden text-sm text-muted-foreground sm:inline">Databricks Fundamental</span>
-          <nav className="ml-4 flex gap-1" aria-label="Main">
+          <span className="hidden text-sm text-muted-foreground lg:inline">Databricks Fundamental</span>
+          <nav className="flex min-w-0 gap-1 sm:ml-4" aria-label="Main">
             <NavLink to="/" end className={navClass}>
               Workshops
+            </NavLink>
+            <NavLink to="/quiz" className={navClass}>
+              Quiz
             </NavLink>
             {me?.isTrainer && (
               <NavLink to="/trainer" className={navClass}>
@@ -98,6 +105,10 @@ const router = createBrowserRouter([
       {
         path: '/',
         element: <SessionGate render={({ me, guides }) => <ParticipantPage guides={guides} email={me.email} />} />,
+      },
+      {
+        path: '/quiz',
+        element: <SessionGate render={({ me }) => <QuizPage email={me.email} />} />,
       },
       {
         path: '/trainer',

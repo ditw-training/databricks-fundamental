@@ -1,4 +1,4 @@
-import type { Step } from '../../../shared/guide-schema';
+import type { Guide, Step } from '../../../shared/guide-schema';
 import type { StepStatus } from './status';
 
 export const TYPE_LABEL: Record<Step['type'], string> = {
@@ -8,6 +8,9 @@ export const TYPE_LABEL: Record<Step['type'], string> = {
   code: 'Write the code',
 };
 
+/** Same marker as the notebook headings ("## Step 02 ⭐ OPTIONAL — …"). */
+export const OPTIONAL_LABEL = '⭐ Optional';
+
 const STATUS_LABEL: Record<StepStatus, string> = {
   pass: 'Passed',
   fail: 'Failed — try again',
@@ -15,3 +18,9 @@ const STATUS_LABEL: Record<StepStatus, string> = {
 };
 
 export const statusLabel = (status: StepStatus) => STATUS_LABEL[status];
+
+/** Notebook name as the workspace shows it: "WORKSHOP_delta" (no folder, no .ipynb). */
+export const notebookName = (guide: Guide) => (guide.notebook.split('/').pop() ?? guide.notebook).replace(/\.ipynb$/, '');
+
+/** Folders from the repository root to the notebook, e.g. ["notebooks", "workshops"]. */
+export const notebookFolders = (guide: Guide) => guide.notebook.split('/').slice(0, -1);

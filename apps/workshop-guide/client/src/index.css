@@ -165,7 +165,8 @@ body {
 }
 .wg-fill-code {
   margin: 0;
-  white-space: pre-wrap;
+  /* Code keeps its line breaks; long lines scroll inside .wg-code-surface instead of wrapping. */
+  white-space: pre;
   font: inherit;
 }
 .wg-blank {
@@ -221,8 +222,10 @@ body {
   flex: 1;
   min-width: 0;
   padding-top: 0.2rem;
-  white-space: pre-wrap;
-  word-break: break-word;
+  padding-bottom: 0.2rem;
+  /* Code keeps its line breaks; a long line scrolls inside its block instead of wrapping mid-expression. */
+  white-space: pre;
+  overflow-x: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.82rem;
 }
@@ -255,6 +258,8 @@ body {
 
 .wg-chip {
   display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   border: 1px solid var(--wg-code-border);
   border-radius: 0.45rem;
@@ -264,6 +269,8 @@ body {
   touch-action: none;
 }
 .wg-chip-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.3rem 0.55rem;
   text-align: left;
   cursor: grab;
@@ -295,8 +302,9 @@ body {
 }
 .wg-slot-target {
   display: flex;
-  min-width: 11rem;
-  flex-shrink: 0;
+  /* Fixed column so the descriptions line up whatever chip is placed. */
+  flex: 0 0 16rem;
+  min-width: 0;
   align-items: center;
   gap: 0.35rem;
 }
@@ -328,6 +336,9 @@ body {
   .wg-slot {
     flex-direction: column;
     align-items: stretch;
+  }
+  .wg-slot-target {
+    flex: 0 1 auto;
   }
 }
 
@@ -445,4 +456,83 @@ body {
   font-size: 0.65rem;
   line-height: 1rem;
   color: var(--muted-foreground);
+}
+
+/* ---------- quiz ---------- */
+.wg-langswitch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 2px;
+  background: var(--card);
+}
+.wg-langswitch button {
+  min-width: 2.5rem;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.wg-langswitch button[aria-pressed='true'] {
+  background: var(--secondary);
+  color: var(--foreground);
+  box-shadow: inset 0 -2px 0 var(--wg-accent);
+}
+.wg-langswitch button:focus-visible,
+.wg-option:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.wg-option {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--card);
+  padding: 0.7rem 0.85rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  transition: background-color 120ms, border-color 120ms;
+}
+.wg-option:not(:disabled):hover {
+  border-color: var(--foreground);
+  background: var(--muted);
+  cursor: pointer;
+}
+.wg-option:disabled {
+  cursor: default;
+}
+.wg-option-letter {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.wg-option-pass {
+  border-color: var(--wg-pass);
+  background: color-mix(in oklch, var(--wg-pass) 10%, var(--card));
+}
+.wg-option-pass .wg-option-letter {
+  border-color: var(--wg-pass);
+  background: var(--wg-pass);
+  color: var(--background);
+}
+.wg-option-fail {
+  border-color: color-mix(in oklch, var(--wg-fail) 60%, transparent);
+  background: color-mix(in oklch, var(--wg-fail) 6%, var(--card));
+  color: var(--muted-foreground);
+}
+.wg-option-fail .wg-option-letter {
+  border-color: var(--wg-fail);
+  color: var(--wg-fail);
 }

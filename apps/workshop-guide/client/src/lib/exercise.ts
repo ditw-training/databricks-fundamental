@@ -37,9 +37,16 @@ export function blankState(value: string, blank: Blank): BlankState {
   return isBlankCorrect(value, blank) ? 'correct' : 'wrong';
 }
 
-/** Input width in characters: explicit width, else the longest answer + 2. */
-export function blankWidth(blank: Blank): number {
-  return blank.width ?? Math.max(4, ...blank.answers.map((a) => a.length)) + 2;
+/** Narrowest blank, in characters. Every blank starts this wide, whatever its answer. */
+export const MIN_BLANK_CH = 8;
+
+/**
+ * Input width in characters: a fixed minimum that grows with what was typed. It does not
+ * depend on the answer (the guide's `width` is ignored), so the box does not give away the
+ * answer length and longer wrong input stays visible.
+ */
+export function blankInputWidth(value: string): number {
+  return Math.max(MIN_BLANK_CH, value.length + 1);
 }
 
 /** Final code for the notebook; empty blanks stay as ____ so the gap is visible. */

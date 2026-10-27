@@ -11,8 +11,9 @@ import { FillExercise } from './exercises/FillExercise';
 import { MatchExercise } from './exercises/MatchExercise';
 import { OrderExercise } from './exercises/OrderExercise';
 import { Hints } from './Hints';
-import { TYPE_LABEL } from '../lib/labels';
+import { OPTIONAL_LABEL, TYPE_LABEL } from '../lib/labels';
 import { Markdown } from './Markdown';
+import { PasteHint } from './PasteHint';
 import { StatusDot } from './StatusDot';
 
 interface Props {
@@ -36,6 +37,7 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
   const prev = guide.steps[index - 1];
   const next = guide.steps[index + 1];
   const number = String(index + 1).padStart(2, '0');
+  const pasteHint = <PasteHint guide={guide} step={step} number={number} />;
 
   const recordAppResult = (pass: boolean, message: string) => {
     const attemptNo = attempts + 1;
@@ -75,7 +77,7 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
           <span className="font-mono">Step {number}</span>
           <span aria-hidden>·</span>
           <span>{TYPE_LABEL[step.type]}</span>
-          {step.optional && <Badge variant="outline">Optional</Badge>}
+          {step.optional && <Badge variant="outline">{OPTIONAL_LABEL}</Badge>}
         </div>
         <h2 id="step-title" className="text-2xl font-semibold tracking-tight text-foreground">
           {step.title}
@@ -98,12 +100,13 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
         <h3 id="exercise-heading" className="wg-section-title">
           {TYPE_LABEL[step.type]}
         </h3>
-        {step.type === 'fill' && <FillExercise key={step.id} step={step} storageKey={key('fill')} />}
+        {step.type === 'fill' && <FillExercise key={step.id} step={step} storageKey={key('fill')} pasteHint={pasteHint} />}
         {step.type === 'order' && (
           <OrderExercise
             key={step.id}
             step={step}
             storageKey={key('order')}
+            pasteHint={step.check === 'notebook' ? pasteHint : undefined}
             busy={saving}
             onCheck={(r) => recordAppResult(r.pass, r.message)}
           />

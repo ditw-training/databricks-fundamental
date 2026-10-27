@@ -30,13 +30,13 @@ by `notebooks/setup/00_setup.ipynb`; created by Terraform and by `00_pre_config`
 | column | type | notes |
 |---|---|---|
 | `user_email` | STRING | `current_user()` in notebooks, `X-Forwarded-Email` in the app |
-| `workshop` | STRING | `ws_delta` or `ws_ingestion` |
-| `step` | STRING | step id from the guide file, e.g. `t08` |
-| `step_type` | STRING | `fill`, `order`, `match`, `code` |
+| `workshop` | STRING | `ws_delta`, `ws_ingestion`, or `quiz` (course quiz in the app) |
+| `step` | STRING | step id from the guide file, e.g. `t08`; quiz: question id `q01`..`q40` |
+| `step_type` | STRING | `fill`, `order`, `match`, `code`; `quiz` for quiz answers |
 | `status` | STRING | `pass` or `fail` |
 | `message` | STRING | short feedback shown in the app (max 200 chars) |
 | `hints_used` | INT | from the app; notebooks write NULL |
-| `attempts` | INT | NULL from notebooks; app sends its counter |
+| `attempts` | INT | NULL from notebooks; app sends its counter; quiz: attempt number counted by the server |
 | `source` | STRING | `notebook` or `app` |
 | `ts` | TIMESTAMP | `current_timestamp()` |
 
@@ -125,3 +125,38 @@ small cells, one idea each, no timings, no "CORE path" text.
   matrix participant × step (pass / fail / not started), hints used, last activity.
 - Polling every 5 s with SQL files in `config/queries/`.
 - `POST /api/progress` for `order` / `match` results (INSERT via the app SP).
+
+## 7. Planned v2 (decided 27.10, not implemented yet): "Check" button in the app
+
+- Each notebook-graded step gets a **Check** button in the app. The participant no longer runs
+  `check()` in the notebook; the notebook check cells are removed from the classroom notebooks.
+- The app runs the step's check as **SQL on the SQL warehouse on behalf of the user** (OBO,
+  `user_api_scopes: [sql]`, token from `X-Forwarded-Access-Token`), so it sees only what the
+  participant can see in their own catalog `retailhub_<slug>` (catalog name resolved from the
+  e-mail with the same slug rules as `00_setup`).
+- Check definitions live next to the guide steps (e.g. `check_sql` + expected values / assertions
+  evaluated server-side) and return PASS / FAIL with the same messages as today; the result is
+  written to the progress table by the app (source = `app`).
+- Steps whose result is only a DataFrame in the notebook session get one pre-filled line in the
+  template that saves it to a scratch table in the participant's catalog
+  (e.g. `<catalog>.default._ws_<workshop>_<step>`), which the app check reads.
+- The `_checks/*` notebooks stay for the static HTML guide / Free Edition self-study path.
+- Workshops are numbered in the order of the day: **Workshop 1 — Ingestion**, **Workshop 2 — Delta Lake**.
+  Guide JSON gets `"number": 1|2` and the app lists and labels workshops by it (picker, headings,
+  trainer view, static HTML). Notebook titles, 00_intro / README / TRAINER_GUIDE agenda rows use the
+  same names. File names stay (`WORKSHOP_ingestion.ipynb`, `WORKSHOP_delta.ipynb`; no renames).
+
+## 8. Course quiz (app)
+
+- Page `/quiz`, learning mode: one question at a time, PL/EN, immediate feedback with an
+  explanation and the notebook section, retry until correct. Score = correct first attempts.
+- Public questions: `apps/workshop-guide/config/quiz/questions.json` (no answers). Private key
+  (answers, explanations, `module_ref`): UC volume file at `QUIZ_KEY_PATH`, default
+  `/Volumes/retailhub_trainer/default/workshop_guide_private/quiz_key.json`; app SP `READ VOLUME`
+  only. Both built by `apps/workshop-guide/scripts/quiz-from-md.mjs` from `utilization/`; the same
+  `version` in both.
+- Graded on the server (`POST /api/quiz/answer`); one progress row per answer with
+  `workshop = 'quiz'`, `step_type = 'quiz'`, `message` = chosen option, `hints_used` NULL,
+  `source = 'app'`.
+- Trainer view: Quiz tab with first-attempt score and completion per participant and the
+  first-attempt correct rate per question, hardest first.

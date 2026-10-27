@@ -5,6 +5,7 @@ import { guideSchema, type FillStep, type MatchStep, type OrderStep } from '../.
 import {
   assembleFill,
   assembleOrder,
+  blankInputWidth,
   blankState,
   checkMatch,
   checkOrder,
@@ -20,6 +21,12 @@ const order = demo.steps.find((s): s is OrderStep => s.type === 'order')!;
 const match = demo.steps.find((s): s is MatchStep => s.type === 'match')!;
 
 describe('fill', () => {
+  it('sizes blanks by what was typed, not by the answer', () => {
+    expect(blankInputWidth('')).toBe(8);
+    expect(blankInputWidth('AS')).toBe(8);
+    expect(blankInputWidth('PARQUETX_LONGER')).toBe(16);
+  });
+
   it('splits template into text and blanks', () => {
     expect(parseTemplate('a {{b1}} b {{b2}}')).toEqual([
       { kind: 'text', value: 'a ' },

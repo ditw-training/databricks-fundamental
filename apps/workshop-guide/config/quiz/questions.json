@@ -1,0 +1,1604 @@
+{
+  "version": "24ee8e4f9d56",
+  "modules": [
+    {
+      "id": "m01",
+      "label": {
+        "en": "Module 01",
+        "pl": "Moduł 01"
+      },
+      "title": {
+        "en": "Platform and workspace",
+        "pl": "Platforma i workspace"
+      }
+    },
+    {
+      "id": "m02",
+      "label": {
+        "en": "Module 02",
+        "pl": "Moduł 02"
+      },
+      "title": {
+        "en": "Spark architecture",
+        "pl": "Architektura Spark"
+      }
+    },
+    {
+      "id": "m03",
+      "label": {
+        "en": "Module 03",
+        "pl": "Moduł 03"
+      },
+      "title": {
+        "en": "ELT and ingestion",
+        "pl": "ELT i ingestia"
+      }
+    },
+    {
+      "id": "m04",
+      "label": {
+        "en": "Module 04",
+        "pl": "Moduł 04"
+      },
+      "title": {
+        "en": "Delta Lake",
+        "pl": "Delta Lake"
+      }
+    },
+    {
+      "id": "m05",
+      "label": {
+        "en": "Module 05",
+        "pl": "Moduł 05"
+      },
+      "title": {
+        "en": "Orchestration with Lakeflow Jobs",
+        "pl": "Orkiestracja w Lakeflow Jobs"
+      }
+    },
+    {
+      "id": "m06",
+      "label": {
+        "en": "Module 06",
+        "pl": "Moduł 06"
+      },
+      "title": {
+        "en": "Unity Catalog",
+        "pl": "Unity Catalog"
+      }
+    },
+    {
+      "id": "m07",
+      "label": {
+        "en": "Module 07",
+        "pl": "Moduł 07"
+      },
+      "title": {
+        "en": "Genie Agents, optional demo",
+        "pl": "Genie Agents, demo opcjonalne"
+      }
+    }
+  ],
+  "questions": [
+    {
+      "id": "q01",
+      "module": "m01",
+      "text": {
+        "en": "What are the three main layers of the Databricks lakehouse architecture?",
+        "pl": "Jakie są trzy główne warstwy architektury lakehouse w Databricks?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Storage (Delta Lake), compute (clusters and SQL warehouses) and governance (Unity Catalog)",
+            "pl": "Przechowywanie (Delta Lake), obliczenia (klastry i SQL warehouse) oraz nadzór (Unity Catalog)"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Bronze, silver and gold",
+            "pl": "Bronze, silver i gold"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Driver, executors and shuffle",
+            "pl": "Driver, executory i shuffle"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "HDFS, MapReduce and YARN",
+            "pl": "HDFS, MapReduce i YARN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q02",
+      "module": "m01",
+      "text": {
+        "en": "What is a SQL warehouse used for?",
+        "pl": "Do czego służy SQL warehouse?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Compute optimised for SQL queries and BI tools",
+            "pl": "To zasoby obliczeniowe zoptymalizowane pod zapytania SQL i narzędzia BI"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "A long-running all-purpose cluster for notebooks",
+            "pl": "To długo działający klaster all-purpose dla notebooków"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "A storage container for Delta tables",
+            "pl": "To kontener na tabele Delta"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "A Unity Catalog object for managing permissions",
+            "pl": "To obiekt Unity Catalog do zarządzania uprawnieniami"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q03",
+      "module": "m01",
+      "text": {
+        "en": "Which magic command runs SQL in a Python notebook?",
+        "pl": "Które polecenie magiczne uruchamia SQL w notebooku Python?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`%python`",
+            "pl": "`%python`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`%sql`",
+            "pl": "`%sql`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`%run`",
+            "pl": "`%run`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`%sh`",
+            "pl": "`%sh`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q04",
+      "module": "m01",
+      "text": {
+        "en": "What is the key difference between DBFS and Unity Catalog volumes?",
+        "pl": "Czym przede wszystkim różnią się DBFS i wolumeny Unity Catalog?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "DBFS is faster for large files",
+            "pl": "DBFS jest szybszy przy dużych plikach"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Volumes are governed by Unity Catalog, with access control and lineage; DBFS is a deprecated, ungoverned file system that new workspaces no longer provide",
+            "pl": "Wolumeny podlegają nadzorowi Unity Catalog, z kontrolą dostępu i lineage; DBFS to wycofywany system plików bez nadzoru, którego nowe workspace'y już nie oferują"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "DBFS supports the Delta format, while volumes support only Parquet",
+            "pl": "DBFS obsługuje format Delta, a wolumeny tylko Parquet"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "There is no difference",
+            "pl": "Nie ma między nimi różnicy"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q05",
+      "module": "m01",
+      "text": {
+        "en": "Your catalog is `retailhub_anna`. Which path reads `orders/orders_batch.json` from the volume `datasets` in the schema `default`?",
+        "pl": "Twój katalog to `retailhub_anna`. Która ścieżka odczyta plik `orders/orders_batch.json` z wolumenu `datasets` w schemacie `default`?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`dbfs:/mnt/datasets/orders/orders_batch.json`",
+            "pl": "`dbfs:/mnt/datasets/orders/orders_batch.json`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`retailhub_anna.default.datasets.orders_batch`",
+            "pl": "`retailhub_anna.default.datasets.orders_batch`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`/Volumes/retailhub_anna/default/datasets/orders/orders_batch.json`",
+            "pl": "`/Volumes/retailhub_anna/default/datasets/orders/orders_batch.json`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`/Workspace/retailhub_anna/datasets/orders/orders_batch.json`",
+            "pl": "`/Workspace/retailhub_anna/datasets/orders/orders_batch.json`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q06",
+      "module": "m01",
+      "text": {
+        "en": "What do you pay for when a notebook runs on a classic cluster?",
+        "pl": "Za co płacisz, gdy notebook działa na klasycznym klastrze?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Only DBUs; the virtual machines are included",
+            "pl": "Tylko za DBU; maszyny wirtualne są wliczone"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "DBUs to Databricks plus the Azure virtual machines that run the cluster",
+            "pl": "Za DBU w Databricks oraz za maszyny wirtualne Azure, na których działa klaster"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Only the Azure virtual machines; DBUs are charged only on serverless",
+            "pl": "Tylko za maszyny wirtualne Azure; DBU nalicza się wyłącznie na serverless"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "A fixed monthly fee per workspace",
+            "pl": "Stałą miesięczną opłatę za workspace"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q07",
+      "module": "m01",
+      "text": {
+        "en": "A pipeline runs every night as a scheduled job. Which compute choice usually costs the least?",
+        "pl": "Pipeline uruchamia się co noc jako job z harmonogramem. Który wybór compute zwykle kosztuje najmniej?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "An all-purpose cluster that stays on all day, so the job starts faster",
+            "pl": "Klaster all-purpose włączony przez cały dzień, żeby job szybciej startował"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "An all-purpose cluster with auto-termination switched off",
+            "pl": "Klaster all-purpose z wyłączonym auto-termination"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Job compute or serverless, which starts for the run and stops when it ends",
+            "pl": "Job compute albo serverless, które startują na czas uruchomienia i zatrzymują się po jego końcu"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "The largest SQL warehouse in the workspace",
+            "pl": "Największy SQL warehouse w workspace"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q08",
+      "module": "m01",
+      "text": {
+        "en": "What is Genie Code?",
+        "pl": "Czym jest Genie Code?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "A chat for business users that answers questions over dashboards and Genie Agents",
+            "pl": "Czatem dla użytkowników biznesowych, który odpowiada na pytania na podstawie dashboardów i Genie Agents"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "A code formatter that runs when a notebook is saved",
+            "pl": "Formaterem kodu uruchamianym przy zapisie notebooka"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "A library you install with `%pip` to generate PySpark code",
+            "pl": "Biblioteką instalowaną przez `%pip`, która generuje kod PySpark"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "The AI assistant in notebooks and the SQL editor, formerly Databricks Assistant, which writes, explains and fixes code using your Unity Catalog metadata",
+            "pl": "Asystentem AI w notebookach i SQL Editorze, wcześniej Databricks Assistant, który pisze, wyjaśnia i poprawia kod na podstawie metadanych Unity Catalog"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q09",
+      "module": "m01",
+      "text": {
+        "en": "You ran `display(df)` in a notebook. How do you build a bar chart without writing code?",
+        "pl": "Uruchomiłeś `display(df)` w notebooku. Jak zbudować wykres słupkowy bez pisania kodu?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "In the result, select **+**, choose **Visualization**, then the chart type, axes and aggregation",
+            "pl": "W wyniku wybrać **+**, potem **Visualization**, a następnie typ wykresu, osie i agregację"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Install `matplotlib` with `%pip` and plot the DataFrame",
+            "pl": "Zainstalować `matplotlib` przez `%pip` i narysować DataFrame"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Export the result to CSV and open it in Excel",
+            "pl": "Wyeksportować wynik do CSV i otworzyć go w Excelu"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Charts are available only in AI/BI dashboards, not in notebooks",
+            "pl": "Wykresy są dostępne tylko w dashboardach AI/BI, nie w notebookach"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q10",
+      "module": "m02",
+      "text": {
+        "en": "What is the driver responsible for in a Spark cluster?",
+        "pl": "Za co odpowiada driver w klastrze Spark?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Storing data on disk as the primary storage node",
+            "pl": "Za przechowywanie danych na dysku jako główny węzeł magazynujący"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Running individual tasks in parallel",
+            "pl": "Za równoległe wykonywanie pojedynczych zadań"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Coordinating execution: running your code, building the plan and scheduling tasks",
+            "pl": "Za koordynację wykonania: uruchamia kod, buduje plan i planuje zadania"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Compressing data before it is sent to the executors",
+            "pl": "Za kompresję danych przed wysłaniem ich do executorów"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q11",
+      "module": "m02",
+      "text": {
+        "en": "What distinguishes a transformation from an action?",
+        "pl": "Czym transformacja różni się od akcji?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Transformations write data; actions read data",
+            "pl": "Transformacje zapisują dane, a akcje je odczytują"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Transformations are lazy and return a new DataFrame; actions trigger execution",
+            "pl": "Transformacje są leniwe i zwracają nowy DataFrame, a akcje uruchamiają obliczenia"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Transformations exist only in SQL; actions only in Python",
+            "pl": "Transformacje istnieją tylko w SQL, a akcje tylko w Pythonie"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Transformations run immediately; actions are lazy",
+            "pl": "Transformacje wykonują się natychmiast, a akcje są leniwe"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q12",
+      "module": "m02",
+      "text": {
+        "en": "When does a shuffle occur?",
+        "pl": "Kiedy następuje shuffle?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Whenever a new DataFrame is created",
+            "pl": "Przy każdym utworzeniu nowego DataFrame'u"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Only when writing to Delta Lake",
+            "pl": "Tylko podczas zapisu do Delta Lake"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "When data must be redistributed across partitions, typically in wide transformations such as `groupBy` or `join`",
+            "pl": "Gdy dane trzeba rozdzielić między partycje, zwykle przy szerokich transformacjach, takich jak `groupBy` lub `join`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "When `inferSchema` is used on CSV files",
+            "pl": "Gdy na plikach CSV użyto `inferSchema`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q13",
+      "module": "m02",
+      "text": {
+        "en": "What does lazy evaluation mean?",
+        "pl": "Co oznacza leniwe wykonywanie (lazy evaluation)?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Spark waits for free disk space before reading files",
+            "pl": "Spark czeka na wolne miejsce na dysku przed odczytem plików"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Spark does not execute transformations until an action is called",
+            "pl": "Spark nie wykonuje transformacji, dopóki nie zostanie wywołana akcja"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Spark caches every DataFrame after its first read",
+            "pl": "Spark zapisuje w cache każdy DataFrame po pierwszym odczycie"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Spark uses a slower but more accurate engine",
+            "pl": "Spark używa wolniejszego, ale dokładniejszego silnika"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q14",
+      "module": "m03",
+      "text": {
+        "en": "What is the main drawback of `inferSchema=True` on a large CSV file?",
+        "pl": "Jaka jest główna wada `inferSchema=True` przy dużym pliku CSV?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "The inferred schema is always wrong",
+            "pl": "Wykryty schemat jest zawsze błędny"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Spark reads the file twice, once to infer the types and once to load the data",
+            "pl": "Spark czyta plik dwukrotnie: raz, aby ustalić typy, i drugi raz, aby wczytać dane"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Only string columns are supported",
+            "pl": "Obsługiwane są tylko kolumny tekstowe"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "It does not work with Unity Catalog",
+            "pl": "Nie działa z Unity Catalog"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q15",
+      "module": "m03",
+      "text": {
+        "en": "Which method returns count, mean, standard deviation, minimum and maximum for the columns of a DataFrame?",
+        "pl": "Która metoda zwraca liczbę wartości, średnią, odchylenie standardowe, minimum i maksimum dla kolumn DataFrame'u?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`df.show()`",
+            "pl": "`df.show()`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`df.printSchema()`",
+            "pl": "`df.printSchema()`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`df.count()`",
+            "pl": "`df.count()`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`df.describe()` (`df.summary()` adds percentiles)",
+            "pl": "`df.describe()` (`df.summary()` dodaje percentyle)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q16",
+      "module": "m03",
+      "text": {
+        "en": "How does `display(df)` differ from `df.show()`?",
+        "pl": "Czym `display(df)` różni się od `df.show()`?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`display()` writes the DataFrame to a table; `show()` only reads it",
+            "pl": "`display()` zapisuje DataFrame do tabeli, a `show()` tylko go odczytuje"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`show()` works only in SQL cells",
+            "pl": "`show()` działa tylko w komórkach SQL"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`display()` renders an interactive table in the notebook with charts and Data Profile; `show()` prints plain text",
+            "pl": "`display()` pokazuje w notebooku interaktywną tabelę z wykresami i Data Profile, a `show()` wypisuje zwykły tekst"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "There is no difference",
+            "pl": "Nie ma między nimi różnicy"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q17",
+      "module": "m03",
+      "text": {
+        "en": "ANSI mode is on, which is the default. What do `CAST('abc' AS INT)` and `try_cast('abc' AS INT)` return?",
+        "pl": "Tryb ANSI jest włączony, co jest ustawieniem domyślnym. Co zwrócą `CAST('abc' AS INT)` i `try_cast('abc' AS INT)`?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`CAST` raises a `CAST_INVALID_INPUT` error; `try_cast` returns `NULL`",
+            "pl": "`CAST` zgłosi błąd `CAST_INVALID_INPUT`, a `try_cast` zwróci `NULL`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Both return `NULL`",
+            "pl": "Oba zwrócą `NULL`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Both return `0`",
+            "pl": "Oba zwrócą `0`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Both raise an error",
+            "pl": "Oba zgłoszą błąd"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q18",
+      "module": "m03",
+      "text": {
+        "en": "Which call saves the DataFrame `df` as a managed Delta table `bronze.customers` in your catalog?",
+        "pl": "Które wywołanie zapisuje DataFrame `df` jako zarządzaną tabelę Delta `bronze.customers` w Twoim katalogu?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`df.createOrReplaceTempView(\"customers\")`",
+            "pl": "`df.createOrReplaceTempView(\"customers\")`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`df.write.mode(\"overwrite\").saveAsTable(f\"{CATALOG}.bronze.customers\")`",
+            "pl": "`df.write.mode(\"overwrite\").saveAsTable(f\"{CATALOG}.bronze.customers\")`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`display(df)`",
+            "pl": "`display(df)`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`df.cache()`",
+            "pl": "`df.cache()`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q19",
+      "module": "m03",
+      "text": {
+        "en": "How do you create a temporary view from a DataFrame?",
+        "pl": "Jak utworzyć widok tymczasowy z DataFrame'u?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`df.saveAsTable(\"view_name\")`",
+            "pl": "`df.saveAsTable(\"view_name\")`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`df.createOrReplaceTempView(\"view_name\")`",
+            "pl": "`df.createOrReplaceTempView(\"view_name\")`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`spark.sql(\"CREATE VIEW view_name\")`",
+            "pl": "`spark.sql(\"CREATE VIEW view_name\")`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`df.registerTable(\"view_name\")`",
+            "pl": "`df.registerTable(\"view_name\")`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q20",
+      "module": "m03",
+      "text": {
+        "en": "Which approach adds or updates a column using conditional logic?",
+        "pl": "Które podejście dodaje lub zmienia kolumnę z użyciem logiki warunkowej?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`df.filter()`",
+            "pl": "`df.filter()`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`df.withColumn()` with `when()` and `otherwise()`",
+            "pl": "`df.withColumn()` z `when()` i `otherwise()`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`df.groupBy()`",
+            "pl": "`df.groupBy()`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`df.dropDuplicates()`",
+            "pl": "`df.dropDuplicates()`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q21",
+      "module": "m04",
+      "text": {
+        "en": "What does ACID stand for?",
+        "pl": "Co oznacza skrót ACID?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Accurate, consistent, integrated, durable",
+            "pl": "Accurate, consistent, integrated, durable"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Atomicity, consistency, isolation, durability",
+            "pl": "Atomicity, consistency, isolation, durability"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Automated, concurrent, incremental, distributed",
+            "pl": "Automated, concurrent, incremental, distributed"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Analytical, columnar, indexed, distributed",
+            "pl": "Analytical, columnar, indexed, distributed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q22",
+      "module": "m04",
+      "text": {
+        "en": "What is the Delta transaction log (`_delta_log`)?",
+        "pl": "Czym jest dziennik transakcji Delta (`_delta_log`)?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "A Spark UI page with query history",
+            "pl": "Stroną Spark UI z historią zapytań"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "A directory of CSV files with row-level changes",
+            "pl": "Katalogiem plików CSV ze zmianami na poziomie wierszy"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "A JSON log that records every change to a Delta table and makes ACID transactions and time travel possible",
+            "pl": "Dziennikiem w formacie JSON, który zapisuje każdą zmianę tabeli Delta i umożliwia transakcje ACID oraz time travel"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "An index that speeds up reads on large tables",
+            "pl": "Indeksem przyspieszającym odczyt dużych tabel"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q23",
+      "module": "m04",
+      "text": {
+        "en": "What does `MERGE INTO` do?",
+        "pl": "Co robi `MERGE INTO`?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Creates a full copy of a table",
+            "pl": "Tworzy pełną kopię tabeli"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Performs an upsert, updating matching rows and inserting new ones in a single atomic operation",
+            "pl": "Wykonuje upsert: aktualizuje pasujące wiersze i wstawia nowe w jednej atomowej operacji"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Merges two schemas without writing data",
+            "pl": "Łączy dwa schematy bez zapisu danych"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Combines two transaction logs into one",
+            "pl": "Scala dwa dzienniki transakcji w jeden"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q24",
+      "module": "m04",
+      "text": {
+        "en": "How do you query a Delta table as it was seven days ago?",
+        "pl": "Jak odpytać tabelę Delta w stanie sprzed siedmiu dni?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`SELECT * FROM t WHERE _date = date_sub(now(), 7)`",
+            "pl": "`SELECT * FROM t WHERE _date = date_sub(now(), 7)`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`SELECT * FROM t VERSION AS OF 7`",
+            "pl": "`SELECT * FROM t VERSION AS OF 7`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`SELECT * FROM t TIMESTAMP AS OF date_sub(current_timestamp(), 7)`",
+            "pl": "`SELECT * FROM t TIMESTAMP AS OF date_sub(current_timestamp(), 7)`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`SELECT * FROM t AT (DAYS = 7)`",
+            "pl": "`SELECT * FROM t AT (DAYS = 7)`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q25",
+      "module": "m04",
+      "text": {
+        "en": "What does `VACUUM` do?",
+        "pl": "Co robi `VACUUM`?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Compacts small Parquet files",
+            "pl": "Kompaktuje małe pliki Parquet"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Removes duplicate rows",
+            "pl": "Usuwa zduplikowane wiersze"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Permanently deletes data files that the current table version no longer references and that are older than the retention period",
+            "pl": "Trwale usuwa pliki danych, do których bieżąca wersja tabeli już się nie odwołuje i które są starsze niż okres retencji"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Rebuilds the transaction log",
+            "pl": "Odbudowuje dziennik transakcji"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q26",
+      "module": "m04",
+      "text": {
+        "en": "An hour ago someone ran a `DELETE` on the wrong rows. Which command brings the table back to its state before that `DELETE`?",
+        "pl": "Godzinę temu ktoś wykonał `DELETE` na niewłaściwych wierszach. Które polecenie przywróci tabelę do stanu sprzed tego `DELETE`?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`ROLLBACK TABLE t`",
+            "pl": "`ROLLBACK TABLE t`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`UNDROP TABLE t`",
+            "pl": "`UNDROP TABLE t`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`VACUUM t RETAIN 0 HOURS`",
+            "pl": "`VACUUM t RETAIN 0 HOURS`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`RESTORE TABLE t TO VERSION AS OF n`, where `n` is the version before the `DELETE`",
+            "pl": "`RESTORE TABLE t TO VERSION AS OF n`, gdzie `n` to wersja sprzed `DELETE`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q27",
+      "module": "m04",
+      "text": {
+        "en": "You append a DataFrame that has one extra column to an existing Delta table, without any write options. What happens?",
+        "pl": "Dopisujesz do istniejącej tabeli Delta DataFrame z jedną dodatkową kolumną, bez żadnych opcji zapisu. Co się stanie?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "The extra column is silently dropped",
+            "pl": "Dodatkowa kolumna zostanie pominięta bez komunikatu"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "The column is added to the table automatically",
+            "pl": "Kolumna zostanie automatycznie dodana do tabeli"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "The write fails because the schema does not match (schema enforcement); the `mergeSchema` option adds the column on purpose",
+            "pl": "Zapis zakończy się błędem, bo schemat się nie zgadza (schema enforcement); opcja `mergeSchema` świadomie dodaje kolumnę"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "The table is converted to Parquet",
+            "pl": "Tabela zostanie przekonwertowana do Parquet"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q28",
+      "module": "m04",
+      "text": {
+        "en": "What does Databricks recommend for the data layout of new tables, in place of partitioning and `ZORDER`?",
+        "pl": "Co Databricks zaleca jako układ danych dla nowych tabel zamiast partycjonowania i `ZORDER`?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Liquid clustering (`CLUSTER BY`, or `CLUSTER BY AUTO`); on Unity Catalog managed tables predictive optimization also runs maintenance such as `OPTIMIZE` and `VACUUM` for you",
+            "pl": "Liquid clustering (`CLUSTER BY` albo `CLUSTER BY AUTO`); na tabelach zarządzanych Unity Catalog predictive optimization dodatkowo sam uruchamia utrzymanie, takie jak `OPTIMIZE` i `VACUUM`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Partitioning by every column used in a filter",
+            "pl": "Partycjonowanie po każdej kolumnie używanej w filtrach"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Storing the table as CSV",
+            "pl": "Zapis tabeli jako CSV"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Caching the table on every cluster",
+            "pl": "Cache tabeli na każdym klastrze"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q29",
+      "module": "m05",
+      "text": {
+        "en": "What does a repair run do?",
+        "pl": "Co robi repair run?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Resets every task and reruns the whole job",
+            "pl": "Resetuje wszystkie zadania i uruchamia cały job od nowa"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Reruns only the failed tasks and the tasks downstream of them",
+            "pl": "Uruchamia ponownie tylko zadania zakończone błędem i zadania od nich zależne"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Sends an alert and cancels the run",
+            "pl": "Wysyła alert i anuluje uruchomienie"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Rolls back the Delta table changes made by the failed run",
+            "pl": "Wycofuje zmiany w tabelach Delta wprowadzone przez nieudane uruchomienie"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q30",
+      "module": "m05",
+      "text": {
+        "en": "Which Quartz cron expression runs a job every day at 02:30?",
+        "pl": "Które wyrażenie cron w formacie Quartz uruchamia job codziennie o 02:30?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`30 2 * * *`",
+            "pl": "`30 2 * * *`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`2 30 * * *`",
+            "pl": "`2 30 * * *`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`0 30 2 * * ?`",
+            "pl": "`0 30 2 * * ?`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`30 2 0 * * ?`",
+            "pl": "`30 2 0 * * ?`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q31",
+      "module": "m05",
+      "text": {
+        "en": "A job parameter and a task parameter of a notebook task use the same key. Which value does the notebook read?",
+        "pl": "Parametr joba i parametr zadania notebookowego mają ten sam klucz. Którą wartość odczyta notebook?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "The task parameter",
+            "pl": "Parametr zadania"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Whichever parameter was created last",
+            "pl": "Ten parametr, który utworzono później"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Neither; the run fails with a conflict",
+            "pl": "Żadną; uruchomienie zakończy się błędem konfliktu"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "The job parameter, which takes precedence",
+            "pl": "Parametr joba, który ma pierwszeństwo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q32",
+      "module": "m05",
+      "text": {
+        "en": "Which feature passes parameters to a notebook when a job runs?",
+        "pl": "Który mechanizm przekazuje parametry do notebooka uruchamianego w jobie?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "The `%run` magic command",
+            "pl": "Polecenie magiczne `%run`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Widgets (`dbutils.widgets`)",
+            "pl": "Widgety (`dbutils.widgets`)"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Unity Catalog parameters",
+            "pl": "Parametry Unity Catalog"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Cluster environment variables only",
+            "pl": "Wyłącznie zmienne środowiskowe klastra"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q33",
+      "module": "m05",
+      "text": {
+        "en": "The task `validate` publishes a value with `dbutils.jobs.taskValues.set(key=\"row_count\", value=n)`. How does the next task read it?",
+        "pl": "Zadanie `validate` publikuje wartość przez `dbutils.jobs.taskValues.set(key=\"row_count\", value=n)`. Jak odczyta ją kolejne zadanie?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`dbutils.widgets.get(\"row_count\")`",
+            "pl": "`dbutils.widgets.get(\"row_count\")`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`spark.conf.get(\"row_count\")`",
+            "pl": "`spark.conf.get(\"row_count\")`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`dbutils.jobs.taskValues.get(taskKey=\"validate\", key=\"row_count\")`",
+            "pl": "`dbutils.jobs.taskValues.get(taskKey=\"validate\", key=\"row_count\")`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`%run ./validate`",
+            "pl": "`%run ./validate`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q34",
+      "module": "m06",
+      "text": {
+        "en": "What is the three-level namespace in Unity Catalog?",
+        "pl": "Jak wygląda trzypoziomowa przestrzeń nazw w Unity Catalog?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`workspace.schema.table`",
+            "pl": "`workspace.schema.table`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`catalog.database.file`",
+            "pl": "`catalog.database.file`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`catalog.schema.table`, where the last level can also be a view, volume or function",
+            "pl": "`catalog.schema.table`, gdzie ostatnim poziomem może być też widok, wolumen lub funkcja"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`metastore.catalog.schema`",
+            "pl": "`metastore.catalog.schema`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q35",
+      "module": "m06",
+      "text": {
+        "en": "How must privileges be granted to give a user access to a table?",
+        "pl": "Jak trzeba nadać uprawnienia, aby użytkownik uzyskał dostęp do tabeli?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "On the table only; higher levels are not needed",
+            "pl": "Tylko na tabeli; wyższe poziomy nie są potrzebne"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "At the metastore level only",
+            "pl": "Tylko na poziomie metastore"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "Top-down: `USE CATALOG`, then `USE SCHEMA`, then the privilege on the table",
+            "pl": "Od góry: `USE CATALOG`, potem `USE SCHEMA`, a na końcu uprawnienie do tabeli"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "On the cluster, through IAM roles",
+            "pl": "Na klastrze, przez role IAM"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q36",
+      "module": "m06",
+      "text": {
+        "en": "Which command shows who has which privileges on the schema `gold` of your catalog?",
+        "pl": "Które polecenie pokaże, kto ma jakie uprawnienia do schematu `gold` w Twoim katalogu?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`SHOW GRANTS ON SCHEMA my_catalog.gold`",
+            "pl": "`SHOW GRANTS ON SCHEMA my_catalog.gold`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`DESCRIBE SCHEMA my_catalog.gold`",
+            "pl": "`DESCRIBE SCHEMA my_catalog.gold`"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`SHOW TABLES IN my_catalog.gold`",
+            "pl": "`SHOW TABLES IN my_catalog.gold`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "`LIST PRIVILEGES my_catalog.gold`",
+            "pl": "`LIST PRIVILEGES my_catalog.gold`"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q37",
+      "module": "m06",
+      "text": {
+        "en": "Which groups can be granted privileges on Unity Catalog objects?",
+        "pl": "Którym grupom można nadać uprawnienia do obiektów Unity Catalog?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "Workspace-local groups created with SQL `CREATE GROUP`",
+            "pl": "Grupom lokalnym workspace, utworzonym poleceniem SQL `CREATE GROUP`"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "Account groups, created in the account console or in the workspace settings under Identity and access",
+            "pl": "Grupom kontowym, tworzonym w konsoli konta lub w ustawieniach workspace w sekcji Identity and access"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "The workspace system group `users`",
+            "pl": "Systemowej grupie workspace `users`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Any group that exists in the workspace",
+            "pl": "Każdej grupie istniejącej w workspace"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q38",
+      "module": "m06",
+      "text": {
+        "en": "A participant has `ALL PRIVILEGES` on a catalog owned by the trainer, but their `GRANT SELECT ... TO` a group fails. Why?",
+        "pl": "Uczestnik ma `ALL PRIVILEGES` na katalogu, którego właścicielem jest trener, ale jego polecenie `GRANT SELECT ... TO` grupie kończy się błędem. Dlaczego?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "`GRANT` can be run only from a SQL warehouse",
+            "pl": "`GRANT` można wykonać tylko z SQL warehouse"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "`ALL PRIVILEGES` must be granted at the metastore level before grants are allowed",
+            "pl": "`ALL PRIVILEGES` trzeba najpierw nadać na poziomie metastore"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "`ALL PRIVILEGES` does not include `MANAGE`; only the owner, a metastore admin or a holder of `MANAGE` can grant privileges",
+            "pl": "`ALL PRIVILEGES` nie obejmuje `MANAGE`; uprawnienia może nadawać tylko właściciel, administrator metastore lub posiadacz `MANAGE`"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "Groups can receive privileges only on tables",
+            "pl": "Grupy mogą otrzymywać uprawnienia tylko do tabel"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q39",
+      "module": "m07",
+      "text": {
+        "en": "What is a Genie Agent (formerly Genie space)?",
+        "pl": "Czym jest Genie Agent (wcześniej Genie space)?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "A GPU cluster for machine learning models",
+            "pl": "Klastrem GPU dla modeli uczenia maszynowego"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "A natural-language interface, configured on chosen Unity Catalog tables, that answers questions about the data with generated SQL",
+            "pl": "Interfejsem w języku naturalnym, skonfigurowanym na wybranych tabelach Unity Catalog, który odpowiada na pytania o dane za pomocą wygenerowanego SQL"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "A shared area for editing notebooks together",
+            "pl": "Wspólnym obszarem do edycji notebooków"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "A dashboard for monitoring pipeline health",
+            "pl": "Dashboardem do monitorowania stanu pipeline'ów"
+          }
+        }
+      ]
+    },
+    {
+      "id": "q40",
+      "module": "m07",
+      "text": {
+        "en": "When is a Genie Agent not the right tool?",
+        "pl": "Kiedy Genie Agent nie jest właściwym narzędziem?"
+      },
+      "options": [
+        {
+          "id": "A",
+          "text": {
+            "en": "When a business user wants to explore data without writing SQL",
+            "pl": "Gdy użytkownik biznesowy chce eksplorować dane bez pisania SQL"
+          }
+        },
+        {
+          "id": "B",
+          "text": {
+            "en": "When you need a strictly formatted report with approved KPIs",
+            "pl": "Gdy potrzebny jest raport o ściśle określonym formacie z zatwierdzonymi KPI"
+          }
+        },
+        {
+          "id": "C",
+          "text": {
+            "en": "When an analyst wants to ask ad-hoc questions about sales",
+            "pl": "Gdy analityk chce zadawać doraźne pytania o sprzedaż"
+          }
+        },
+        {
+          "id": "D",
+          "text": {
+            "en": "When you want to check a trend before a meeting",
+            "pl": "Gdy chcesz sprawdzić trend przed spotkaniem"
+          }
+        }
+      ]
+    }
+  ]
+}

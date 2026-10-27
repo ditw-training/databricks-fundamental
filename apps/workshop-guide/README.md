@@ -13,6 +13,9 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
   `POST /api/progress` (INSERT as the app service principal).
 - `/trainer` shows the participant × step matrix for emails listed in `TRAINER_EMAILS`
   (`GET /api/progress/matrix`, which returns 403 for everyone else).
+- `/quiz` is the course quiz (40 questions, PL/EN) in learning mode: feedback, explanation and the
+  notebook section after every answer, retry until correct. Graded on the server with a private
+  key; the trainer view has a Quiz tab. See [Quiz](#quiz).
 
 ## Layout
 
@@ -23,9 +26,13 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 | `config/guides/*.json` | guide files used at runtime (synced, committed) |
 | `fixtures/ws_demo.json` | demo guide with every step type; used when no guides exist |
 | `scripts/sync-guides.mjs` | copies `../../notebooks/workshops/guide/*.json` to `config/guides/` |
+| `config/quiz/questions.json` | quiz questions and options, PL + EN, **no answers** (generated, committed) |
+| `scripts/quiz-from-md.mjs` | builds `config/quiz/questions.json` and the private key from `../../utilization/` |
+| `server/sql/quiz_progress.sql` | quiz state per participant and question (first answer, solved, attempts); server only |
+| `server/quiz.ts`, `shared/quiz-schema.ts` | key loading and caching, grading, attempt numbering, rate limit; zod schemas |
 | `shared/guide-schema.ts` | zod schema of the guide files and the POST body |
-| `server/` | `/api/me`, `/api/guides`, `/api/progress`, `/api/progress/me`, `/api/progress/matrix`; guide loading and validation |
-| `client/src/` | participant view (`/`), trainer view (`/trainer`) |
+| `server/` | `/api/me`, `/api/guides`, `/api/progress`, `/api/progress/me`, `/api/progress/matrix`, `/api/quiz*`; guide loading and validation |
+| `client/src/` | participant view (`/`), quiz (`/quiz`), trainer view (`/trainer`, tabs Workshops / Quiz) |
 
 ## Environment variables
 
@@ -34,6 +41,7 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 | `DATABRICKS_WAREHOUSE_ID` | `app.yaml` (`valueFrom: sql-warehouse`), `.env` locally | SQL warehouse for queries and the INSERT |
 | `PROGRESS_TABLE` | `app.yaml` | progress table for the INSERT and the SELECT, default `retailhub_trainer.default.workshop_progress` |
 | `TRAINER_EMAILS` | `app.yaml` | comma-separated emails that may open `/trainer` |
+| `QUIZ_KEY_PATH` | `app.yaml` | private quiz key in a UC volume, default `/Volumes/retailhub_trainer/default/workshop_guide_private/quiz_key.json` |
 | `DEV_USER_EMAIL` | `.env` (local only) | identity when there is no `X-Forwarded-Email` header; ignored when `NODE_ENV=production` |
 | `DATABRICKS_CONFIG_PROFILE` | `.env` (local only) | CLI profile for local development |
 
@@ -81,6 +89,65 @@ error names the file and field. `npm test` validates `config/guides/` and the fi
 
 Commit `config/guides/` after syncing: `databricks apps deploy` uploads only this folder.
 
+## Quiz
+
+The quiz has two parts that must carry the same `version`:
+
+| File | Where | Contains |
+|---|---|---|
+| `config/quiz/questions.json` | app code, committed | modules, questions, options (PL + EN) |
+| `quiz_key.json` | UC volume, path `QUIZ_KEY_PATH` | correct option, explanation (PL + EN), "where to learn" (module, notebook, section) |
+
+Build both from the trainer sources (local, gitignored): `../../utilization/{en,pl}/quiz.md`
+(questions and the answer key table) and `../../utilization/quiz_explanations.json`
+(`{ "q01": { "section", "en", "pl" } }`, hand-written explanations):
+
+```bash
+npm run quiz-from-md     # checks 40 questions, 4 options each, PL = EN, key and explanations complete
+```
+
+It writes `config/quiz/questions.json` (commit it) and `../../utilization/quiz_key.json`. Upload the
+key; the app service principal needs `READ VOLUME` on the volume (participants get nothing):
+
+```bash
+databricks volumes create retailhub_trainer default workshop_guide_private MANAGED --profile <profile>
+databricks fs cp ../../utilization/quiz_key.json \
+  dbfs:/Volumes/retailhub_trainer/default/workshop_guide_private/quiz_key.json --overwrite --profile <profile>
+SP=$(databricks apps get workshop-guide --profile <profile> -o json | jq -r .service_principal_client_id)
+databricks grants update volume retailhub_trainer.default.workshop_guide_private \
+  --json "{\"changes\":[{\"principal\":\"$SP\",\"add\":[\"READ_VOLUME\"]}]}" --profile <profile>
+```
+
+In the training environment Terraform does all three (`infra/terraform`, README "Quiz key").
+
+How it works:
+
+- The server reads the key with the Files API as the app service principal, keeps it in memory
+  and reloads it every 10 minutes. A failed reload keeps the last good key; with no good key it
+  retries after 30 s. A missing, unreadable or mismatched key (other `version`, missing question)
+  turns the Quiz page into "quiz not configured"; trainers see the reason there and in the Quiz tab.
+- Answers are graded only on the server. The explanation is returned only after an attempt.
+- Each answer appends a row to the progress table: `workshop = 'quiz'`, `step = q01..q40`,
+  `step_type = 'quiz'`, `status = pass|fail`, `message` = chosen option, `attempts` = attempt
+  number counted by the server from the table (not sent by the browser), `source = 'app'`.
+  After a correct answer the question is closed (409). At most 5 answers per question per
+  minute and user (429; in memory, per app instance).
+- Score = questions answered correctly on the **first** attempt. Retries are for learning.
+
+| Route | Who | Returns |
+|---|---|---|
+| `GET /api/quiz` | any signed-in user | questions (no answers), `configured`; `reason` for trainers only |
+| `POST /api/quiz/answer` `{question, option, lang}` | any signed-in user | `{correct, explanation, module_ref, attempt}` |
+| `GET /api/quiz/me` | any signed-in user | own state per question |
+| `GET /api/quiz/review?lang=` | any signed-in user | explanations of questions the user already attempted (after reload or language switch) |
+| `GET /api/quiz/stats` | `TRAINER_EMAILS` only, else 403 | state of all participants (trainer Quiz tab, polled every 5 s) |
+
+The quiz rows share the 4 s server cache pattern of the workshops (one statement for all users);
+every answer invalidates it.
+
+Language (PL default, EN) is remembered per browser in `localStorage`, as are the wrong options
+already tried. Keyboard: A–D answers, N goes to the next question.
+
 ## Local development
 
 ```bash
@@ -108,7 +175,12 @@ it generates an empty query registry. Rows from the server routes are validated 
 zod on the server and in the browser (`shared/progress-schema.ts`).
 
 Lab state (2026-10-27): `retailhub_trainer.default.workshop_progress` exists in the lab
-workspace, and `databricks apps validate --profile ditwlab-admin` passes.
+workspace, and `databricks apps validate --profile ditwlab-admin` passes. The volume
+`retailhub_trainer.default.workshop_guide_private` holds `quiz_key.json`, and the lab app's service
+principal has `READ VOLUME` on it.
+
+`DEV_USER_EMAIL` is ignored by `npm start` (production). To try the production build locally, send
+the identity header yourself: `curl -H 'X-Forwarded-Email: you@example.com' localhost:<port>/api/quiz`.
 
 ## Deploy
 
@@ -117,7 +189,8 @@ expected to create the progress table with grants, the SQL warehouse and the app
 `workshop-guide` with its `sql-warehouse` resource (`CAN_USE`).
 
 Grants the app service principal needs: `USE CATALOG` on `retailhub_trainer`,
-`USE SCHEMA` on `default`, `SELECT` and `MODIFY` on the progress table.
+`USE SCHEMA` on `default`, `SELECT` and `MODIFY` on the progress table, `READ VOLUME` on
+`workshop_guide_private` (quiz key).
 
 Participants only need `MODIFY` on the table (for `check()` in the notebook). SPEC
 section 2 also gives them `SELECT`, which lets anyone read the whole group's progress

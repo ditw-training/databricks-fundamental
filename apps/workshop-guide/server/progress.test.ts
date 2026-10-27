@@ -31,6 +31,16 @@ describe('guide files', () => {
     expect(loaded.size).toBeGreaterThan(0);
   });
 
+  it('multi-line hints wrap their code in a ``` fence (markdown would merge the lines)', () => {
+    const loaded = loadGuides(path.resolve(__dirname, '../config/guides'));
+    const unfenced = [...loaded.values(), demo].flatMap((g) =>
+      g.steps.flatMap((s) =>
+        s.hints.flatMap((h, i) => (h.includes('\n') && !h.includes('```') ? [`${g.id} ${s.id} hint ${i + 1}`] : [])),
+      ),
+    );
+    expect(unfenced).toEqual([]);
+  });
+
   it('rejects a fill step whose blank has no answers', () => {
     const broken = structuredClone(JSON.parse(readFileSync(fixturePath, 'utf8')) as { steps: { blanks?: object }[] });
     broken.steps[0].blanks = { b1: { answers: ['x'] } };

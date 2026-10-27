@@ -14,14 +14,18 @@ import { resolveProgressTable } from './progress';
 /** Server-only SQL (not served by the analytics plugin, see config/queries/README.md). */
 export const SQL_DIR = path.resolve(process.cwd(), 'server', 'sql');
 
-/** Reads server/sql/latest_progress.sql and fills in the validated table name. */
-export function loadLatestProgressSql(table: string, dir: string = SQL_DIR): string {
-  const text = readFileSync(path.join(dir, 'latest_progress.sql'), 'utf8');
+/** Reads server/sql/<file> and fills in the validated table name. */
+export function loadServerSql(file: string, table: string, dir: string = SQL_DIR): string {
+  const text = readFileSync(path.join(dir, file), 'utf8');
   if (!text.includes('{{PROGRESS_TABLE}}')) {
-    throw new Error('server/sql/latest_progress.sql must contain {{PROGRESS_TABLE}}');
+    throw new Error(`server/sql/${file} must contain {{PROGRESS_TABLE}}`);
   }
   return text.split('{{PROGRESS_TABLE}}').join(resolveProgressTable(table));
 }
+
+/** Reads server/sql/latest_progress.sql and fills in the validated table name. */
+export const loadLatestProgressSql = (table: string, dir: string = SQL_DIR): string =>
+  loadServerSql('latest_progress.sql', table, dir);
 
 /** Rows from the result of appkit.analytics.query (JSON_ARRAY, INLINE). Empty result → []. */
 export function rowsFromResult(result: unknown): ProgressRow[] {
@@ -36,9 +40,9 @@ export const participantRows = (rows: ProgressRow[], email: string): Participant
 
 export const trainerRows = (rows: ProgressRow[]): TrainerRow[] => rows.map((r) => trainerRowSchema.parse(r));
 
-interface Entry {
+interface Entry<Row> {
   at: number;
-  promise: Promise<{ rows: ProgressRow[]; fetchedAt: string }>;
+  promise: Promise<{ rows: Row[]; fetchedAt: string }>;
 }
 
 /**
@@ -46,21 +50,21 @@ interface Entry {
  * trainer. The in-flight promise is cached too, so many tabs polling a cold warehouse
  * share one statement. Failed reads are not cached.
  */
-export class ProgressCache {
-  private entries = new Map<string, Entry>();
+export class ProgressCache<Row = ProgressRow> {
+  private entries = new Map<string, Entry<Row>>();
 
   constructor(
-    private readonly load: (workshop: string) => Promise<ProgressRow[]>,
+    private readonly load: (workshop: string) => Promise<Row[]>,
     private readonly ttlMs = 4000,
     private readonly now: () => number = Date.now,
   ) {}
 
-  get(workshop: string): Promise<{ rows: ProgressRow[]; fetchedAt: string }> {
+  get(workshop: string): Promise<{ rows: Row[]; fetchedAt: string }> {
     const hit = this.entries.get(workshop);
     if (hit && this.now() - hit.at < this.ttlMs) return hit.promise;
     const at = this.now();
     const promise = this.load(workshop).then((rows) => ({ rows, fetchedAt: new Date(at).toISOString() }));
-    const entry: Entry = { at, promise };
+    const entry: Entry<Row> = { at, promise };
     this.entries.set(workshop, entry);
     promise.catch(() => {
       if (this.entries.get(workshop) === entry) this.entries.delete(workshop);

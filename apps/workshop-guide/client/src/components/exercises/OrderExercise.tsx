@@ -19,7 +19,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Button } from '@databricks/appkit-ui/react';
+import { Button, useIsMobile } from '@databricks/appkit-ui/react';
 import { ArrowDown, ArrowUp, GripVertical, Plus, RotateCcw, X } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { OrderStep } from '../../../../shared/guide-schema';
@@ -39,9 +39,12 @@ interface Props {
   /** Called on every "Check order"; the parent counts attempts and records app-graded results. */
   onCheck: (result: OrderResult) => void;
   busy?: boolean;
+  /** Where to paste the code in the notebook (shown next to Copy, notebook-checked steps only). */
+  pasteHint?: ReactNode;
 }
 
-export function OrderExercise({ step, storageKey, onCheck, busy }: Props) {
+export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Props) {
+  const isMobile = useIsMobile();
   const initial = useMemo<Lists>(
     () => ({ pool: seededShuffle(step.blocks.map((b) => b.id), step.id), answer: [] }),
     [step],
@@ -130,10 +133,17 @@ export function OrderExercise({ step, storageKey, onCheck, busy }: Props) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Drag blocks into <strong className="text-foreground">Your solution</strong> and put them in order. With the keyboard: focus
-        a handle, press Space, move with the arrow keys, press Space again. The + / × / arrow buttons work too.
-      </p>
+      {isMobile ? (
+        <p className="text-sm text-muted-foreground">
+          Tap <strong className="text-foreground">+</strong> to add a block to <strong className="text-foreground">Your solution</strong>,
+          then use ↑ / ↓ to put the blocks in order and × to take one out.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Drag blocks into <strong className="text-foreground">Your solution</strong> and put them in order, or use the + / ↑ / ↓ / ×
+          buttons. With the keyboard: focus a handle, press Space, move with the arrow keys, press Space again.
+        </p>
+      )}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -142,7 +152,8 @@ export function OrderExercise({ step, storageKey, onCheck, busy }: Props) {
         onDragEnd={onDragEnd}
         onDragCancel={() => setActiveId(null)}
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        {/* Stacked, not side by side: each code block gets the full width and keeps its line breaks. */}
+        <div className="flex min-w-0 flex-col gap-4">
           <BlockList
             id="pool"
             title="Available blocks"
@@ -200,12 +211,19 @@ export function OrderExercise({ step, storageKey, onCheck, busy }: Props) {
           <RotateCcw className="size-4" aria-hidden /> Reset
         </Button>
         {step.check === 'notebook' && (
-          <CopyButton text={assembleOrder(step, current.answer)} label="Copy to notebook" variant={result?.pass ? 'default' : 'outline'} />
+          <CopyButton
+            text={assembleOrder(step, current.answer)}
+            label="Copy to notebook"
+            variant={result?.pass ? 'default' : 'outline'}
+            disabled={current.answer.length === 0}
+            title={current.answer.length === 0 ? 'Add blocks to your solution first' : undefined}
+          />
         )}
         <Button type="button" onClick={runCheck} disabled={busy || current.answer.length === 0}>
           Check order
         </Button>
       </div>
+      {pasteHint}
     </div>
   );
 }
@@ -223,7 +241,7 @@ interface BlockListProps {
 function BlockList({ id, title, ids, codeById, emptyText, numbered, renderActions }: BlockListProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <section aria-label={title} className="flex flex-col gap-2">
+    <section aria-label={title} className="flex min-w-0 flex-col gap-2">
       <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {title} <span className="font-normal">({ids.length})</span>
       </h4>

@@ -1,5 +1,4 @@
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -18,14 +17,15 @@ import {
   SheetTitle,
   useIsMobile,
 } from '@databricks/appkit-ui/react';
-import { ArrowRight, ListChecks, NotebookPen } from 'lucide-react';
+import { ArrowRight, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { Guide } from '../../../shared/guide-schema';
 import { Markdown } from '../components/Markdown';
+import { NotebookLocation } from '../components/NotebookLocation';
 import { StatusDot } from '../components/StatusDot';
 import { StepPane } from '../components/StepPane';
-import { TYPE_LABEL } from '../lib/labels';
+import { OPTIONAL_LABEL, TYPE_LABEL } from '../lib/labels';
 import { useParticipantProgress, type ParticipantRow } from '../lib/progress';
 import { formatAgo, parseTs, toStatus } from '../lib/status';
 
@@ -64,14 +64,12 @@ function WorkshopPicker({ guides, unknown, onPick }: { guides: Guide[]; unknown:
             <Card key={g.id} className="flex flex-col">
               <CardHeader>
                 <CardTitle className="text-lg">{g.title}</CardTitle>
-                <CardDescription className="flex flex-wrap gap-x-3 gap-y-1">
+                <CardDescription className="flex flex-col gap-1.5">
                   <span className="inline-flex items-center gap-1">
                     <ListChecks className="size-3.5" aria-hidden /> {required} steps
-                    {g.steps.length > required ? ` + ${g.steps.length - required} optional` : ''}
+                    {g.steps.length > required ? ` + ${g.steps.length - required} ${OPTIONAL_LABEL.toLowerCase()}` : ''}
                   </span>
-                  <span className="inline-flex items-center gap-1 font-mono text-xs">
-                    <NotebookPen className="size-3.5" aria-hidden /> {g.notebook.split('/').pop()}
-                  </span>
+                  <NotebookLocation guide={g} />
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
@@ -159,10 +157,12 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
                 <StatusDot status={status} />
                 <span className="w-6 shrink-0 font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, '0')}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate">{s.title}</span>
+                  <span className="line-clamp-2 block" title={s.title}>
+                    {s.title}
+                  </span>
                   <span className="block text-xs text-muted-foreground">
                     {TYPE_LABEL[s.type]}
-                    {s.optional ? ' · optional' : ''}
+                    {s.optional ? ` · ${OPTIONAL_LABEL}` : ''}
                   </span>
                 </span>
               </button>
@@ -176,10 +176,10 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 className="text-lg font-semibold">{guide.title}</h2>
-        <Badge variant="secondary" className="font-mono text-xs">
-          {guide.notebook.split('/').pop()}
-        </Badge>
+        <div className="min-w-0 space-y-0.5">
+          <h2 className="text-lg font-semibold">{guide.title}</h2>
+          <NotebookLocation guide={guide} />
+        </div>
         {isMobile && (
           <Button type="button" variant="outline" size="sm" className="ml-auto" onClick={() => setStepsOpen(true)}>
             <ListChecks className="size-4" aria-hidden /> Steps ({passedRequired}/{required.length})
@@ -187,7 +187,7 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[280px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="grid gap-6 md:grid-cols-[280px_minmax(0,1fr)] lg:grid-cols-[320px_minmax(0,1fr)]">
         {!isMobile && (
           <aside className="wg-sidebar sticky top-4 max-h-[calc(100vh-6rem)] self-start overflow-y-auto rounded-xl border bg-card p-4">
             {stepList}

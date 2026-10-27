@@ -14,6 +14,7 @@ import {
   type ParticipantRow,
   type TrainerRow,
 } from '../../../shared/progress-schema';
+import { quizProgressRowSchema, type QuizProgressRow } from '../../../shared/quiz-schema';
 
 export type { ParticipantRow, TrainerRow };
 
@@ -44,7 +45,7 @@ async function fetchRows<Row>(url: string, schema: z.ZodType<Row>, signal: Abort
   return parsed.data;
 }
 
-function usePolledRows<Row>(url: string, schema: z.ZodType<Row>): PolledState<Row> {
+export function usePolledRows<Row>(url: string, schema: z.ZodType<Row>): PolledState<Row> {
   const [state, setState] = useState<PolledState<Row>>({ rows: null, error: null, updatedAt: null });
 
   useEffect(() => {
@@ -104,4 +105,9 @@ export function useParticipantProgress(workshop: string): PolledState<Participan
 /** Latest state per participant and step (trainer view; the server returns 403 for others). */
 export function useTrainerMatrix(workshop: string): PolledState<TrainerRow> {
   return usePolledRows(`/api/progress/matrix?workshop=${encodeURIComponent(workshop)}`, trainerRowSchema);
+}
+
+/** Quiz rows of all participants (trainer view; the server returns 403 for others). */
+export function useQuizStats(): PolledState<QuizProgressRow> {
+  return usePolledRows('/api/quiz/stats', quizProgressRowSchema);
 }

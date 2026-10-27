@@ -11,3 +11,7 @@ env:
   # created by Terraform (infra/terraform/workshop_guide.tf) or by databricks.yml in a lab.
   - name: TRAINER_EMAILS
     valueFrom: trainer-emails
+  # Private quiz key (answers + explanations) in a Unity Catalog volume, read by the app
+  # service principal with the Files API (README, "Quiz"). The app SP needs READ VOLUME.
+  - name: QUIZ_KEY_PATH
+    value: /Volumes/retailhub_trainer/default/workshop_guide_private/quiz_key.json

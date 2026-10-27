@@ -10,9 +10,12 @@ interface CopyButtonProps {
   className?: string;
   variant?: 'default' | 'outline' | 'secondary' | 'ghost';
   onCopied?: () => void;
+  disabled?: boolean;
+  /** Tooltip, e.g. why the button is disabled. */
+  title?: string;
 }
 
-export function CopyButton({ text, label = 'Copy', compact, className, variant = 'outline', onCopied }: CopyButtonProps) {
+export function CopyButton({ text, label = 'Copy', compact, className, variant = 'outline', onCopied, disabled, title }: CopyButtonProps) {
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   useEffect(() => {
@@ -35,6 +38,8 @@ export function CopyButton({ text, label = 'Copy', compact, className, variant =
       size={compact ? 'sm' : 'default'}
       variant={variant}
       className={className}
+      disabled={disabled}
+      title={title}
       onClick={onClick}
       aria-label={compact ? text_ : undefined}
     >
