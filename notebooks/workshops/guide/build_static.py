@@ -388,7 +388,8 @@ def render_step(guide: dict, step: dict, number: int) -> str:
         finish = (
             '<section class="finish">'
             '<h4 class="sec-title">Check it in the notebook</h4>'
-            f'<p>Run the cell <code>{esc(call)}</code> under this step in <code>{esc(Path(guide["notebook"]).stem)}</code>. '
+            f'<p>Run the step cell in <code>{esc(Path(guide["notebook"]).stem)}</code> (keep its last line: it saves your result), '
+            f'then add a cell <code>{esc(call)}</code> under it and run it. '
             "When it prints <strong>PASS</strong>, tick the box.</p>"
             f'<label class="done-toggle"><input type="checkbox" data-done> <span><code>{esc(call)}</code> passed in my notebook</span></label>'
             "</section>"
@@ -861,7 +862,7 @@ UI_JS = r"""
       var p = WG.fillProgress(s, values);
       var all = p.correct === p.total;
       state.solved[s.id] = all;
-      if (all) setStatus(sec, 'All ' + p.total + ' blanks are right. Copy the code into the notebook and run the check cell.', 'ok');
+      if (all) setStatus(sec, 'All ' + p.total + ' blanks are right. Copy the code into the notebook, run the cell, then run check() for this step.', 'ok');
       else setStatus(sec, p.correct + ' of ' + p.total + ' blanks are right.', null);
       if (!quiet && all) announce('All blanks are right.');
     }
@@ -970,7 +971,7 @@ UI_JS = r"""
       answer.querySelectorAll('[data-block]').forEach(function (li, i) {
         li.setAttribute('data-mark', s.solution[i] === li.getAttribute('data-block') ? 'ok' : 'bad');
       });
-      var tail = r.pass ? (s.check === 'notebook' ? ' Copy the code into the notebook and run the check cell.' : '') : '';
+      var tail = r.pass ? (s.check === 'notebook' ? ' Copy the code into the notebook, run the cell, then run check() for this step.' : '') : '';
       setStatus(sec, r.message + tail, r.pass ? 'ok' : 'bad');
       announce(r.message);
       changed(s.id);
@@ -1119,6 +1120,12 @@ UI_JS = r"""
 """
 
 
+def static_intro(text: str) -> str:
+    """The guide intro says "click **Check** here" (the app); this page has no Check button."""
+    return re.sub(r"then click \*\*Check\*\* here: [^.]*\.",
+                  "then run `check(...)` for it in a new cell (see the note above).", text)
+
+
 def render_page(guide: dict, source_name: str) -> str:
     notebook = Path(guide["notebook"]).stem
     n_req = sum(1 for s in guide["steps"] if not s.get("optional"))
@@ -1152,10 +1159,11 @@ def render_page(guide: dict, source_name: str) -> str:
 <main id="steps">
 <div class="notice" role="note">
 <p><strong>Static edition.</strong> This page works offline and saves your answers only in this browser. It is not connected to Databricks, so it cannot see your notebook and steps do not turn green on their own.</p>
-<p>For each step: solve the exercise here, copy the code into <code>{esc(notebook)}</code>, run its <code>check(...)</code> cell, and when it prints <strong>PASS</strong> tick the box at the bottom of the step. Match steps are graded on this page.</p>
+<p>Checks run in your notebook. Once per session, add a cell <code>%run ./_checks/{esc(guide["id"])}</code> after the setup cells of <code>{esc(notebook)}</code> and run it: it defines <code>check()</code>.</p>
+<p>For each step: solve the exercise here, copy the code into <code>{esc(notebook)}</code> and run the cell, then add a cell <code>check("{esc(guide["id"])}", "tNN")</code> under it. When it prints <strong>PASS</strong>, tick the box at the bottom of the step. Match steps are graded on this page.</p>
 <p id="storage-warning" hidden><strong>Note:</strong> this browser blocks local storage, so progress is lost when you close the page.</p>
 </div>
-<div class="intro md">{markdown(guide.get("intro", ""))}</div>
+<div class="intro md">{markdown(static_intro(guide.get("intro", "")))}</div>
 <div class="legend" aria-hidden="true"><span><span class="dot"></span>Not started</span>
 <span data-status-v="progress"><span class="dot"></span>In progress</span>
 <span data-status-v="ready"><span class="dot"></span>Ready for check()</span>
@@ -1197,7 +1205,7 @@ def render_index(guides: list[tuple[dict, str]]) -> str:
 <div class="accent-bar"></div>
 <main class="index">
 <h1>Workshop Guide</h1>
-<p>Static edition for self-study. Open a workshop, solve each step on the page, then run the matching <code>check(...)</code> cell in your notebook.</p>
+<p>Static edition for self-study. Open a workshop, solve each step on the page and run the code in your notebook. To check a step, load the checks once with <code>%run ./_checks/&lt;workshop&gt;</code> after the setup cells, then run <code>check("&lt;workshop&gt;", "tNN")</code> in a new cell.</p>
 <ul>{items}</ul>
 </main>
 </body>
@@ -1382,7 +1390,8 @@ def main(argv: list[str] | None = None) -> int:
         for guide, path in guides:
             (out / f"{guide['id']}.html").write_text(render_page(guide, path.name), encoding="utf-8")
         if not args.guides:
-            index = [(g, f"{g['id']}.html") for g, _ in guides]
+            ordered = sorted(guides, key=lambda gp: (gp[0].get("number", 99), gp[0]["id"]))
+            index = [(g, f"{g['id']}.html") for g, _ in ordered]
             (out / "index.html").write_text(render_index(index), encoding="utf-8")
 
     for guide, _ in guides:
