@@ -23,33 +23,34 @@ Business scenario: fictional company **RetailHub** — an online clothing store 
 
 | | |
 |---|---|
-| **Duration** | 1 day (~7 hours) |
-| **Level** | Beginner |
+| **Duration** | 1 day, 09:00–16:40: 6 h 35 min of teaching and workshops + 65 min of breaks |
+| **Level** | Fundamental (beginner) |
 | **Notebook language** | Python (PySpark) + SQL |
-| **Environment** | Databricks on Azure (Unity Catalog) |
+| **Environment** | Azure Databricks with Unity Catalog, or Databricks Free Edition for self-study |
 | **Scenario** | RetailHub — customers, orders, products |
 
 ### Learning Objectives
 
 After completing the training, participants will be able to:
 
-- Navigate the Databricks environment — notebooks, clusters, SQL Warehouse, Catalog Explorer
-- Explain the difference between Serverless and classic compute, and when to use SQL Warehouse
-- Understand the Lakehouse architecture — Medallion (Bronze/Silver/Gold) with Delta Lake
-- Load data from CSV and JSON (`spark.read`) and write to Delta tables
-- Explore data with `display()`, `show()`, `describe()` and GUI visualizations
-- Apply basic PySpark transformations: `withColumn`, `when`, `cast`, `filter`
-- Understand Delta Lake: ACID, Time Travel, MERGE, Managed vs External Tables
-- Manage costs — cluster types, autoscaling, auto-termination
-- Create and run a simple Workflow — parameterization, scheduling, Lakeflow
-- Use Unity Catalog — schemas, permissions, Lineage, Delta Sharing
-- Build an AI/BI Dashboard and Genie Space on Gold data
+- Navigate the workspace: notebooks, Git folders, Catalog Explorer, SQL Editor
+- Choose compute (Serverless, classic cluster, SQL warehouse) and control costs: job vs all-purpose compute, autoscaling, auto-termination
+- Use Unity Catalog's three-level namespace (`catalog.schema.table`) and Volumes for files
+- Explain how Spark runs your code: driver and executors, lazy evaluation, one engine for SQL and PySpark
+- Load CSV and JSON with an explicit schema and write the result to a Delta table (medallion architecture)
+- Explore data with `display()`, `show()`, `describe()`, `summary()`, Edit Chart and Data Profile
+- Transform data with `select`, `filter`, `withColumn`, `cast` / `try_cast`, `when`, `groupBy`, each with its SQL equivalent
+- Ask Genie Code (formerly Databricks Assistant) to explain, write and fix code
+- Change and recover Delta tables: INSERT, UPDATE, DELETE, MERGE, history, time travel, RESTORE
+- Build a Lakeflow Job (formerly Workflows) with tasks, parameters, a schedule and a repair run
+- Grant access with account groups: `GRANT`, `SHOW GRANTS`, `REVOKE`
+- See how a Genie Agent answers natural-language questions on Gold data (optional trainer demo)
 
 ---
 
 ## Prerequisites
 
-- Basic knowledge of SQL
+- Basic knowledge of SQL (no Python experience needed)
 - General understanding of databases and data analysis
 - Access to a Databricks environment (configured by the trainer before the session)
 
@@ -57,57 +58,64 @@ After completing the training, participants will be able to:
 
 ## Quick Start
 
-> **Learning on your own?** The whole course runs on Databricks Free Edition —
-> see the self-study guide: [English](docs/ENG/free_edition_guide.pdf) | [Polski](docs/PL/free_edition_guide.pdf).
+> **Learning on your own?** The course is written to run on Databricks Free Edition (tested status: pending).
+> See the self-study guide: [English](docs/ENG/free_edition_guide.pdf) | [Polski](docs/PL/free_edition_guide.pdf).
 
-### 1. Environment setup (trainer)
+### 1. Environment setup (trainer, or you in self-study)
 
 ```
 notebooks/setup/00_pre_config.ipynb
 ```
 
-Run once before the training — creates Unity Catalog catalogs for all participants.
+Run once before the training; in self-study set `SINGLE_USER_MODE = True` in its configuration cell first. It creates a catalog `retailhub_<name>` per participant with the schemas
+`bronze`, `silver`, `gold` and `default`, the Volume `default.datasets`, and copies the `dataset/` files into it.
 
-### 2. Participant setup
+### 2. Clone the repository as a Git folder
 
-```
-notebooks/setup/00_setup.ipynb
-```
+Workspace → Home → **Create** → **Git folder** → `https://github.com/ditw-training/databricks-fundamental`.
+Step-by-step instructions are in `notebooks/modules/00_intro.ipynb`.
 
-Run at the beginning of the session — validates the catalog, schemas, and Volume.
+### 3. Environment check
 
-### 3. Environment verification
-
-In `notebooks/modules/00_intro.ipynb`, run the verification cell:
+Open `notebooks/modules/00_intro.ipynb` and run the environment check. It calls the same setup notebook that every module uses:
 
 ```python
-username = spark.sql("SELECT current_user()").first()[0].split("@")[0].replace(".", "_")
-catalog  = f"retailhub_{username}"
-spark.sql(f"USE CATALOG {catalog}")
+%run ../setup/00_setup
 ```
 
-Expected result: catalog `retailhub_<your_username>` with three schemas: `bronze`, `silver`, `gold`.
+```python
+print(f"Your catalog: {CATALOG}")
+```
+
+`00_setup` finds your catalog, checks the schemas and the Volume, and prints the catalog name.
+Use that printed name wherever the materials say `retailhub_<your_name>`.
 
 ---
 
 ## Training Schedule
 
-| Time | Module | Topics |
-|------|--------|--------|
-| 09:00 – 09:15 | **M00** Intro & Setup | Agenda, environment verification, catalog check |
-| 09:15 – 10:30 | **M01** Platform & Workspace | Workspace, notebooks, Serverless, SQL Warehouse, DBFS vs Volumes, cost management |
-| 10:30 – 10:45 | Break | |
-| 10:45 – 11:15 | **M02** Spark Architecture | Driver & Executors, Lazy Evaluation, DAG, Catalyst Optimizer |
-| 11:15 – 12:00 | **M03** ELT & Ingestion | Medallion Architecture, loading CSV/JSON/Parquet, transformations, `display()` + GUI Viz |
-| 12:00 – 12:45 | Lunch | |
-| 12:45 – 13:30 | **Workshop: Ingestion** | Platform navigation, first cells, dbutils, Catalog Explorer, data loading |
-| 13:30 – 14:15 | **M04** Delta Lake | ACID, Time Travel, MERGE, Managed vs External, VACUUM |
-| 14:15 – 14:45 | **Workshop: Delta Lake** | Time Travel, MERGE, VACUUM — hands-on |
-| 14:45 – 15:00 | Break | |
-| 15:00 – 15:20 | **M05** Orchestration + Lakeflow | Workflows (Jobs), parameterization, scheduling, Lakeflow Pipelines |
-| 15:20 – 15:30 | **M06** Unity Catalog | 3-level namespace, permissions, Row/Column Security, Lineage, Delta Sharing |
-| 15:30 – 16:00 | **Final Workshop** | End-to-end pipeline: Bronze → Silver → Gold |
-| *(if time allows)* | **Wrap-up + M07 BONUS** | Summary, next steps, AI/BI Dashboards, Genie Space |
+Same agenda as in `notebooks/modules/00_intro.ipynb`.
+
+| Time | Min | Block | CORE |
+|------|-----|-------|------|
+| 09:00 – 09:15 | 15 | **M00** Intro | Objectives, agenda, `%run ../setup/00_setup` as the environment check |
+| 09:15 – 10:20 | 65 | **M01** Platform, costs, GUI | Platform map, workspace + Catalog Explorer, three-level namespace, Volumes (DBFS is legacy), Serverless / classic / SQL warehouse, costs (formula, Jobs vs All-purpose, autoscaling, auto-termination), magic commands + `%sql`, Edit Chart + Data Profile, Genie Code; one billing query as a trainer demo |
+| 10:20 – 10:35 | 15 | **M02** How Spark works | Driver/executors, lazy evaluation, "SQL = PySpark, same engine", one sentence on shuffle |
+| 10:35 – 10:50 | 15 | Break | |
+| 10:50 – 11:45 | 55 | **M03** Medallion + ingestion | Python in 5 minutes, CSV/JSON/`read_files`, DDL schema, `display`/`show`/`describe`/`summary`, `select`/`filter`, `withColumn` + `cast` (ANSI, `try_cast`) + `when`, `groupBy.agg`, temp view + SQL, **write to Delta**; every operation with its SQL equivalent |
+| 11:45 – 12:25 | 40 | **Workshop: Ingestion** | At most 8 tasks, the rest ⭐ OPTIONAL |
+| 12:25 – 13:05 | 40 | Lunch | |
+| 13:05 – 13:45 | 40 | **M04** Delta Lake | Table, schema enforcement/evolution, DML, MERGE, HISTORY, time travel, RESTORE; as concepts: VACUUM, UNDROP, predictive optimization / liquid clustering |
+| 13:45 – 14:20 | 35 | **Workshop: Delta Lake** | 7 tasks (01, 03, 05+06, 08, 10, 12), SQL in `%sql`; 02/04/07/09/11 ⭐ OPTIONAL |
+| 14:20 – 14:30 | 10 | Break | |
+| 14:30 – 15:05 | 35 | **M05** Lakeflow Jobs | Ready notebooks from `materials/orchestration`, compute for jobs, parameters, simple task values, schedule, Repair run |
+| 15:05 – 15:20 | 15 | **M06** Unity Catalog | Groups, `GRANT` / `SHOW GRANTS` / `REVOKE` (3 lines), Permissions tab |
+| 15:20 – 16:25 | 65 | **Final Project** | Bronze ready → Silver/Gold TODO + CHECK → job with a schedule → SQL; after 25 min you may switch to the ready solutions |
+| 16:25 – 16:40 | 15 | Wrap-up, quiz, next steps | |
+| (optional) | (10) | **M07** Genie Agents / dashboard | Trainer demo, only if time is left |
+
+**Teaching time: 395 min (6 h 35 min)** plus 65 min of breaks and lunch. Sections marked ⊕ BONUS in the
+notebooks are outside this schedule and stay in the material for self-study.
 
 ---
 
@@ -118,14 +126,14 @@ Databricks-Fundamental/
 |
 | notebooks/
 |   modules/                      # Instructor demo notebooks
-|   |   00_intro.ipynb            # Agenda, schedule, environment verification
-|   |   01_platform_workspace.ipynb  # Workspace, Serverless, SQL Warehouse, costs
-|   |   02_spark_architecture.ipynb  # Driver/Executors, Lazy Eval, DAG, Catalyst
-|   |   03_medallion_ingestion.ipynb # Medallion architecture, CSV/JSON/Parquet
-|   |   04_delta_fundamentals.ipynb  # ACID, Time Travel, MERGE, VACUUM
-|   |   05_orchestration_jobs.ipynb  # Workflows, CRON, Lakeflow Pipelines
-|   |   06_unity_catalog.ipynb       # UC, permissions, Lineage, Delta Sharing
-|   |   07_aibi_dashboards.ipynb     # Optional: Dashboards, Genie Space
+|   |   00_intro.ipynb            # Objectives, agenda, environment check
+|   |   01_platform_workspace.ipynb  # Workspace, compute, costs, Volumes, charts, Genie Code
+|   |   02_spark_architecture.ipynb  # Driver/executors, lazy evaluation, same engine for SQL and PySpark
+|   |   03_medallion_ingestion.ipynb # Medallion, CSV/JSON, exploration, transformations, write to Delta
+|   |   04_delta_fundamentals.ipynb  # DML, MERGE, history, time travel, RESTORE
+|   |   05_orchestration_jobs.ipynb  # Lakeflow Jobs: tasks, parameters, schedule, repair run
+|   |   06_unity_catalog.ipynb       # Account groups, GRANT / SHOW GRANTS / REVOKE
+|   |   07_aibi_dashboards.ipynb     # Optional trainer demo: Genie Agents, dashboards
 |   |
 |   workshops/                    # Hands-on exercises (participants)
 |   |   WORKSHOP_ingestion.ipynb  # After M03
@@ -140,7 +148,7 @@ Databricks-Fundamental/
 |   setup/
 |       00_pre_config.ipynb       # Pre-training configuration (trainer)
 |       00_setup.ipynb            # Participant environment setup
-|       99_test_runner.ipynb      # Automated notebook tests
+|       99_test_runner.ipynb      # Runs the module notebooks on a cluster (trainer)
 |
 | dataset/                        # Input data for exercises
 |   customers/
@@ -148,7 +156,7 @@ Databricks-Fundamental/
 |   |   customers_new.csv         # 114 records — batch update (MERGE demo)
 |   |   customers_extented.xlsx   # Excel import demo (M03 BONUS; the typo in the name is intentional)
 |   orders/
-|   |   orders_batch.json         # Orders — JSON format (batch)
+|   |   orders_batch.json         # 100,000 orders — JSON Lines (batch)
 |   |   stream/                   # Orders — JSON format (3 streaming files)
 |   products/
 |       products.csv              # 2,000 records — product catalog
@@ -161,22 +169,20 @@ Databricks-Fundamental/
 |   |   next_steps.pdf                         # What to learn next
 |   |   external_connection_guide.pdf          # Connecting Unity Catalog to ADLS Gen2
 |   |   pyspark_vs_sparksql.pdf                # Module 03 in PySpark and Spark SQL
+|   |   free_edition_guide.pdf                 # Self-study in Databricks Free Edition
 |   PL/                           # Polish versions (same documents + Databricks_Fundamentals_Altkom_PL.pdf slides)
 |
 | materials/
-|   orchestration/                # Sample notebooks for Workflows demo (M05)
+|   orchestration/                # Ready task notebooks for the Lakeflow Jobs demo (M05)
 |       task_01_validate.ipynb
 |       task_02_transform.ipynb
 |       task_03_report.ipynb
-|   volume_upload/                # Files uploaded BY HAND in the M01 Volume demo (not copied by setup)
+|   volume_upload/                # Files for the M01 Volume upload demo (not copied by setup)
 |       stores.csv
 |       promotions.json
 |
 | assets/
 |   images/                       # Screenshots used in notebooks
-|
-| scripts/                        # Utility scripts (generation, fixes)
-|
 ```
 
 ---
@@ -189,7 +195,7 @@ All data belongs to the fictional company **RetailHub**.
 |------|--------|---------|-------------|
 | `dataset/customers/customers.csv` | CSV | 10,000 | Customers (ID, name, email, city, segment) |
 | `dataset/customers/customers_new.csv` | CSV | 114 | New/updated customers — used in MERGE demo |
-| `dataset/orders/orders_batch.json` | JSON | ~10,000 | Orders (ID, customer, product, amount, payment) |
+| `dataset/orders/orders_batch.json` | JSON Lines | 100,000 | Orders (ID, customer, product, amount, payment) |
 | `dataset/orders/stream/*.json` | JSON | 3 files | Simulated streaming orders |
 | `dataset/products/products.csv` | CSV | 2,000 | Product catalog (ID, name, price, brand) |
 
@@ -233,9 +239,9 @@ Reference documents in two language versions with identical file names: `docs/EN
 
 | File | When to use |
 |------|-------------|
-| `cheatsheet_databricks_fundamental.pdf` | Reference guide for all seven modules: PySpark, Delta Lake SQL, Lakeflow Jobs, Unity Catalog |
+| `cheatsheet_databricks_fundamental.pdf` | Reference guide for all modules: PySpark, Delta Lake SQL, Lakeflow Jobs, Unity Catalog |
 | `quiz_databricks_fundamental.pdf` | Self-assessment after the training: 40 questions with an answer key |
-| `next_steps.pdf` | What to learn next: certification, Auto Loader, Lakeflow Pipelines, streaming, performance |
+| `next_steps.pdf` | What to learn next: Free Edition, accreditation and certification, Auto Loader, Lakeflow Connect, pipelines, liquid clustering |
 | `external_connection_guide.pdf` | Step-by-step connection of Unity Catalog to ADLS Gen2 |
 | `pyspark_vs_sparksql.pdf` | Module 03 operations shown side by side in PySpark and Spark SQL |
 | `free_edition_guide.pdf` | Taking the whole course on your own in Databricks Free Edition: setup, module-by-module notes, jobs, troubleshooting |
@@ -244,7 +250,7 @@ The PDFs are built with `scripts/build_pdfs.sh` (pandoc and WeasyPrint) from Mar
 
 ### materials/orchestration/
 
-Three sample notebooks used in the Workflows demo (M05):
+Three ready task notebooks for the Lakeflow Jobs demo (M05). They use the Databricks sample table `samples.nyctaxi.trips`:
 - `task_01_validate.ipynb` — validates the source row count and passes it on as a task value
 - `task_02_transform.ipynb` — adds trip duration and cost per mile, passes the averages on as task values
 - `task_03_report.ipynb` — prints the report, including the values from the transform task
@@ -252,7 +258,8 @@ Three sample notebooks used in the Workflows demo (M05):
 ### materials/volume_upload/
 
 Two small files for the M01 demo *Upload your own files to a Volume*. `00_pre_config` copies only `dataset/`,
-so these files are **not** in any volume — the trainer uploads them by hand in Catalog Explorer:
+so these files are not in any Volume: the trainer uploads them in Catalog Explorer as a short demo.
+Participants can download them from GitHub, or run the copy cell in M01, which copies them from their own Git folder:
 - `stores.csv` — 100 RetailHub stores (`store_id` matches `orders_batch.json`)
 - `promotions.json` — 7 promotions for Dec 2024 – Jan 2025, JSON Lines
 
@@ -260,28 +267,16 @@ so these files are **not** in any volume — the trainer uploads them by hand in
 
 ## Next Steps
 
-After completing the training:
-
 | Step | What | When |
 |------|------|------|
-| 1 | Repeat the workshops on your own cluster | Week 1–2 |
-| 2 | **Databricks Explorer** follow-up course (AutoLoader, DLT, advanced UC) | Month 1 |
-| 3 | **Databricks Academy** — Data Engineer learning path | Month 2 |
-| 4 | Exam: **Databricks Certified Data Engineer Associate** | Month 3 |
-| 5 | Specialty track: ML, Professional, or SQL Analytics | Month 4–6 |
+| 1 | Repeat the workshops and the Final Project in **Databricks Free Edition** (`docs/ENG/free_edition_guide.pdf`) | Week 1–2 |
+| 2 | **Databricks Fundamentals** at Databricks Academy: free self-paced course, then a short accreditation quiz | Week 2–3 |
+| 3 | **Databricks Explorer**, the follow-up Altkom course | Month 1–2 |
+| 4 | **Associate** certification: Data Engineer Associate, or Data Analyst Associate for analysts and BI | Month 3+ |
 
-[databricks.com/learn/training](https://www.databricks.com/learn/training) — free self-paced courses + practice exams
-
-### Topics Waiting for You
-
-| Topic | What it does |
-|-------|-------------|
-| **AutoLoader** | Incremental file ingestion from cloud storage — no re-scanning |
-| **Lakeflow Pipelines** | Declarative ETL with built-in data quality rules (formerly Delta Live Tables) |
-| **Structured Streaming** | Real-time pipelines with micro-batch or continuous processing |
-| **Unity Catalog (advanced)** | Row-level security, column masking, automatic data lineage |
-| **MLflow** | Experiment tracking and model registry built into Databricks |
-| **OPTIMIZE + ZORDER** | File compaction and co-location — up to 10x faster queries |
+[databricks.com/learn/training](https://www.databricks.com/learn/training): free self-paced courses and practice exams.
+Topics to explore next (Auto Loader, Lakeflow Connect, Lakeflow Spark Declarative Pipelines, liquid clustering and
+predictive optimization, streaming, advanced Unity Catalog, MLflow) are described with code in `docs/ENG/next_steps.pdf`.
 
 ---
 
@@ -289,9 +284,15 @@ After completing the training:
 
 ### Environment Preparation
 
-1. Run `notebooks/setup/00_pre_config.ipynb` before the training — creates Unity Catalog catalogs (`retailhub_<username>`) for each participant with three schemas: `bronze`, `silver`, `gold`.
-2. Upload files from the `dataset/` directory to the `datasets` Volume in each participant's catalog.
-3. At the start of the session: participants run `notebooks/setup/00_setup.ipynb`.
+1. Create the **account group** `retailhub_analysts` (Settings → Identity and access → Groups) for the M06 GRANT demo.
+   SQL `CREATE GROUP` creates a workspace-local group that Unity Catalog cannot grant to.
+2. Set the training group and the storage location in the configuration cell of `notebooks/setup/00_pre_config.ipynb`
+   (keep real values out of the repository), then run it. It creates for every participant the catalog `retailhub_<name>`
+   with the schemas `bronze`, `silver`, `gold`, `default`, the Volume `default.datasets` with a copy of `dataset/`,
+   and grants `ALL PRIVILEGES` + `MANAGE` on the catalog. No manual upload is needed.
+3. At the start of the day participants run the environment check in `00_intro`. Every module calls `00_setup` with `%run`.
+
+The trainer run sheet (minutes, CORE and BONUS per module) is in `notebooks/TRAINER_GUIDE.md`.
 
 ### Notebook Tests
 
@@ -299,7 +300,7 @@ After completing the training:
 notebooks/setup/99_test_runner.ipynb
 ```
 
-Run after making changes to notebooks — automatically validates notebook structure.
+Run after making changes to notebooks. It executes the module notebooks on a cluster; it does not cover the workshops or the jobs.
 
 ---
 
