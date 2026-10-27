@@ -123,17 +123,32 @@ Participants only need `MODIFY` on the table (for `check()` in the notebook). SP
 section 2 also gives them `SELECT`, which lets anyone read the whole group's progress
 from a notebook. Consider dropping that grant in Terraform.
 
-Code deploy from this folder (after `npm run sync-guides` and commit):
+Two deploy paths. Use exactly one per workspace, never both:
+
+**Training environment (Terraform created the app).** Terraform owns the app, its
+`sql-warehouse` and `trainer-emails` resources and the secret. Deploy only the code:
 
 ```bash
+npm run sync-guides   # then commit config/guides/
 databricks sync . /Workspace/Users/<you>/apps/workshop-guide --profile <profile>
 databricks apps deploy workshop-guide \
   --source-code-path /Workspace/Users/<you>/apps/workshop-guide --profile <profile>
 ```
 
-or, with the bundle in this folder: `databricks bundle deploy --profile <profile> --var sql_warehouse_id=<id> && databricks bundle run app --profile <profile>`.
-Set `TRAINER_EMAILS` in `app.yaml` (or in the Terraform app config) before deploying, then
-share the app URL with the group.
+Trainers are set with the Terraform variable `workshop_guide_trainer_emails`.
+
+**Lab or any workspace without the Terraform app.** The bundle in this folder creates the app.
+Create the secret first, then deploy:
+
+```bash
+databricks secrets create-scope workshop-guide --profile <profile>
+databricks secrets put-secret workshop-guide trainer-emails --string-value "trainer@example.com" --profile <profile>
+databricks bundle deploy --profile <profile> --var sql_warehouse_id=<id>
+databricks bundle run app --profile <profile>
+```
+
+Running `bundle deploy` against a Terraform-built workspace would create a second owner
+for the same app; do not do it there.
 
 ## Known limits
 

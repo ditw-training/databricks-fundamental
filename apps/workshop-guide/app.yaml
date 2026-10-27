@@ -6,6 +6,8 @@ env:
   # from POST /api/progress and the SELECT in server/sql/latest_progress.sql.
   - name: PROGRESS_TABLE
     value: retailhub_trainer.default.workshop_progress
-  # Emails that may open /trainer (comma separated, case insensitive).
+  # Emails that may open /trainer (comma separated, case insensitive). Read from the
+  # app resource "trainer-emails" (secret scope workshop-guide, key trainer-emails),
+  # created by Terraform (infra/terraform/workshop_guide.tf) or by databricks.yml in a lab.
   - name: TRAINER_EMAILS
-    value: ''
+    valueFrom: trainer-emails

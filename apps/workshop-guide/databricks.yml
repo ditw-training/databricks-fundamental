@@ -4,6 +4,9 @@ bundle:
 variables:
   sql_warehouse_id:
     description: SQL Warehouse ID
+  trainer_emails_scope:
+    description: Secret scope holding the comma-separated trainer e-mails
+    default: workshop-guide
 
 resources:
   apps:
@@ -25,6 +28,11 @@ resources:
           sql_warehouse:
             id: ${var.sql_warehouse_id}
             permission: CAN_USE
+        - name: trainer-emails
+          secret:
+            scope: ${var.trainer_emails_scope}
+            key: trainer-emails
+            permission: READ
 
 targets:
   # Workspace comes from the CLI profile (--profile <name>); the warehouse id from
