@@ -18,6 +18,7 @@ import { Check, RotateCcw, X } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { MatchStep } from '../../../../shared/guide-schema';
 import { checkMatch, seededShuffle, type MatchResult } from '../../lib/exercise';
+import { useI18n } from '../../i18n/context';
 import { useStoredState } from '../../lib/storage';
 
 /** slot (pair index of the description) -> term (pair index of the term) */
@@ -30,17 +31,13 @@ interface Props {
   busy?: boolean;
 }
 
-// No keyboard drag sensor here, so dnd-kit's default "press space to pick up" text would be wrong.
-const MATCH_INSTRUCTIONS = {
-  draggable: 'Press Enter to select this term, then choose a description and press Enter to place it. Mouse users can drag.',
-};
-
 const collision: CollisionDetection = (args) => {
   const hits = pointerWithin(args);
   return hits.length > 0 ? hits : rectIntersection(args);
 };
 
 export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
+  const { m } = useI18n();
   const n = step.pairs.length;
   const termOrder = useMemo(() => seededShuffle([...Array(n).keys()], `${step.id}:terms`), [n, step.id]);
   const slotOrder = useMemo(() => seededShuffle([...Array(n).keys()], `${step.id}:slots`), [n, step.id]);
@@ -91,8 +88,7 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Drag each term onto its description, or tap a term and then tap <strong className="text-foreground">Place here</strong>{' '}
-        next to its description.
+        {m.matchHowBefore} <strong className="text-foreground">{m.placeHere}</strong> {m.matchHowAfter}
       </p>
       <DndContext
         sensors={sensors}
@@ -100,11 +96,12 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragCancel={() => setActiveTerm(null)}
-        accessibility={{ screenReaderInstructions: MATCH_INSTRUCTIONS }}
+        // No keyboard drag sensor here, so dnd-kit's default "press space to pick up" text would be wrong.
+        accessibility={{ screenReaderInstructions: { draggable: m.matchScreenReader } }}
       >
         <TermBank>
           {bank.length === 0 ? (
-            <span className="px-2 py-1 text-sm text-muted-foreground">All terms placed.</span>
+            <span className="px-2 py-1 text-sm text-muted-foreground">{m.allTermsPlaced}</span>
           ) : (
             bank.map((t) => (
               <TermChip
@@ -149,8 +146,8 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
 
       {result && (
         <div role="status" className={`wg-feedback ${result.pass ? 'wg-feedback-pass' : 'wg-feedback-fail'}`}>
-          {result.message}
-          {!result.pass && ' Wrong pairs are marked; move them and check again.'}
+          {m.matchResult(result.pass, result.correct, result.total)}
+          {!result.pass && ` ${m.matchWrongMarked}`}
         </div>
       )}
 
@@ -165,10 +162,10 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
             setSelected(null);
           }}
         >
-          <RotateCcw className="size-4" aria-hidden /> Reset
+          <RotateCcw className="size-4" aria-hidden /> {m.reset}
         </Button>
-        <Button type="button" onClick={runCheck} disabled={busy || !allPlaced} title={allPlaced ? undefined : 'Place every term first'}>
-          Check pairs
+        <Button type="button" onClick={runCheck} disabled={busy || !allPlaced} title={allPlaced ? undefined : m.placeEveryTerm}>
+          {m.checkPairs}
         </Button>
       </div>
     </div>
@@ -176,11 +173,12 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
 }
 
 function TermBank({ children }: { children: ReactNode }) {
+  const { m } = useI18n();
   const { setNodeRef, isOver } = useDroppable({ id: 'bank' });
   return (
     <div
       ref={setNodeRef}
-      aria-label="Terms"
+      aria-label={m.terms}
       role="group"
       className={`wg-droparea flex min-h-14 flex-wrap gap-2 rounded-lg border border-dashed p-2 ${isOver ? 'wg-droparea-over' : ''}`}
     >
@@ -198,6 +196,7 @@ interface TermChipProps {
 }
 
 function TermChip({ term, label, selected, onSelect, onRemove }: TermChipProps) {
+  const { m } = useI18n();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `term-${term}` });
   return (
     <span
@@ -214,7 +213,7 @@ function TermChip({ term, label, selected, onSelect, onRemove }: TermChipProps) 
         {label}
       </button>
       {onRemove && (
-        <button type="button" className="wg-chip-remove" onClick={onRemove} aria-label={`Move ${label} back to terms`}>
+        <button type="button" className="wg-chip-remove" onClick={onRemove} aria-label={m.moveBack(label)}>
           <X className="size-3.5" aria-hidden />
         </button>
       )}
@@ -232,6 +231,7 @@ interface SlotProps {
 }
 
 function Slot({ slot, description, canPlace, onPlace, verdict, children }: SlotProps) {
+  const { m } = useI18n();
   const { setNodeRef, isOver } = useDroppable({ id: `slot-${slot}` });
   const tone = verdict === true ? 'wg-slot-pass' : verdict === false ? 'wg-slot-fail' : '';
   return (
@@ -241,13 +241,13 @@ function Slot({ slot, description, canPlace, onPlace, verdict, children }: SlotP
         {children ? (
           children
         ) : (
-          <button type="button" className="wg-slot-empty" disabled={!canPlace} onClick={onPlace} aria-label={`Place selected term on: ${description}`}>
-            {canPlace ? 'Place here' : 'Drop a term'}
+          <button type="button" className="wg-slot-empty" disabled={!canPlace} onClick={onPlace} aria-label={m.placeOn(description)}>
+            {canPlace ? m.placeHere : m.dropTerm}
           </button>
         )}
         {children && canPlace && (
-          <button type="button" className="wg-slot-swap" onClick={onPlace} aria-label={`Replace with selected term: ${description}`}>
-            Swap
+          <button type="button" className="wg-slot-swap" onClick={onPlace} aria-label={m.swapOn(description)}>
+            {m.swap}
           </button>
         )}
       </div>
@@ -255,7 +255,7 @@ function Slot({ slot, description, canPlace, onPlace, verdict, children }: SlotP
       {verdict !== undefined && (
         <span className="ml-auto shrink-0">
           {verdict ? <Check className="size-4 text-[var(--success)]" aria-hidden /> : <X className="size-4 text-[var(--destructive)]" aria-hidden />}
-          <span className="sr-only">{verdict ? 'Correct' : 'Incorrect'}</span>
+          <span className="sr-only">{verdict ? m.correct : m.incorrect}</span>
         </span>
       )}
     </li>

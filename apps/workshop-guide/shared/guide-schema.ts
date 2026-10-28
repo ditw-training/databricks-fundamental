@@ -5,6 +5,7 @@
  * and the client (types only). Keep it in sync with the spec.
  */
 import { z } from 'zod';
+import type { GuideOverlays, Lang } from './guide-i18n';
 
 const idPattern = /^[a-z0-9_]+$/;
 
@@ -136,14 +137,39 @@ export type Step = z.infer<typeof stepSchema>;
 export type Guide = z.infer<typeof guideSchema>;
 export type StepType = Step['type'];
 
-/** Topic of a workshop without the "Workshop — " / "Workshop 2 — " prefix: "Delta Lake". */
+/** Topic of a workshop without the "Workshop II — " / "Warsztat II — " prefix (also legacy "Workshop 2 — "): "Delta Lake". */
 export function workshopTopic(guide: Pick<Guide, 'title'>): string {
-  return guide.title.replace(/^Workshop(\s+\d+)?\s*[—–-]\s*/i, '').trim() || guide.title;
+  return guide.title.replace(/^(Workshop|Warsztat)(\s+[0-9IVXLC]+)?\s*[—–-]\s*/i, '').trim() || guide.title;
 }
 
-/** "Workshop 2 — Delta Lake" when the guide has a number, else its title. */
-export function workshopLabel(guide: Pick<Guide, 'title' | 'number'>): string {
-  return guide.number ? `Workshop ${guide.number} — ${workshopTopic(guide)}` : guide.title;
+/** Roman numeral for the workshop number (1..99): 1 -> "I", 2 -> "II", 4 -> "IV". */
+export function roman(n: number): string {
+  if (!Number.isInteger(n) || n < 1 || n > 399) return String(n);
+  const table: [number, string][] = [
+    [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+  ];
+  let rest = n;
+  let out = '';
+  for (const [value, numeral] of table) {
+    while (rest >= value) {
+      out += numeral;
+      rest -= value;
+    }
+  }
+  return out;
+}
+
+const WORKSHOP_WORD: Record<Lang, string> = { pl: 'Warsztat', en: 'Workshop' };
+
+/** "Workshop II" / "Warsztat II" when the guide has a number, else null. */
+export function workshopShortLabel(guide: Pick<Guide, 'number'>, lang: Lang = 'en'): string | null {
+  return guide.number ? `${WORKSHOP_WORD[lang]} ${roman(guide.number)}` : null;
+}
+
+/** "Workshop II — Delta Lake" / "Warsztat II — Delta Lake" when the guide has a number, else its title. */
+export function workshopLabel(guide: Pick<Guide, 'title' | 'number'>, lang: Lang = 'en'): string {
+  const short = workshopShortLabel(guide, lang);
+  return short ? `${short} — ${workshopTopic(guide)}` : guide.title;
 }
 
 /** Guides in the order of the day: by number (unnumbered last), then id. */
@@ -175,5 +201,8 @@ export interface MeResponse {
 
 /** Response of GET /api/guides. */
 export interface GuidesResponse {
+  /** English guides, ordered by number. With `?lang=pl` already translated. */
   guides: Guide[];
+  /** Translation overlays per language and guide id (empty with `?lang=`). */
+  overlays: GuideOverlays;
 }

@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Workshop Guide · static edition</title>
+<meta name="generator" content="notebooks/workshops/guide/build_static.py">
+<title>Workshop Guide</title>
 <style>
 :root{
   --bg:#ffffff;--surface:#f7f7f8;--surface-2:#efeff1;--fg:#18181b;--muted:#5d5d66;
@@ -44,6 +45,10 @@ a:hover{color:var(--accent)}
 .brand h1{font-size:17px;line-height:1.3;margin:0;font-weight:650}
 .brand .sub{font-size:12.5px;color:var(--muted)}
 .overall{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.langs{display:flex;align-items:center;gap:4px;font-size:13px}
+.langs a{padding:3px 8px;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--muted)}
+.langs a[aria-current=page]{color:var(--fg);font-weight:650;border-color:var(--fg)}
+.langs a.langs-index{border-color:transparent;margin-left:4px}
 .bar{width:140px;height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
 .bar>span{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
 .layout{max-width:1180px;margin:0 auto;padding:20px 16px 64px;display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px}
@@ -185,6 +190,7 @@ footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
 }
 
 .index{max-width:640px;margin:40px auto;padding:0 16px}
+.index h2{font-size:15px;margin:28px 0 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .index ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:10px}
 .index li{border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
 .index li a{text-decoration:none;font-size:16px}
@@ -195,8 +201,7 @@ footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
 <div class="accent-bar"></div>
 <main class="index">
 <h1>Workshop Guide</h1>
-<p>Static edition for self-study. Open a workshop, solve each step on the page and run the code in your notebook. To check a step, load the checks once with <code>%run ./_checks/&lt;workshop&gt;</code> after the setup cells, then run <code>check("&lt;workshop&gt;", "tNN")</code> in a new cell.</p>
-<ul><li><a href="ws_ingestion.html"><strong>Workshop 1 — Ingestion</strong></a><span>12 steps · notebook <code>WORKSHOP_ingestion</code></span></li><li><a href="ws_delta.html"><strong>Workshop 2 — Delta Lake</strong></a><span>12 steps · notebook <code>WORKSHOP_delta</code></span></li></ul>
+<section lang="pl" aria-labelledby="idx-pl"><h2 id="idx-pl">Polski</h2><p>Wersja statyczna do samodzielnej nauki. Otwórz warsztat, rozwiązuj kolejne kroki na stronie i uruchamiaj kod w notebooku. Żeby sprawdzić krok, raz załaduj funkcje sprawdzające przez <code>%run ./_checks/&lt;workshop&gt;</code> po komórkach konfiguracyjnych, a potem uruchom <code>check("&lt;workshop&gt;", "tNN")</code> w nowej komórce.</p><ul><li><a href="ws_ingestion.pl.html"><strong>Warsztat I — Ingestion</strong></a><span>8 kroków + 4 ⭐ opcjonalne · notebook <code>WORKSHOP_ingestion</code></span></li><li><a href="ws_delta.pl.html"><strong>Warsztat II — Delta Lake</strong></a><span>7 kroków + 5 ⭐ opcjonalnych · notebook <code>WORKSHOP_delta</code></span></li></ul></section><section lang="en" aria-labelledby="idx-en"><h2 id="idx-en">English</h2><p>Static edition for self-study. Open a workshop, solve each step on the page and run the code in your notebook. To check a step, load the checks once with <code>%run ./_checks/&lt;workshop&gt;</code> after the setup cells, then run <code>check("&lt;workshop&gt;", "tNN")</code> in a new cell.</p><ul><li><a href="ws_ingestion.en.html"><strong>Workshop I — Ingestion</strong></a><span>8 steps + 4 ⭐ optional · notebook <code>WORKSHOP_ingestion</code></span></li><li><a href="ws_delta.en.html"><strong>Workshop II — Delta Lake</strong></a><span>7 steps + 5 ⭐ optional · notebook <code>WORKSHOP_delta</code></span></li></ul></section>
 </main>
 </body>
 </html>

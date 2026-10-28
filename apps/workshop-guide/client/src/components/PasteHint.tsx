@@ -1,5 +1,6 @@
 import { ClipboardPaste } from 'lucide-react';
 import type { Guide, Step } from '../../../shared/guide-schema';
+import { useI18n } from '../i18n/context';
 import { notebookName } from '../lib/labels';
 
 interface Props {
@@ -11,6 +12,10 @@ interface Props {
 
 /** One line under "Copy to notebook": which notebook cell to paste into and what to do next. */
 export function PasteHint({ guide, step, number }: Props) {
+  const { lang, m } = useI18n();
+  // The notebooks are English: in Polish point at the heading by its number only ("Step 03"),
+  // because the translated step title is not what the notebook shows.
+  const heading = lang === 'en' ? `Step ${number} — ${step.title}` : `Step ${number}`;
   // SQL steps are %sql cells in the notebooks; the copied code does not include the magic line.
   const sqlCell = step.language === 'sql';
   // Most fill templates already end with the save line (`..._ws_<workshop>_<step>`); order blocks do not.
@@ -19,18 +24,20 @@ export function PasteHint({ guide, step, number }: Props) {
     <p className="flex items-start gap-2 text-xs text-muted-foreground">
       <ClipboardPaste className="mt-0.5 size-3.5 shrink-0" aria-hidden />
       <span>
-        Paste into the code cell under <strong className="font-medium text-foreground">Step {number} — {step.title}</strong> in{' '}
-        <span className="font-mono">{notebookName(guide)}</span>
+        {m.pasteInto}{' '}
+        <strong className="font-medium text-foreground">
+          {heading}
+        </strong>{' '}
+        {m.pasteIn} <span className="font-mono">{notebookName(guide)}</span>{' '}
         {sqlCell ? (
           <>
-            {' '}
-            (replace the code, keep the first line <code className="wg-inline-code">%sql</code>
+            {m.pasteSql} <code className="wg-inline-code">%sql</code>
           </>
         ) : (
-          ' (replace the code that is there'
+          m.pasteReplace
         )}
-        {copiedSaveLine ? ')' : '; if the cell ends with a line that saves your result, keep it as the last line)'}
-        . Run the cell to the end{step.check === 'notebook' ? ', then press Check below' : ''}.
+        {copiedSaveLine ? ')' : m.pasteKeepSaveLine}. {m.pasteRun}
+        {step.check === 'notebook' ? m.pasteRunThenCheck : ''}.
       </span>
     </p>
   );

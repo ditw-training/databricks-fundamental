@@ -156,8 +156,9 @@ for the classroom; they still describe the `_checks` self-study path.
   (e.g. `<catalog>.default._ws_<workshop>_<step>`), which the app check reads.
 - The `_checks/*` notebooks stay for the static HTML guide / Free Edition self-study path.
 - "Reset my progress" (per workshop, after confirmation) deletes only the caller's rows of that workshop.
-- Workshops are numbered in the order of the day: **Workshop 1 — Ingestion**, **Workshop 2 — Delta Lake**.
-  Guide JSON gets `"number": 1|2` and the app lists and labels workshops by it (picker, headings,
+- Workshops are numbered in the order of the day with Roman numerals (superseded by section 9):
+  **Workshop I — Ingestion**, **Workshop II — Delta Lake** (PL "Warsztat I/II"). Guide JSON gets
+  `"number": 1|2` and the app lists and labels workshops by it (picker, headings,
   trainer view, static HTML). Notebook titles, 00_intro / README / TRAINER_GUIDE agenda rows use the
   same names. File names stay (`WORKSHOP_ingestion.ipynb`, `WORKSHOP_delta.ipynb`; no renames).
 
@@ -181,3 +182,39 @@ for the classroom; they still describe the `_checks` self-study path.
   out of the repo and makes the feedback come from the server. Scores show the trainer where the
   group struggled; they are not a secret test and must not be used to grade people. Participants
   cannot read each other's quiz rows (no grant on the progress table, section 2).
+
+## 9. Language switch and Roman numbering (decided 28.10.2026)
+
+- One PL / EN switch in the app header (default PL, remembered in localStorage, shared with the quiz,
+  which already has both languages). All UI strings come from one dictionary (`client/src/i18n/`).
+- Workshop guide content stays English in `notebooks/workshops/guide/ws_*.json` (source of truth,
+  matches the English notebooks). Polish text lives in overlays
+  `notebooks/workshops/guide/i18n/pl/ws_*.json`: same step ids, only translatable text
+  (`title`, `intro`, step `title`, `explain`, `expected`, `hints`, match `pairs` text that is prose,
+  doc link `label`). Code (`template`, `blocks`, `starter`, code inside hints) is never translated.
+  Missing overlay text falls back to English. `sync-guides` copies the overlays; a test checks that
+  every overlay step id exists and code fences in hints are identical to the English ones.
+- Check messages from the server stay English (they mirror the notebooks) unless a Polish message
+  table is added later.
+- Workshops are ordered by `number` and labelled with Roman numerals: PL "Warsztat I — Ingestion",
+  "Warsztat II — Delta Lake"; EN "Workshop I — Ingestion", "Workshop II — Delta Lake". The same
+  names are used in notebook titles, 00_intro / README / TRAINER_GUIDE agenda rows and the static HTML
+  (which gets a PL and an EN page per workshop).
+
+## 10. Quiz as item III and trainer unlock (decided 28.10.2026, next after §9)
+
+- The home list shows three numbered items in the order of the day: I — Ingestion workshop,
+  II — Delta Lake workshop, III — Quiz (PL "Warsztat I/II", "III — Quiz"; EN "Workshop I/II", "III — Quiz").
+  The header keeps direct navigation, but item III is the quiz entry point.
+- Trainer unlock: each item (ws_ingestion, ws_delta, quiz) is locked for participants until a
+  trainer enables it in the trainer view (toggle per item, with "unlock all" / "lock all").
+  Locked items show a lock and the text "Trener odblokuje to w odpowiednim momencie" /
+  "Your trainer will unlock this at the right moment". Unlock state is shared by all viewers and
+  polled (5 s). Trainers (TRAINER_EMAILS) always see everything.
+- Enforcement is server-side: GET guides/quiz content for a locked item returns 423 for participants;
+  POST /api/check, /api/progress, /api/quiz/answer for a locked item return 423.
+- Storage: no new table. The app appends rows to the progress table with
+  workshop = '__unlock', step = <item id>, step_type = 'unlock', status = 'on' | 'off',
+  user_email = trainer e-mail, source = 'trainer'. The latest row per item wins; no row = locked
+  (configurable default via env GUIDE_DEFAULT_UNLOCKED=none|all). Trainer matrix, quiz stats and
+  "Reset my progress" ignore these rows.

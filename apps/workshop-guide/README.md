@@ -4,8 +4,11 @@ Databricks App (AppKit, TypeScript/React) that walks participants through the wo
 of the Databricks Fundamental training step by step. Contract with the notebooks, the
 check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guide.md).
 
-- Workshops are numbered in the order of the day: **Workshop 1 — Ingestion** (`ws_ingestion`),
-  **Workshop 2 — Delta Lake** (`ws_delta`), from `"number"` in the guide files.
+- Workshops are listed in the order of the day and labelled with Roman numerals from `"number"`
+  in the guide files: **Warsztat I — Ingestion** / **Workshop I — Ingestion** (`ws_ingestion`),
+  **Warsztat II — Delta Lake** / **Workshop II — Delta Lake** (`ws_delta`).
+- The header has a **PL | EN** switch (default PL, remembered in the browser). It changes the
+  whole app, the quiz included. See [Languages](#languages).
 - Participants write and run code in their notebook. The last line of a step cell saves the
   result to their catalog; the **Check** button in the app then runs the step's check as SQL
   on the SQL warehouse **as the participant** (on-behalf-of-user) and appends a row to the
@@ -34,7 +37,10 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 | `scripts/quiz-from-md.mjs` | builds `config/quiz/questions.json` and the private key from `../../utilization/` |
 | `server/sql/quiz_progress.sql` | quiz state per participant and question (first answer, solved, attempts); server only |
 | `server/quiz.ts`, `shared/quiz-schema.ts` | key loading and caching, grading, attempt numbering, rate limit; zod schemas |
-| `shared/guide-schema.ts` | zod schema of the guide files and the POST body; workshop labels and order |
+| `shared/guide-schema.ts` | zod schema of the guide files and the POST body; workshop labels (Roman numerals) and order |
+| `shared/guide-i18n.ts` | zod schema of the translation overlays, merge with English, overlay checks |
+| `config/guides/i18n/pl/*.json` | Polish overlays used at runtime (synced, committed) |
+| `client/src/i18n/` | UI dictionary (`en.ts` defines the keys, `pl.ts` must match), language context and provider |
 | `server/checks/` | one check per Check-graded step (`ws_ingestion.ts`, `ws_delta.ts`), helpers (`framework.ts`), registry and error handling (`index.ts`), tests |
 | `server/slug.ts` | e-mail → `retailhub_<slug>`, same rules as `user_slug_for()` in `notebooks/setup/00_setup` |
 | `shared/check-schema.ts` | body of `POST /api/check`, query of `DELETE /api/progress/me` |
@@ -116,11 +122,11 @@ still produced in the notebook) has a **Check** button. The classroom notebooks 
 | 502 | the app could not run SQL as the user (no `CAN_USE` on the warehouse, token or scope problem); nothing is recorded |
 
 A check takes 1 to 10 SQL statements (about 2 to 25 s on a warm 2X-Small warehouse, step
-07 of Workshop 1 is the slowest). Checks look at the current state of the tables, like the
+07 of Workshop I is the slowest). Checks look at the current state of the tables, like the
 notebook checks did: press Check right after the step, before the next step changes the table.
 
 The rules match the `_checks` notebooks, which read the same saved tables. A table has no row
-order, so no check tests sorting (the order is graded in the guide where it matters). Workshop 2
+order, so no check tests sorting (the order is graded in the guide where it matters). Workshop II
 step 01 counts `customers.csv` with `read_files`; step 12 accepts both forms of a DELETE without
 WHERE in the history (`[]` and `["true"]`; the SQL warehouse and serverless write `["true"]`).
 
@@ -158,6 +164,35 @@ validates every guide with zod at startup and refuses to start on an invalid fil
 error names the file and field. `npm test` validates `config/guides/` and the fixture too.
 
 Commit `config/guides/` after syncing: `databricks apps deploy` uploads only this folder.
+
+## Languages
+
+- **UI texts**: one dictionary, `client/src/i18n/en.ts` and `pl.ts`. `en.ts` defines the key set;
+  `pl.ts` is typed with it, so a missing key, an extra key or a function with other parameters
+  fails `npm run typecheck`. Texts with numbers are functions (Polish plurals: `plPlural`).
+  Add a text: add the key to both files, use it with `const { m } = useI18n()` → `m.key`.
+- **Switch**: `LangSwitch` in the header; the choice is stored in `localStorage` under `wg:lang`
+  (guarded; without storage the app starts in Polish). The old quiz key `wg:quiz:lang` is read
+  once as a fallback. `<html lang>` follows the choice.
+- **Guide content**: English is the source (`notebooks/workshops/guide/ws_*.json`). Polish text
+  lives in overlays `notebooks/workshops/guide/i18n/pl/ws_*.json`, copied by `sync-guides` to
+  `config/guides/i18n/pl/`. An overlay has the guide `id` and, per step id, only `title`,
+  `explain`, `expected`, `hints`, match `pairs` (`left` / `right`, leave out a side that is
+  code) and doc `label`s; `steps` can be a list with `id` or an object keyed by step id. Code
+  (`template`, `blocks`, `starter`, blanks) always comes from English. An empty or missing field
+  falls back to English; a list of another length than the English one is ignored. A numbered
+  guide keeps its label from the number (`Warsztat I — Ingestion`), not from the overlay title.
+- `GET /api/guides` returns the English guides and the overlays; the client merges them, so
+  switching the language needs no request and step ids, progress and typed answers stay.
+  `GET /api/guides?lang=pl` returns the guides already translated.
+- At startup the server validates each overlay with zod (a broken file stops the app, like a
+  broken guide) and logs overlays for unknown guides, unknown step ids, lists of another length
+  and hints whose code differs from English. `npm test` fails on the same problems for the
+  overlays in the source folder and in `config/guides/` (code fences in hints must be identical).
+- **Stays English**: check messages from the server (they mirror the notebooks) and the result
+  messages of order / match exercises that are stored in the progress table (the app shows its
+  own Polish feedback next to the exercise). The paste hint names the notebook heading by its
+  English number (`Step 03`), because the notebooks are English.
 
 ## Quiz
 
@@ -248,8 +283,8 @@ databricks apps validate --profile <profile>
 it generates an empty query registry. Rows from the server routes are validated with
 zod on the server and in the browser (`shared/progress-schema.ts`).
 
-Lab state (2026-10-27): every Check of Workshop 1 passes against the solved notebook in the lab
-(run with the CLI identity, not yet through the deployed app with a user token). For Workshop 2
+Lab state (2026-10-27): every Check of Workshop I passes against the solved notebook in the lab
+(run with the CLI identity, not yet through the deployed app with a user token). For Workshop II
 the checks that do not depend on the moment (02, 03, 04, 09, 10, 11, 12) pass on the finished
 table; the others need the state right after their step. The lab warehouse already gives `users`
 `CAN_USE`. `retailhub_trainer.default.workshop_progress` exists in the lab

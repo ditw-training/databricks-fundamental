@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="notebooks/workshops/guide/build_static.py">
+<title>Warsztat II — Delta Lake · Workshop Guide</title>
+<style>
+:root{
+  --bg:#ffffff;--surface:#f7f7f8;--surface-2:#efeff1;--fg:#18181b;--muted:#5d5d66;
+  --border:#e2e2e6;--code-bg:#f6f6f7;--code-border:#e3e3e7;
+  --accent:#E30613;--accent-soft:rgba(227,6,19,.09);
+  --ok:#147a3d;--ok-soft:rgba(20,122,61,.10);--bad:#b42318;--bad-soft:rgba(180,35,24,.09);
+  --warn:#8a5a00;--warn-soft:rgba(176,120,0,.12);--focus:#E30613;--shadow:0 1px 2px rgba(0,0,0,.05);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#111114;--surface:#18181c;--surface-2:#202026;--fg:#ececf0;--muted:#a2a2ad;
+    --border:#2c2c33;--code-bg:#16161a;--code-border:#2e2e36;
+    --accent:#ff3b47;--accent-soft:rgba(255,59,71,.13);
+    --ok:#4ade80;--ok-soft:rgba(74,222,128,.12);--bad:#f87171;--bad-soft:rgba(248,113,113,.12);
+    --warn:#fbbf24;--warn-soft:rgba(251,191,36,.12);--focus:#ff5a64;--shadow:none;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+code,pre,input.blank,select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+a{color:inherit;text-underline-offset:2px}
+a:hover{color:var(--accent)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:absolute;left:-999px;top:8px;background:var(--fg);color:var(--bg);padding:6px 12px;border-radius:6px;z-index:10}
+.skip:focus{left:12px}
+.accent-bar{height:3px;background:var(--accent)}
+.topbar{border-bottom:1px solid var(--border);background:var(--bg)}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:14px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.logo{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:7px;background:var(--fg);color:var(--bg);
+  font-weight:700;font-size:13px;box-shadow:inset 0 -3px 0 var(--accent);flex:none}
+.brand{display:flex;gap:10px;align-items:center;min-width:0;flex:1}
+.brand h1{font-size:17px;line-height:1.3;margin:0;font-weight:650}
+.brand .sub{font-size:12.5px;color:var(--muted)}
+.overall{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.langs{display:flex;align-items:center;gap:4px;font-size:13px}
+.langs a{padding:3px 8px;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--muted)}
+.langs a[aria-current=page]{color:var(--fg);font-weight:650;border-color:var(--fg)}
+.langs a.langs-index{border-color:transparent;margin-left:4px}
+.bar{width:140px;height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar>span{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.layout{max-width:1180px;margin:0 auto;padding:20px 16px 64px;display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px}
+nav.steps-nav{position:sticky;top:12px;align-self:start;max-height:calc(100vh - 24px);overflow:auto}
+.nav-title-h{font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:4px 8px 8px}
+.steps-nav ol{list-style:none;margin:0;padding:0}
+.steps-nav a{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;text-decoration:none;font-size:13.5px;color:var(--muted)}
+.steps-nav a:hover{background:var(--surface);color:var(--fg)}
+.steps-nav a[aria-current="true"]{background:var(--surface-2);color:var(--fg);box-shadow:inset 2px 0 0 var(--accent)}
+.nav-num{font-variant-numeric:tabular-nums;font-size:12px;opacity:.8}
+.nav-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-opt{font-size:11px}
+.dot{width:10px;height:10px;border-radius:99px;border:2px solid var(--muted);opacity:.6;flex:none}
+[data-status-v="progress"] .dot{border-color:var(--warn);background:var(--warn-soft);opacity:1}
+[data-status-v="ready"] .dot{border-color:var(--warn);background:var(--warn);opacity:1}
+[data-status-v="done"] .dot{border-color:var(--ok);background:var(--ok);opacity:1}
+.nav-tools{margin:14px 8px 0;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--muted)}
+main{min-width:0}
+.notice{border:1px solid var(--border);border-left:3px solid var(--accent);background:var(--surface);border-radius:8px;
+  padding:12px 14px;margin:0 0 18px;font-size:14px}
+.notice p{margin:0 0 6px}.notice p:last-child{margin:0}
+.intro{font-size:15.5px;margin:0 0 26px}
+.intro p{margin:0 0 8px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin:-12px 0 24px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .dot{display:inline-block}
+.step{border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin:0 0 22px;background:var(--bg);box-shadow:var(--shadow);scroll-margin-top:12px}
+.step-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:8px}
+.step-num{flex:none;font-weight:700;font-size:13px;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:var(--surface-2);color:var(--muted);font-variant-numeric:tabular-nums}
+.step[data-status-v="done"] .step-num{background:var(--ok-soft);color:var(--ok)}
+.step-title{font-size:18px;line-height:1.35;margin:4px 0 6px;font-weight:650}
+.badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.badge,.state{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--muted);background:var(--surface)}
+.badge-opt{color:var(--warn);border-color:transparent;background:var(--warn-soft)}
+.state{border-color:transparent}
+[data-status-v="progress"] .state,[data-status-v="ready"] .state{color:var(--warn);background:var(--warn-soft)}
+[data-status-v="done"] .state{color:var(--ok);background:var(--ok-soft)}
+.md p,.explain p{margin:0 0 10px}
+.md code,.explain code,.hint code,.expected code,.finish code,.notice code,.intro code,.match-desc code{
+  font-size:.88em;background:var(--surface-2);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere}
+.sec-title{font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px}
+.sec-title .muted{text-transform:none;letter-spacing:0;font-weight:500;margin-left:6px}
+.col-title{font-size:12.5px;font-weight:650;margin:0 0 6px;color:var(--muted)}
+.exercise{margin:14px 0 4px}
+.ex-instr{font-size:14px;color:var(--muted);margin:0 0 10px}
+.codeblock{position:relative;border:1px solid var(--code-border);background:var(--code-bg);border-radius:8px;margin:0 0 10px}
+.codeblock pre{margin:0;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.55;tab-size:4}
+.codeblock pre code{background:none;padding:0;font-size:inherit}
+.codeblock .btn-copy{position:absolute;top:6px;right:6px;font-size:12px;padding:2px 9px;opacity:.85}
+.codeblock[data-lang]::before{content:attr(data-lang);position:absolute;top:-9px;left:10px;font-size:10.5px;padding:0 6px;
+  border-radius:4px;background:var(--bg);color:var(--muted);border:1px solid var(--code-border);text-transform:uppercase;letter-spacing:.05em}
+.codeblock-fill pre{white-space:pre;line-height:2.1}
+input.blank{font-size:13px;padding:1px 5px;margin:0 1px;border:1.5px dashed var(--muted);border-radius:5px;background:var(--bg);
+  color:var(--fg);vertical-align:baseline;max-width:60ch}
+input.blank:focus{border-style:solid;border-color:var(--focus);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+input.blank[data-state="correct"]{border:1.5px solid var(--ok);background:var(--ok-soft)}
+input.blank[data-state="wrong"]{border:1.5px solid var(--bad);background:var(--bad-soft)}
+.ex-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:8px}
+.ex-status{margin:0;font-size:13.5px;min-height:1.4em;color:var(--muted)}
+.ex-status[data-tone="ok"]{color:var(--ok)}.ex-status[data-tone="bad"]{color:var(--bad)}
+.ex-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-size:13px;font-weight:550;padding:5px 12px;border-radius:7px;border:1px solid var(--border);
+  background:var(--bg);color:var(--fg);cursor:pointer;line-height:1.4}
+.btn:hover{background:var(--surface)}
+.btn-primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.btn-primary:hover{background:var(--fg);opacity:.88}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn-ghost:hover{color:var(--fg);background:var(--surface)}
+.btn-icon{padding:2px 8px;min-width:30px;font-size:12.5px}
+.order-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.order-col{min-width:0;position:relative}
+.blocklist{list-style:none;margin:0;padding:8px;min-height:64px;border:1.5px dashed var(--border);border-radius:9px;background:var(--surface)}
+.blocklist.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.answer{counter-reset:pos}
+.block{display:flex;align-items:flex-start;gap:8px;padding:7px 8px;margin:0 0 6px;border:1px solid var(--code-border);
+  border-radius:7px;background:var(--code-bg);cursor:grab}
+.block:last-child{margin-bottom:0}
+.block.dragging{opacity:.45}
+.answer .block::before{counter-increment:pos;content:counter(pos);font-size:11px;font-weight:700;color:var(--muted);min-width:14px;padding-top:2px}
+.block[data-mark="ok"]{border-color:var(--ok)}.block[data-mark="bad"]{border-color:var(--bad);background:var(--bad-soft)}
+.grip{color:var(--muted);font-size:12px;letter-spacing:-2px;padding-top:2px;user-select:none}
+.block-code{margin:0;flex:1;min-width:0;font-size:12.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.block-actions{display:flex;gap:4px;flex:none}
+.pool [data-act="up"],.pool [data-act="down"],.pool [data-act="remove"],.answer [data-act="add"]{display:none}
+.empty-note{position:absolute;left:0;right:0;top:44px;text-align:center;font-size:13px;color:var(--muted);pointer-events:none;margin:0}
+.answer:not(:empty)+.empty-note{display:none}
+.chips{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--code-border);background:var(--code-bg);border-radius:7px;padding:4px 9px;cursor:grab;font-size:12.5px}
+.chip code{background:none;padding:0;font-size:inherit}
+.chip[data-used="true"]{opacity:.45}
+.chip.dragging{opacity:.3}
+.match-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.match-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:center;padding:8px 10px;
+  border:1px solid var(--border);border-radius:9px}
+.match-desc{font-size:14px}
+.dropzone{display:flex;align-items:center;gap:8px;border:1.5px dashed transparent;border-radius:8px;padding:2px}
+.dropzone.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.match-select{width:100%;font-size:12.5px;padding:6px 8px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--fg)}
+.mark{width:18px;flex:none;font-weight:700;text-align:center}
+.match-row[data-mark="ok"]{border-color:var(--ok)}.match-row[data-mark="ok"] .mark::before{content:"✓";color:var(--ok)}
+.match-row[data-mark="bad"]{border-color:var(--bad)}.match-row[data-mark="bad"] .mark::before{content:"✕";color:var(--bad)}
+.expected{border-radius:8px}
+.expected p{margin:0}
+.hint-list{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:8px}
+.hint{border:1px solid var(--border);border-radius:8px;padding:9px 12px;background:var(--surface)}
+.hint p{margin:0 0 6px}.hint p:last-child{margin:0}
+.hint .codeblock{margin:6px 0 0}
+.hint-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:3px}
+.hint-solution{border-color:var(--warn);background:var(--warn-soft)}
+.hint-solution .hint-label{color:var(--warn)}
+.hint-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px;border:1px solid var(--warn);background:var(--warn-soft);
+  border-radius:8px;padding:8px 10px}
+.confirm[hidden],[hidden]{display:none!important}
+.docs ul{margin:0;padding-left:18px}
+.docs li{margin:2px 0}
+.finish{border-top:1px solid var(--border);margin-top:18px;padding-top:2px}
+.finish p{margin:0 0 8px;font-size:14px}
+.done-toggle{display:inline-flex;gap:8px;align-items:center;font-size:14px;cursor:pointer;padding:6px 10px;border:1px solid var(--border);border-radius:8px}
+.done-toggle input{width:16px;height:16px;accent-color:var(--ok)}
+.step[data-status-v="done"] .done-toggle{border-color:var(--ok);background:var(--ok-soft)}
+footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr;gap:12px}
+  nav.steps-nav{position:static;max-height:none;border:1px solid var(--border);border-radius:10px;padding:8px}
+  .steps-nav ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+}
+@media (max-width:640px){
+  .order-grid{grid-template-columns:1fr}
+  .match-row{grid-template-columns:1fr}
+  .step{padding:16px 14px}
+  .step-num{display:none}
+  .bar{width:90px}
+}
+@media print{
+  .accent-bar,nav.steps-nav,.ex-actions,.hint-controls,.btn-copy,.notice{display:none}
+  .layout{display:block}.hint[hidden]{display:block!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#steps">Przejdź do kroków</a>
+<div class="accent-bar"></div>
+<header class="topbar"><div class="topbar-inner">
+<div class="brand"><span class="logo" aria-hidden="true">WG</span>
+<div><h1>Warsztat II — Delta Lake</h1><div class="sub">Workshop Guide · wersja statyczna · notebook <code>WORKSHOP_delta</code></div></div></div>
+<nav class="langs" aria-label="Język"><a href="ws_delta.pl.html" lang="pl" hreflang="pl" aria-current="page" title="Polski">PL</a><a href="ws_delta.en.html" lang="en" hreflang="en" title="English">EN</a><a href="index.html" class="langs-index">Wszystkie warsztaty</a></nav>
+<div class="overall"><span id="overall-text">Zaliczone kroki: 0 / 7</span>
+<span class="bar" role="progressbar" aria-label="Zaliczone kroki obowiązkowe" aria-valuemin="0" aria-valuemax="7" aria-valuenow="0"><span id="overall-bar"></span></span></div>
+</div></header>
+<div class="layout">
+<nav class="steps-nav" aria-label="Kroki">
+<p class="nav-title-h">Kroki</p>
+<ol><li><a href="#step-t01" data-nav="t01"><span class="dot" aria-hidden="true"></span><span class="nav-num">01</span><span class="nav-title">Utwórz tabelę Delta</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t02" data-nav="t02"><span class="dot" aria-hidden="true"></span><span class="nav-num">02</span><span class="nav-title">Wymuszanie schematu</span> <span class="nav-opt" title="Opcjonalny">⭐</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t03" data-nav="t03"><span class="dot" aria-hidden="true"></span><span class="nav-num">03</span><span class="nav-title">Ewolucja schematu: dodaj kolumnę</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t04" data-nav="t04"><span class="dot" aria-hidden="true"></span><span class="nav-num">04</span><span class="nav-title">Ograniczenie CHECK</span> <span class="nav-opt" title="Opcjonalny">⭐</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t05" data-nav="t05"><span class="dot" aria-hidden="true"></span><span class="nav-num">05</span><span class="nav-title">Wstaw klientów testowych (INSERT)</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t06" data-nav="t06"><span class="dot" aria-hidden="true"></span><span class="nav-num">06</span><span class="nav-title">Zaktualizuj jednego klienta (UPDATE)</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t07" data-nav="t07"><span class="dot" aria-hidden="true"></span><span class="nav-num">07</span><span class="nav-title">Usuń wiersze (DELETE)</span> <span class="nav-opt" title="Opcjonalny">⭐</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t08" data-nav="t08"><span class="dot" aria-hidden="true"></span><span class="nav-num">08</span><span class="nav-title">MERGE INTO (upsert)</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t09" data-nav="t09"><span class="dot" aria-hidden="true"></span><span class="nav-num">09</span><span class="nav-title">Historia wersji</span> <span class="nav-opt" title="Opcjonalny">⭐</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t10" data-nav="t10"><span class="dot" aria-hidden="true"></span><span class="nav-num">10</span><span class="nav-title">Time travel według wersji</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t11" data-nav="t11"><span class="dot" aria-hidden="true"></span><span class="nav-num">11</span><span class="nav-title">Time travel według znacznika czasu</span> <span class="nav-opt" title="Opcjonalny">⭐</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t12" data-nav="t12"><span class="dot" aria-hidden="true"></span><span class="nav-num">12</span><span class="nav-title">RESTORE po przypadkowym usunięciu</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li></ol>
+<div class="nav-tools"><button type="button" class="btn btn-ghost" id="reset-all">Wyczyść moje postępy</button></div>
+</nav>
+<main id="steps">
+<div class="notice" role="note">
+<p><strong>Wersja statyczna.</strong> Ta strona działa offline i zapisuje twoje odpowiedzi tylko w tej przeglądarce. Nie jest połączona z Databricks, więc nie widzi twojego notebooka, a kroki nie zmieniają koloru na zielony same.</p><p>Sprawdzanie działa w notebooku. Raz na sesję dodaj komórkę <code>%run ./_checks/ws_delta</code> po komórkach konfiguracyjnych <code>WORKSHOP_delta</code> i ją uruchom: definiuje funkcję <code>check()</code>.</p><p>W każdym kroku: rozwiąż ćwiczenie tutaj, skopiuj kod do <code>WORKSHOP_delta</code> i uruchom komórkę, potem dodaj pod nią komórkę <code>check("ws_delta", "tNN")</code>. Gdy wypisze <strong>PASS</strong>, zaznacz pole na dole kroku. Kroki typu „Połącz w pary” są oceniane na tej stronie.</p>
+<p id="storage-warning" hidden><strong>Uwaga:</strong> ta przeglądarka blokuje pamięć lokalną, więc postęp zniknie po zamknięciu strony.</p>
+</div>
+<div class="intro md"><p>Zarządzasz tabelą klientów RetailHub. Utworzysz ją jako tabelę Delta, zmienisz jej schemat i dane (INSERT, UPDATE, MERGE), a potem użyjesz historii tabeli, żeby odczytać stare wersje i cofnąć przypadkowe usunięcie. Pisz kod w notebooku <code>WORKSHOP_delta</code>, uruchom komórkę, potem uruchom w nowej komórce <code>check(...)</code> dla tego kroku (zobacz uwagę powyżej). Kroki opcjonalne (⭐, w notebooku oznaczone OPTIONAL) to dodatkowe ćwiczenia; kolejne kroki ich nie wymagają.</p></div>
+<div class="legend" aria-hidden="true"><span><span class="dot"></span>Nierozpoczęty</span>
+<span data-status-v="progress"><span class="dot"></span>W toku</span>
+<span data-status-v="ready"><span class="dot"></span>Gotowe do check()</span>
+<span data-status-v="done"><span class="dot"></span>Zaliczony</span></div>
+<section class="step" id="step-t01" data-step="t01" data-type="fill" data-check="notebook" data-optional="false" aria-labelledby="t01-title"><header class="step-head"><span class="step-num" aria-hidden="true">01</span><div><h3 id="t01-title" class="step-title">Krok 01 — Utwórz tabelę Delta</h3><div class="badges"><span class="badge">Uzupełnij luki</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>CREATE TABLE ... AS SELECT</code> (CTAS) tworzy tabelę i ładuje do niej wiersze zapytania w jednej instrukcji. Na Databricks każda nowa tabela jest domyślnie tabelą Delta, więc nie potrzebujesz <code>USING DELTA</code>. Bez <code>LOCATION</code> tabela jest <em>zarządzana</em> (managed): pliki przechowuje za ciebie Unity Catalog. <code>OR REPLACE</code> pozwala uruchomić komórkę ponownie bez błędu.</p></div><div class="exercise exercise-fill"><p class="ex-instr">Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.</p><div class="codeblock codeblock-fill" data-lang="sql"><pre><code>CREATE OR REPLACE <input class="blank" type="text" id="t01-b1" data-blank="b1" aria-label="Luka 1 z 3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:7ch"> lab_delta_cust_ws <input class="blank" type="text" id="t01-b2" data-blank="b2" aria-label="Luka 2 z 3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:5ch">
+SELECT * FROM <input class="blank" type="text" id="t01-b3" data-blank="b3" aria-label="Luka 3 z 3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:15ch"></code></pre></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p>Tabela <code>lab_delta_cust_ws</code> istnieje, ma format <code>delta</code> i tyle samo wierszy co <code>customers_csv</code> (10 000).</p></section><section class="hints" aria-labelledby="t01-hints-t"><h4 class="sec-title" id="t01-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Tworzysz tabelę z wyniku zapytania: instrukcja to <code>CREATE OR REPLACE TABLE &lt;name&gt; AS &lt;query&gt;</code>.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Zapytanie czyta wszystkie kolumny widoku tymczasowego: <code>SELECT * FROM customers_csv</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="sql"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>CREATE OR REPLACE TABLE lab_delta_cust_ws AS
+SELECT * FROM customers_csv</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t01-docs-t"><h4 class="sec-title" id="t01-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/delta/tutorial" target="_blank" rel="noopener noreferrer">Samouczek: tabele Delta Lake</a></li><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-ddl-create-table-using" target="_blank" rel="noopener noreferrer">CREATE TABLE [USING]</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t01&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t01&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t02" data-step="t02" data-type="code" data-check="notebook" data-optional="true" aria-labelledby="t02-title"><header class="step-head"><span class="step-num" aria-hidden="true">02</span><div><h3 id="t02-title" class="step-title">Krok 02 — Wymuszanie schematu</h3><div class="badges"><span class="badge">Napisz kod</span><span class="badge badge-opt">⭐ Opcjonalny</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Delta sprawdza każdy zapis względem schematu tabeli (<em>schema enforcement</em>). DataFrame z kolumną, której tabela nie ma, zostaje odrzucony i nic nie jest zapisywane: zapis kończy się błędem w całości. Tutaj dopisujesz <code>bad_df</code> w gotowym bloku <code>try</code>. <code>try</code> / <code>except</code> to sposób Pythona na przechwycenie błędu: jeśli linia pod <code>try:</code> się nie powiedzie, Python przechodzi do <code>except</code>, a błąd trafia do <code>enforcement_error</code> i nie zatrzymuje notebooka. Zamieniasz tylko <code>pass</code> na jedną linię. Odpowiednik w SQL: <code>INSERT INTO lab_delta_cust_ws (customer_id, mood) VALUES ('BAD001', 'happy')</code> kończy się takim samym błędem.</p></div><div class="exercise exercise-code"><p class="ex-instr">Napisz kod w komórce notebooka. Komórka zaczyna się tak:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 02: append bad_df to TABLE inside the try block
+enforcement_error = None
+try:
+    # YOUR CODE HERE: append bad_df to TABLE
+    pass
+except Exception as e:
+    enforcement_error = str(e)
+print(f"Error caught: {enforcement_error[:150] if enforcement_error else 'None'}")
+
+# saves your result so the app can check it
+(spark.createDataFrame([(enforcement_error,)], "error STRING")
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_delta_t02"))</code></pre></div><p class="ex-instr">Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.</p></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>enforcement_error</code> zawiera komunikat błędu, a tabela nie ma kolumny <code>mood</code> ani wiersza <code>BAD001</code>.</p></section><section class="hints" aria-labelledby="t02-hints-t"><h4 class="sec-title" id="t02-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Użyj zapisu DataFrame: <code>bad_df.write</code>, potem tryb zapisu, a na końcu tabela docelowa.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Łańcuch zapisu to <code>bad_df.write.mode("append").saveAsTable(TABLE)</code>. Wstaw go w miejsce <code>pass</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>enforcement_error = None
+try:
+    bad_df.write.mode("append").saveAsTable(TABLE)
+except Exception as e:
+    enforcement_error = str(e)
+print(f"Error caught: {enforcement_error[:150] if enforcement_error else 'None'}")
+
+# saves your result so the app can check it
+(spark.createDataFrame([(enforcement_error,)], "error STRING")
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_delta_t02"))</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t02-docs-t"><h4 class="sec-title" id="t02-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/tables/schema-enforcement" target="_blank" rel="noopener noreferrer">Wymuszanie schematu</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t02&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t02&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t03" data-step="t03" data-type="fill" data-check="notebook" data-optional="false" aria-labelledby="t03-title"><header class="step-head"><span class="step-num" aria-hidden="true">03</span><div><h3 id="t03-title" class="step-title">Krok 03 — Ewolucja schematu: dodaj kolumnę</h3><div class="badges"><span class="badge">Uzupełnij luki</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Czasem schemat trzeba zmienić celowo: to <em>schema evolution</em> (ewolucja schematu). <code>ALTER TABLE ... ADD COLUMN</code> dodaje kolumnę, zmieniając tylko metadane tabeli w dzienniku transakcji; pliki danych nie są przepisywane. Istniejące wiersze mają w nowej kolumnie <code>NULL</code>, dopóki ich nie zaktualizujesz. W pierwszej luce wpisz dwuwyrazową klauzulę <code>ADD COLUMN</code>, a w drugiej nazwę kolumny.</p></div><div class="exercise exercise-fill"><p class="ex-instr">Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.</p><div class="codeblock codeblock-fill" data-lang="sql"><pre><code>ALTER TABLE lab_delta_cust_ws <input class="blank" type="text" id="t03-b1" data-blank="b1" aria-label="Luka 1 z 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:12ch"> <input class="blank" type="text" id="t03-b2" data-blank="b2" aria-label="Luka 2 z 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:14ch"> STRING</code></pre></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p>Tabela ma kolumnę <code>loyalty_tier</code> typu <code>STRING</code>; istniejące wiersze mają w niej <code>NULL</code>.</p></section><section class="hints" aria-labelledby="t03-hints-t"><h4 class="sec-title" id="t03-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Instrukcja, która zmienia strukturę tabeli, to <code>ALTER TABLE</code>; potrzebujesz klauzuli, która dodaje kolumnę.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Wzorzec: <code>ALTER TABLE &lt;table&gt; ADD COLUMN &lt;name&gt; &lt;type&gt;</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="sql"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>ALTER TABLE lab_delta_cust_ws ADD COLUMN loyalty_tier STRING</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t03-docs-t"><h4 class="sec-title" id="t03-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-ddl-alter-table-manage-column" target="_blank" rel="noopener noreferrer">ALTER TABLE ... COLUMN</a></li><li><a href="https://learn.microsoft.com/azure/databricks/tables/update-schema" target="_blank" rel="noopener noreferrer">Ewolucja schematu</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t03&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t03&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t04" data-step="t04" data-type="code" data-check="notebook" data-optional="true" aria-labelledby="t04-title"><header class="step-head"><span class="step-num" aria-hidden="true">04</span><div><h3 id="t04-title" class="step-title">Krok 04 — Ograniczenie CHECK</h3><div class="badges"><span class="badge">Napisz kod</span><span class="badge badge-opt">⭐ Opcjonalny</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Ograniczenie <code>CHECK</code> to reguła, którą Delta sprawdza przy każdym zapisie. <code>ALTER TABLE ... ADD CONSTRAINT</code> najpierw weryfikuje istniejące wiersze, a potem odrzuca każdy zapis, który łamie regułę. Dodajesz <code>valid_country</code> z warunkiem <code>country IS NOT NULL</code>, a potem w gotowym bloku <code>try</code> wstawiasz klienta <code>BAD_C</code> z krajem <code>NULL</code> (jeśli <code>INSERT</code> się nie powiedzie, <code>except</code> zapisze błąd w <code>constraint_error</code>, a notebook będzie działał dalej). SQL uruchamiasz z Pythona przez <code>spark.sql(f"...")</code>, a nazwę tabeli wstawiasz jako <code>{TABLE}</code>. Pierwsza linia jest gotowa: usuwa ograniczenie, jeśli istnieje, więc możesz uruchomić komórkę ponownie.</p></div><div class="exercise exercise-code"><p class="ex-instr">Napisz kod w komórce notebooka. Komórka zaczyna się tak:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 04: add the constraint, then try to break it
+constraint_error = None
+spark.sql(f"ALTER TABLE {TABLE} DROP CONSTRAINT IF EXISTS valid_country")  # lets you re-run this cell
+# 1. Add the CHECK constraint valid_country: country IS NOT NULL
+# YOUR CODE HERE
+
+# 2. Insert customer_id 'BAD_C' with country NULL (it must fail)
+try:
+    # YOUR CODE HERE
+    pass
+except Exception as e:
+    constraint_error = str(e)
+print(f"Insert rejected: {constraint_error is not None}")
+
+# saves your result so the app can check it
+(spark.createDataFrame([(constraint_error,)], "error STRING")
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_delta_t04"))</code></pre></div><p class="ex-instr">Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.</p></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>SHOW TBLPROPERTIES</code> pokazuje <code>delta.constraints.valid_country</code>, <code>constraint_error</code> zawiera błąd, a <code>BAD_C</code> nie ma w tabeli.</p></section><section class="hints" aria-labelledby="t04-hints-t"><h4 class="sec-title" id="t04-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Dwie instrukcje: <code>ALTER TABLE ... ADD CONSTRAINT &lt;name&gt; CHECK (&lt;condition&gt;)</code>, potem <code>INSERT</code> z <code>NULL</code> w <code>country</code>.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>SQL to <code>ALTER TABLE ... ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)</code>, a potem <code>INSERT INTO ... (customer_id, country) VALUES ('BAD_C', NULL)</code>. W Pythonie <code>spark.sql(f"...")</code> uruchamia jedną instrukcję SQL, a <code>{TABLE}</code> wstawia nazwę tabeli.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>constraint_error = None
+spark.sql(f"ALTER TABLE {TABLE} DROP CONSTRAINT IF EXISTS valid_country")  # lets you re-run this cell
+spark.sql(f"ALTER TABLE {TABLE} ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)")
+try:
+    spark.sql(f"INSERT INTO {TABLE} (customer_id, country) VALUES ('BAD_C', NULL)")
+except Exception as e:
+    constraint_error = str(e)
+print(f"Insert rejected: {constraint_error is not None}")
+
+# saves your result so the app can check it
+(spark.createDataFrame([(constraint_error,)], "error STRING")
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_delta_t04"))</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t04-docs-t"><h4 class="sec-title" id="t04-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/tables/constraints" target="_blank" rel="noopener noreferrer">Ograniczenia w Azure Databricks</a></li><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-ddl-alter-table-add-constraint" target="_blank" rel="noopener noreferrer">Klauzula ADD CONSTRAINT</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t04&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t04&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t05" data-step="t05" data-type="fill" data-check="notebook" data-optional="false" aria-labelledby="t05-title"><header class="step-head"><span class="step-num" aria-hidden="true">05</span><div><h3 id="t05-title" class="step-title">Krok 05 — Wstaw klientów testowych (INSERT)</h3><div class="badges"><span class="badge">Uzupełnij luki</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>INSERT INTO ... VALUES</code> dodaje wiersze do tabeli. Kolumny wymień po nazwie tabeli; pominięte kolumny (tu <code>loyalty_tier</code>, <code>phone</code>, ...) dostają <code>NULL</code>. Jedna instrukcja z kilkoma wierszami w <code>VALUES</code> to jeden atomowy zapis i jedna nowa wersja tabeli. Uruchom komórkę tylko raz: drugie uruchomienie wstawi te wiersze ponownie.</p></div><div class="exercise exercise-fill"><p class="ex-instr">Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.</p><div class="codeblock codeblock-fill" data-lang="sql"><pre><code>INSERT INTO lab_delta_cust_ws (customer_id, first_name, last_name, email, country)
+<input class="blank" type="text" id="t05-b1" data-blank="b1" aria-label="Luka 1 z 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:8ch"> ('TEST001', 'Alice', 'Test', 'alice@test.com', <input class="blank" type="text" id="t05-b2" data-blank="b2" aria-label="Luka 2 z 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:12ch">),
+       ('TEST002', 'Bob',   'Test', 'bob@test.com',   'TestLand'),
+       ('TEST003', 'Carol', 'Test', 'carol@test.com', 'TestLand')</code></pre></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p>Tabela zawiera <code>TEST001</code>, <code>TEST002</code> i <code>TEST003</code>, każdy dokładnie raz, wszystkie z krajem <code>TestLand</code>.</p></section><section class="hints" aria-labelledby="t05-hints-t"><h4 class="sec-title" id="t05-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Słowo kluczowe przed listą wierszy jest takie samo jak w standardowym <code>INSERT</code> w SQL.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Napisy w SQL wymagają apostrofów: kraj <code>TEST001</code> to <code>'TestLand'</code>, tak jak w dwóch wierszach poniżej.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="sql"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>INSERT INTO lab_delta_cust_ws (customer_id, first_name, last_name, email, country)
+VALUES ('TEST001', 'Alice', 'Test', 'alice@test.com', 'TestLand'),
+       ('TEST002', 'Bob',   'Test', 'bob@test.com',   'TestLand'),
+       ('TEST003', 'Carol', 'Test', 'carol@test.com', 'TestLand')</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t05-docs-t"><h4 class="sec-title" id="t05-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-dml-insert-into" target="_blank" rel="noopener noreferrer">INSERT</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t05&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t05&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t06" data-step="t06" data-type="fill" data-check="notebook" data-optional="false" aria-labelledby="t06-title"><header class="step-head"><span class="step-num" aria-hidden="true">06</span><div><h3 id="t06-title" class="step-title">Krok 06 — Zaktualizuj jednego klienta (UPDATE)</h3><div class="badges"><span class="badge">Uzupełnij luki</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>UPDATE ... SET ... WHERE</code> zmienia kolumny w wierszach, które spełniają warunek. <code>SET</code> może zmienić kilka kolumn naraz, oddzielonych przecinkami. Zawsze dodawaj <code>WHERE</code>: bez niego zmienisz każdy wiersz tabeli. Stare wartości można odczytać przez time travel, dopóki <code>VACUUM</code> nie usunie starych plików.</p></div><div class="exercise exercise-fill"><p class="ex-instr">Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.</p><div class="codeblock codeblock-fill" data-lang="sql"><pre><code>UPDATE lab_delta_cust_ws
+SET country = 'Poland', <input class="blank" type="text" id="t06-b1" data-blank="b1" aria-label="Luka 1 z 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:14ch"> = 'Gold'
+<input class="blank" type="text" id="t06-b2" data-blank="b2" aria-label="Luka 2 z 2" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:7ch"> customer_id = 'TEST001'</code></pre></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>TEST001</code> ma kraj <code>Poland</code> i poziom lojalności <code>Gold</code>; żaden inny wiersz nie ma poziomu <code>Gold</code>.</p></section><section class="hints" aria-labelledby="t06-hints-t"><h4 class="sec-title" id="t06-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Druga kolumna do zmiany to kolumna dodana w kroku 03.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Ostatnia linia ogranicza zmianę do jednego klienta: zaczyna się od słowa kluczowego, które filtruje wiersze.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="sql"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>UPDATE lab_delta_cust_ws
+SET country = 'Poland', loyalty_tier = 'Gold'
+WHERE customer_id = 'TEST001'</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t06-docs-t"><h4 class="sec-title" id="t06-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-update" target="_blank" rel="noopener noreferrer">UPDATE</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t06&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t06&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t07" data-step="t07" data-type="code" data-check="notebook" data-optional="true" aria-labelledby="t07-title"><header class="step-head"><span class="step-num" aria-hidden="true">07</span><div><h3 id="t07-title" class="step-title">Krok 07 — Usuń wiersze (DELETE)</h3><div class="badges"><span class="badge">Napisz kod</span><span class="badge badge-opt">⭐ Opcjonalny</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>DELETE FROM ... WHERE</code> usuwa wiersze, które spełniają warunek. <code>IN ('a', 'b')</code> dopasowuje kilka wartości jednej kolumny w jednym warunku, więc wystarczy jedna instrukcja. Jak każda zmiana, usunięcie tworzy nową wersję tabeli: wiersze da się odczytać przez time travel aż do <code>VACUUM</code>.</p></div><div class="exercise exercise-code"><p class="ex-instr">Napisz kod w komórce notebooka. Komórka zaczyna się tak:</p><div class="codeblock" data-lang="sql"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>-- Step 07: delete TEST002 and TEST003 in one statement
+-- YOUR CODE HERE</code></pre></div><p class="ex-instr">Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.</p></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>TEST002</code> i <code>TEST003</code> zniknęły, <code>TEST001</code> nadal jest w tabeli, a w historii tabeli widać <code>DELETE</code>.</p></section><section class="hints" aria-labelledby="t07-hints-t"><h4 class="sec-title" id="t07-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Wzorzec: <code>DELETE FROM &lt;table&gt; WHERE &lt;condition&gt;</code>.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Warunek używa <code>IN</code>: <code>customer_id IN ('TEST002', 'TEST003')</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="sql"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>DELETE FROM lab_delta_cust_ws
+WHERE customer_id IN ('TEST002', 'TEST003')</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t07-docs-t"><h4 class="sec-title" id="t07-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-delete-from" target="_blank" rel="noopener noreferrer">DELETE FROM</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t07&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t07&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t08" data-step="t08" data-type="order" data-check="notebook" data-optional="false" aria-labelledby="t08-title"><header class="step-head"><span class="step-num" aria-hidden="true">08</span><div><h3 id="t08-title" class="step-title">Krok 08 — MERGE INTO (upsert)</h3><div class="badges"><span class="badge">Ułóż w kolejności</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>MERGE INTO</code> łączy aktualizację i wstawianie w jednej atomowej instrukcji (<em>upsert</em>). <code>ON</code> mówi, jak wiersz źródłowy znajduje swój wiersz docelowy: tu po <code>customer_id</code>. <code>WHEN MATCHED</code> aktualizuje klientów, którzy już istnieją, a <code>WHEN NOT MATCHED</code> wstawia nowych. Ułóż bloki w aplikacji, potem wklej instrukcję do notebooka. Dwa bloki to pułapki.</p></div><div class="exercise exercise-order"><p class="ex-instr">Przeciągnij bloki do sekcji <em>Twoja odpowiedź</em> we właściwej kolejności albo użyj przycisków Dodaj, ↑, ↓ i ✕. 2 bloki to pułapki i muszą zostać poza odpowiedzią.</p><div class="order-grid"><div class="order-col"><h4 class="col-title" id="t08-pool-t">Dostępne bloki</h4><ul class="blocklist pool" data-list="pool" aria-labelledby="t08-pool-t"><li class="block" data-block="m3" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>ON t.customer_id = s.customer_id</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="m4" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>WHEN MATCHED THEN UPDATE SET
+  first_name = s.first_name, last_name = s.last_name, email = s.email,
+  country = s.country, loyalty_tier = s.loyalty_tier</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="d2" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>ON t.email = s.email</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="d1" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>WHEN NOT MATCHED BY SOURCE THEN DELETE</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="m2" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>USING updates_view AS s</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="m1" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>MERGE INTO lab_delta_cust_ws AS t</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="m5" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>WHEN NOT MATCHED THEN INSERT (customer_id, first_name, last_name, email, country, loyalty_tier)
+  VALUES (s.customer_id, s.first_name, s.last_name, s.email, s.country, s.loyalty_tier)</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li></ul></div><div class="order-col"><h4 class="col-title" id="t08-ans-t">Twoja odpowiedź</h4><ol class="blocklist answer" data-list="answer" aria-labelledby="t08-ans-t"></ol><p class="empty-note">Upuść bloki tutaj.</p></div></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn btn-primary" data-check-order>Sprawdź kolejność</button><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p>Zaktualizowano 2 klientów (<code>TEST001</code> staje się <code>MergedAlice</code>, poziom <code>Platinum</code>), wstawiono 1 (<code>MERGE_NEW</code>), pozostali klienci bez zmian.</p></section><section class="hints" aria-labelledby="t08-hints-t"><h4 class="sec-title" id="t08-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Instrukcję czyta się jak zdanie: tabela docelowa, źródło, warunek złączenia, a potem co zrobić z wierszami dopasowanymi i niedopasowanymi.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Klientów identyfikuje <code>customer_id</code>, a nie <code>email</code> (w tej partii adresy e-mail się zmieniają). <code>WHEN NOT MATCHED BY SOURCE THEN DELETE</code> usunąłby każdego klienta, którego nie ma w partii.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="sql"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>MERGE INTO lab_delta_cust_ws AS t
+USING updates_view AS s
+ON t.customer_id = s.customer_id
+WHEN MATCHED THEN UPDATE SET
+  first_name = s.first_name, last_name = s.last_name, email = s.email,
+  country = s.country, loyalty_tier = s.loyalty_tier
+WHEN NOT MATCHED THEN INSERT (customer_id, first_name, last_name, email, country, loyalty_tier)
+  VALUES (s.customer_id, s.first_name, s.last_name, s.email, s.country, s.loyalty_tier)</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t08-docs-t"><h4 class="sec-title" id="t08-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/delta/merge" target="_blank" rel="noopener noreferrer">Upsert do tabeli Delta przez MERGE</a></li><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-merge-into" target="_blank" rel="noopener noreferrer">MERGE INTO</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t08&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t08&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t09" data-step="t09" data-type="code" data-check="notebook" data-optional="true" aria-labelledby="t09-title"><header class="step-head"><span class="step-num" aria-hidden="true">09</span><div><h3 id="t09-title" class="step-title">Krok 09 — Historia wersji</h3><div class="badges"><span class="badge">Napisz kod</span><span class="badge badge-opt">⭐ Opcjonalny</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Każda zatwierdzona zmiana to nowa <em>wersja</em> w dzienniku transakcji Delta. <code>DESCRIBE HISTORY</code> zwraca jeden wiersz na wersję z kolumnami <code>version</code>, <code>timestamp</code>, <code>operation</code> i <code>operationParameters</code>. Możesz też zobaczyć wersje <code>OPTIMIZE</code> uruchomione bez twojego udziału: Databricks automatycznie scala małe pliki tabel zarządzanych. Odpowiednik w SQL: <code>DESCRIBE HISTORY lab_delta_cust_ws</code> w komórce <code>%sql</code>. <code>spark.sql(...)</code> uruchamia tę samą instrukcję z Pythona i zwraca DataFrame (tabelę, którą możesz trzymać w zmiennej).</p></div><div class="exercise exercise-code"><p class="ex-instr">Napisz kod w komórce notebooka. Komórka zaczyna się tak:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 09: store the result of DESCRIBE HISTORY in full_history
+full_history = None  # YOUR CODE HERE
+if full_history is not None:
+    display(full_history.select("version", "timestamp", "operation").orderBy(F.desc("version")))
+    # saves your result so the app can check it
+    full_history.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_delta_t09")</code></pre></div><p class="ex-instr">Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.</p></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>full_history</code> ma kolumnę <code>operation</code> i zawiera co najmniej wersje <code>UPDATE</code> i <code>MERGE</code>.</p></section><section class="hints" aria-labelledby="t09-hints-t"><h4 class="sec-title" id="t09-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Instrukcję SQL uruchamiasz z Pythona przez <code>spark.sql(...)</code>; zwraca ona DataFrame.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Instrukcja to <code>DESCRIBE HISTORY &lt;table&gt;</code>; użyj f-stringa <code>f"DESCRIBE HISTORY {TABLE}"</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>full_history = spark.sql(f"DESCRIBE HISTORY {TABLE}")
+if full_history is not None:
+    display(full_history.select("version", "timestamp", "operation").orderBy(F.desc("version")))
+    # saves your result so the app can check it
+    full_history.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_delta_t09")</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t09-docs-t"><h4 class="sec-title" id="t09-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/tables/history" target="_blank" rel="noopener noreferrer">Praca z historią tabeli</a></li><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-describe-history" target="_blank" rel="noopener noreferrer">DESCRIBE HISTORY</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t09&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t09&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t10" data-step="t10" data-type="order" data-check="notebook" data-optional="false" aria-labelledby="t10-title"><header class="step-head"><span class="step-num" aria-hidden="true">10</span><div><h3 id="t10-title" class="step-title">Krok 10 — Time travel według wersji</h3><div class="badges"><span class="badge">Ułóż w kolejności</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><em>Time travel</em> odczytuje starszą wersję tabeli Delta. Dodaj <code>VERSION AS OF &lt;n&gt;</code> zaraz po nazwie tabeli w klauzuli <code>FROM</code>. Wersja 0 to <code>CREATE TABLE ... AS SELECT</code> z kroku 01: przed dodaniem nowej kolumny i przed wszystkimi zmianami. Wynik zapisujesz jako widok tymczasowy. Zakończ instrukcję znakiem <code>;</code>: komórka w notebooku uruchamia po twojej instrukcji jeszcze jedną, która kopiuje <code>customers_v0</code> do tabeli, żeby aplikacja mogła go sprawdzić. Odpowiednik w Pythonie: <code>spark.read.option("versionAsOf", 0).table(TABLE)</code>.</p></div><div class="exercise exercise-order"><p class="ex-instr">Przeciągnij bloki do sekcji <em>Twoja odpowiedź</em> we właściwej kolejności albo użyj przycisków Dodaj, ↑, ↓ i ✕. 2 bloki to pułapki i muszą zostać poza odpowiedzią.</p><div class="order-grid"><div class="order-col"><h4 class="col-title" id="t10-pool-t">Dostępne bloki</h4><ul class="blocklist pool" data-list="pool" aria-labelledby="t10-pool-t"><li class="block" data-block="v4" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>VERSION AS OF 0;</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="v3" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>FROM lab_delta_cust_ws</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="v2" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>SELECT *</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="x2" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>WHERE version = 0;</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="v1" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>CREATE OR REPLACE TEMP VIEW customers_v0 AS</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="x1" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>TIMESTAMP AS OF 0;</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li></ul></div><div class="order-col"><h4 class="col-title" id="t10-ans-t">Twoja odpowiedź</h4><ol class="blocklist answer" data-list="answer" aria-labelledby="t10-ans-t"></ol><p class="empty-note">Upuść bloki tutaj.</p></div></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn btn-primary" data-check-order>Sprawdź kolejność</button><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>customers_v0</code> ma 10 000 oryginalnych wierszy, nie ma kolumny <code>loyalty_tier</code> ani klienta <code>TEST001</code>.</p></section><section class="hints" aria-labelledby="t10-hints-t"><h4 class="sec-title" id="t10-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Time travel to nie filtr w <code>WHERE</code>: to klauzula dołączona do nazwy tabeli.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p><code>TIMESTAMP AS OF</code> wymaga daty lub czasu, a nie numeru wersji. Użyj <code>VERSION AS OF 0</code> zaraz po <code>FROM lab_delta_cust_ws</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="sql"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>CREATE OR REPLACE TEMP VIEW customers_v0 AS
+SELECT *
+FROM lab_delta_cust_ws
+VERSION AS OF 0;</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t10-docs-t"><h4 class="sec-title" id="t10-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/tables/history" target="_blank" rel="noopener noreferrer">Praca z historią tabeli: time travel</a></li><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-qry-select-table-reference" target="_blank" rel="noopener noreferrer">Odwołanie do tabeli: składnia AS OF</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t10&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t10&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t11" data-step="t11" data-type="code" data-check="notebook" data-optional="true" aria-labelledby="t11-title"><header class="step-head"><span class="step-num" aria-hidden="true">11</span><div><h3 id="t11-title" class="step-title">Krok 11 — Time travel według znacznika czasu</h3><div class="badges"><span class="badge">Napisz kod</span><span class="badge badge-opt">⭐ Opcjonalny</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Time travel działa też z punktem w czasie: <code>TIMESTAMP AS OF '&lt;timestamp&gt;'</code>. <code>INSERT</code> z kroku 05 to najnowszy wiersz historii z <code>operation = 'WRITE'</code> i <code>operationParameters.mode = 'Append'</code>. Weź jego <code>timestamp</code> i odczytaj tabelę dokładnie z tej chwili: <code>TEST001</code> ma wtedy jeszcze kraj <code>TestLand</code>, sprzed <code>UPDATE</code> z kroku 06. Użyj znacznika czasu z mikrosekundami (<code>%Y-%m-%d %H:%M:%S.%f</code>), inaczej wynik może objąć późniejszą zmianę z tej samej sekundy. Odpowiednik w SQL: <code>SELECT * FROM lab_delta_cust_ws TIMESTAMP AS OF '&lt;ts&gt;'</code>. Czytaj kod Pythona jak SQL: <code>DESCRIBE HISTORY</code> nie da się użyć wewnątrz <code>SELECT ... FROM (...)</code>, więc uruchamiasz je przez <code>spark.sql(...)</code> i pracujesz na DataFrame. <code>.filter(...)</code> to <code>WHERE</code>; <code>F.col("operationParameters")["mode"]</code> odczytuje jeden klucz z kolumny typu map (SQL: <code>operationParameters['mode']</code>); <code>.orderBy(F.desc("version")).first()["timestamp"]</code> to <code>ORDER BY version DESC LIMIT 1</code> i pobiera wartość jednej kolumny. <code>strftime(...)</code> zamienia tę datę z godziną na tekst.</p></div><div class="exercise exercise-code"><p class="ex-instr">Napisz kod w komórce notebooka. Komórka zaczyna się tak:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 11: timestamp of the INSERT from step 05, then the table at that moment
+history_df = spark.sql(f"DESCRIBE HISTORY {TABLE}")
+ts_insert = None  # YOUR CODE HERE: timestamp of the newest WRITE / Append version
+ts_str = None     # YOUR CODE HERE: ts_insert as text with microseconds
+df_ts = None      # YOUR CODE HERE: TABLE read TIMESTAMP AS OF ts_str
+
+# saves your result so the app can check it
+if df_ts is not None:
+    df_ts.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_delta_t11")</code></pre></div><p class="ex-instr">Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.</p></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>ts_insert</code> to <code>datetime</code> Pythona; <code>df_ts</code> zawiera <code>TEST001</code> z krajem <code>TestLand</code>.</p></section><section class="hints" aria-labelledby="t11-hints-t"><h4 class="sec-title" id="t11-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Przefiltruj <code>history_df</code> tak: <code>history_df.filter(F.col("operation") == "WRITE")</code>. Dodaj <code>&amp; (F.col("operationParameters")["mode"] == "Append")</code> w nawiasie, posortuj przez <code>.orderBy(F.desc("version"))</code> i weź <code>.first()["timestamp"]</code>.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Sformatuj go przez <code>ts_insert.strftime("%Y-%m-%d %H:%M:%S.%f")</code> i odczytaj tabelę przez <code>spark.sql(f"SELECT * FROM {TABLE} TIMESTAMP AS OF '{ts_str}'")</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>history_df = spark.sql(f"DESCRIBE HISTORY {TABLE}")
+ts_insert = (
+    history_df
+    .filter((F.col("operation") == "WRITE") &amp; (F.col("operationParameters")["mode"] == "Append"))
+    .orderBy(F.desc("version"))
+    .first()["timestamp"]
+)
+ts_str = ts_insert.strftime("%Y-%m-%d %H:%M:%S.%f")
+df_ts = spark.sql(f"SELECT * FROM {TABLE} TIMESTAMP AS OF '{ts_str}'")
+
+# saves your result so the app can check it
+if df_ts is not None:
+    df_ts.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_delta_t11")</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t11-docs-t"><h4 class="sec-title" id="t11-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/tables/history" target="_blank" rel="noopener noreferrer">Praca z historią tabeli: time travel</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t11&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t11&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t12" data-step="t12" data-type="order" data-check="notebook" data-optional="false" aria-labelledby="t12-title"><header class="step-head"><span class="step-num" aria-hidden="true">12</span><div><h3 id="t12-title" class="step-title">Krok 12 — RESTORE po przypadkowym usunięciu</h3><div class="badges"><span class="badge">Ułóż w kolejności</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>DELETE FROM &lt;table&gt;</code> bez <code>WHERE</code> usuwa wszystkie wiersze, ale stara wersja nadal jest w historii. <code>RESTORE TABLE ... TO VERSION AS OF &lt;n&gt;</code> przywraca tabelę do wersji <code>n</code> i zapisuje przywrócenie jako nową wersję. <code>safe_version</code> (z gotowej komórki) to wersja sprzed pomyłki. Time travel to nie kopia zapasowa: gdy <code>VACUUM</code> usunie stare pliki danych, tych wersji już nie odzyskasz. Odpowiednik kluczowej linii w SQL: <code>RESTORE TABLE lab_delta_cust_ws TO VERSION AS OF 12</code> (z twoim numerem wersji).</p></div><div class="exercise exercise-order"><p class="ex-instr">Przeciągnij bloki do sekcji <em>Twoja odpowiedź</em> we właściwej kolejności albo użyj przycisków Dodaj, ↑, ↓ i ✕. 2 bloki to pułapki i muszą zostać poza odpowiedzią.</p><div class="order-grid"><div class="order-col"><h4 class="col-title" id="t12-pool-t">Dostępne bloki</h4><ul class="blocklist pool" data-list="pool" aria-labelledby="t12-pool-t"><li class="block" data-block="r4" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>print(f"Rows after RESTORE: {spark.table(TABLE).count():,}")</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="r1" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>spark.sql(f"DELETE FROM {TABLE}")</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="y1" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>spark.sql(f"VACUUM {TABLE}")</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="r3" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>spark.sql(f"RESTORE TABLE {TABLE} TO VERSION AS OF {safe_version}")</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="r2" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>print(f"Rows after the accident: {spark.table(TABLE).count():,}")</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="y2" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>spark.sql(f"DROP TABLE {TABLE}")</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li></ul></div><div class="order-col"><h4 class="col-title" id="t12-ans-t">Twoja odpowiedź</h4><ol class="blocklist answer" data-list="answer" aria-labelledby="t12-ans-t"></ol><p class="empty-note">Upuść bloki tutaj.</p></div></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn btn-primary" data-check-order>Sprawdź kolejność</button><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p>Po uruchomieniu komórki tabela ma tyle samo wierszy co przed pomyłką; historia pokazuje <code>DELETE</code>, a potem <code>RESTORE</code>.</p></section><section class="hints" aria-labelledby="t12-hints-t"><h4 class="sec-title" id="t12-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Najpierw pomyłka i jej skutek, potem naprawa i jej skutek.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Potrzebujesz <code>DELETE</code> i <code>RESTORE</code>. Po <code>VACUUM</code> starych wersji nie da się odzyskać po upływie okresu retencji, a <code>DROP TABLE</code> usuwa całą tabelę.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>spark.sql(f"DELETE FROM {TABLE}")
+print(f"Rows after the accident: {spark.table(TABLE).count():,}")
+spark.sql(f"RESTORE TABLE {TABLE} TO VERSION AS OF {safe_version}")
+print(f"Rows after RESTORE: {spark.table(TABLE).count():,}")</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t12-docs-t"><h4 class="sec-title" id="t12-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-restore" target="_blank" rel="noopener noreferrer">RESTORE</a></li><li><a href="https://learn.microsoft.com/azure/databricks/tables/history" target="_blank" rel="noopener noreferrer">Praca z historią tabeli</a></li><li><a href="https://learn.microsoft.com/azure/databricks/tables/operations/vacuum" target="_blank" rel="noopener noreferrer">VACUUM</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_delta</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_delta&quot;, &quot;t12&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_delta&quot;, &quot;t12&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section>
+<footer class="foot">Wygenerowano z <code>ws_delta.json + i18n/pl/ws_delta.json</code> przez <code>build_static.py</code>. Wersja tego przewodnika w aplikacji Databricks pokazuje wyniki sprawdzania na bieżąco.</footer>
+</main>
+</div>
+<div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+<script id="guide-data" type="application/json">{"id":"ws_delta","steps":[{"id":"t01","type":"fill","check":"notebook","optional":false,"hints":3,"template":"CREATE OR REPLACE {{b1}} lab_delta_cust_ws {{b2}}\nSELECT * FROM {{b3}}","blanks":{"b1":{"answers":["TABLE"],"case_sensitive":false},"b2":{"answers":["AS"],"case_sensitive":false},"b3":{"answers":["customers_csv"],"case_sensitive":false}}},{"id":"t02","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t03","type":"fill","check":"notebook","optional":false,"hints":3,"template":"ALTER TABLE lab_delta_cust_ws {{b1}} {{b2}} STRING","blanks":{"b1":{"answers":["ADD COLUMN","ADD COLUMNS"],"case_sensitive":false},"b2":{"answers":["loyalty_tier"],"case_sensitive":false}}},{"id":"t04","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t05","type":"fill","check":"notebook","optional":false,"hints":3,"template":"INSERT INTO lab_delta_cust_ws (customer_id, first_name, last_name, email, country)\n{{b1}} ('TEST001', 'Alice', 'Test', 'alice@test.com', {{b2}}),\n       ('TEST002', 'Bob',   'Test', 'bob@test.com',   'TestLand'),\n       ('TEST003', 'Carol', 'Test', 'carol@test.com', 'TestLand')","blanks":{"b1":{"answers":["VALUES"],"case_sensitive":false},"b2":{"answers":["'TestLand'"],"case_sensitive":false}}},{"id":"t06","type":"fill","check":"notebook","optional":false,"hints":3,"template":"UPDATE lab_delta_cust_ws\nSET country = 'Poland', {{b1}} = 'Gold'\n{{b2}} customer_id = 'TEST001'","blanks":{"b1":{"answers":["loyalty_tier"],"case_sensitive":false},"b2":{"answers":["WHERE"],"case_sensitive":false}}},{"id":"t07","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t08","type":"order","check":"notebook","optional":false,"hints":3,"blocks":[{"id":"m1","code":"MERGE INTO lab_delta_cust_ws AS t"},{"id":"m2","code":"USING updates_view AS s"},{"id":"m3","code":"ON t.customer_id = s.customer_id"},{"id":"m4","code":"WHEN MATCHED THEN UPDATE SET\n  first_name = s.first_name, last_name = s.last_name, email = s.email,\n  country = s.country, loyalty_tier = s.loyalty_tier"},{"id":"m5","code":"WHEN NOT MATCHED THEN INSERT (customer_id, first_name, last_name, email, country, loyalty_tier)\n  VALUES (s.customer_id, s.first_name, s.last_name, s.email, s.country, s.loyalty_tier)"},{"id":"d1","code":"WHEN NOT MATCHED BY SOURCE THEN DELETE"},{"id":"d2","code":"ON t.email = s.email"}],"solution":["m1","m2","m3","m4","m5"],"distractors":["d1","d2"]},{"id":"t09","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t10","type":"order","check":"notebook","optional":false,"hints":3,"blocks":[{"id":"v1","code":"CREATE OR REPLACE TEMP VIEW customers_v0 AS"},{"id":"v2","code":"SELECT *"},{"id":"v3","code":"FROM lab_delta_cust_ws"},{"id":"v4","code":"VERSION AS OF 0;"},{"id":"x1","code":"TIMESTAMP AS OF 0;"},{"id":"x2","code":"WHERE version = 0;"}],"solution":["v1","v2","v3","v4"],"distractors":["x1","x2"]},{"id":"t11","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t12","type":"order","check":"notebook","optional":false,"hints":3,"blocks":[{"id":"r1","code":"spark.sql(f\"DELETE FROM {TABLE}\")"},{"id":"r2","code":"print(f\"Rows after the accident: {spark.table(TABLE).count():,}\")"},{"id":"r3","code":"spark.sql(f\"RESTORE TABLE {TABLE} TO VERSION AS OF {safe_version}\")"},{"id":"r4","code":"print(f\"Rows after RESTORE: {spark.table(TABLE).count():,}\")"},{"id":"y1","code":"spark.sql(f\"VACUUM {TABLE}\")"},{"id":"y2","code":"spark.sql(f\"DROP TABLE {TABLE}\")"}],"solution":["r1","r2","r3","r4"],"distractors":["y1","y2"]}]}</script>
+<script id="guide-l10n" type="application/json">{"plural":"pl","copied":"Skopiowano","copy_failed":"Nie skopiowano","copied_announce":"Kod skopiowany do schowka.","copy_failed_announce":"Nie udało się skopiować. Zaznacz kod i skopiuj go ręcznie.","states":{"none":"Nierozpoczęty","progress":"W toku","ready":"Gotowe: uruchom check() w notebooku","done":"Zaliczony"},"overall":"Zaliczone kroki: {n} / {total}","overall_optional":" · ⭐ opcjonalne: {n} / {total}","show_solution":"Pokaż rozwiązanie","show_hint":"Pokaż podpowiedź","show_next_hint":"Pokaż następną podpowiedź","hints_shown":"pokazane: {n} z {total}","fill_all":"Wszystkie luki są poprawne ({total}).","fill_some":"Poprawne luki: {n} z {total}.","fill_all_announce":"Wszystkie luki są poprawne.","run_check_tail":" Skopiuj kod do notebooka, uruchom komórkę, a potem uruchom check() dla tego kroku.","block_added":"Dodano „{b}” na pozycji {n}.","block_removed":"Usunięto „{b}” z odpowiedzi.","block_moved":"Przesunięto na pozycję {n}.","answer_empty":"Twoja odpowiedź jest pusta: najpierw dodaj bloki.","blocks_reset":"Wszystkie bloki wróciły na listę.","order_pass":"Poprawna kolejność: wszystkie bloki ({total}) są na miejscu.","order_positions":"Bloki na właściwym miejscu: {n} z {total}.","order_extra":["{n} blok tu nie pasuje.","{n} bloki tu nie pasują.","{n} bloków tu nie pasuje."],"order_missing":["Brakuje {n} bloku.","Brakuje {n} bloków.","Brakuje {n} bloków."],"match_pass":"Wszystkie pary dopasowane ({total}).","match_some":"Dopasowane pary: {n} z {total}.","term_placed":"Umieszczono pojęcie przy opisie: ","step_done":"Krok oznaczony jako zaliczony.","reset_confirm":"Wyczyścić cały postęp, odpowiedzi i podpowiedzi tego warsztatu w tej przeglądarce?"}</script>
+<script>
+/* Page language: strings from #guide-l10n (build_static.py STRINGS[lang]["js"]). */
+var L = JSON.parse(document.getElementById('guide-l10n').textContent);
+function fmt(s, v) {
+  return String(s).replace(/\{(\w+)\}/g, function (m, k) { return v[k] !== undefined ? String(v[k]) : m; });
+}
+/* English forms: [one, other]; Polish forms: [one, few (2-4, not 12-14), many]. */
+function plural(n, forms) {
+  if (forms.length === 2) return forms[n === 1 ? 0 : 1];
+  if (n === 1) return forms[0];
+  var d = n % 10, h = n % 100;
+  return forms[(d >= 2 && d <= 4 && !(h >= 12 && h <= 14)) ? 1 : 2];
+}
+
+/* Pure grading logic: port of apps/workshop-guide/client/src/lib/exercise.ts. */
+var WG = (function () {
+  function normalize(value, caseSensitive) {
+    var collapsed = String(value).trim().replace(/\s+/g, ' ');
+    return caseSensitive ? collapsed : collapsed.toLowerCase();
+  }
+  function isBlankCorrect(value, blank) {
+    if (!String(value || '').trim()) return false;
+    var typed = normalize(value, blank.case_sensitive);
+    return blank.answers.some(function (a) { return normalize(a, blank.case_sensitive) === typed; });
+  }
+  function blankState(value, blank) {
+    if (!String(value || '').trim()) return 'empty';
+    return isBlankCorrect(value, blank) ? 'correct' : 'wrong';
+  }
+  function assembleFill(step, values) {
+    return step.template.replace(/\{\{(b\d+)\}\}/g, function (_, id) {
+      var v = (values[id] || '').trim();
+      return v || '____';
+    });
+  }
+  function fillProgress(step, values) {
+    var ids = Object.keys(step.blanks);
+    var correct = ids.filter(function (id) { return isBlankCorrect(values[id] || '', step.blanks[id]); }).length;
+    return { correct: correct, total: ids.length };
+  }
+  function checkOrder(step, answer) {
+    var total = step.solution.length;
+    var pass = answer.length === total && answer.every(function (id, i) { return id === step.solution[i]; });
+    var correctPositions = answer.filter(function (id, i) { return step.solution[i] === id; }).length;
+    var distractorsUsed = answer.filter(function (id) { return step.distractors.indexOf(id) >= 0; }).length;
+    var missing = step.solution.filter(function (id) { return answer.indexOf(id) < 0; }).length;
+    var message;
+    if (pass) {
+      message = fmt(L.order_pass, { total: total });
+    } else {
+      var parts = [fmt(L.order_positions, { n: correctPositions, total: total })];
+      if (distractorsUsed > 0) parts.push(fmt(plural(distractorsUsed, L.order_extra), { n: distractorsUsed }));
+      if (missing > 0) parts.push(fmt(plural(missing, L.order_missing), { n: missing }));
+      message = parts.join(' ');
+    }
+    return { pass: pass, correctPositions: correctPositions, total: total, distractorsUsed: distractorsUsed, missing: missing, message: message };
+  }
+  function assembleOrder(step, answer) {
+    var byId = {};
+    step.blocks.forEach(function (b) { byId[b.id] = b.code; });
+    return answer.map(function (id) { return byId[id] || ''; }).join('\n');
+  }
+  /* assignment: slot index (pair whose right text the slot shows) -> index of the dropped term. */
+  function checkMatch(step, assignment) {
+    var total = step.pairs.length, correct = 0, slotCorrect = {};
+    step.pairs.forEach(function (pair, slot) {
+      var term = assignment[slot];
+      if (term === null || term === undefined || term === '') return;
+      var t = step.pairs[Number(term)];
+      var ok = !!t && (t.left === pair.left || t.right === pair.right);
+      slotCorrect[slot] = ok;
+      if (ok) correct += 1;
+    });
+    var pass = correct === total;
+    return { pass: pass, correct: correct, total: total, slotCorrect: slotCorrect,
+             message: fmt(pass ? L.match_pass : L.match_some, { n: correct, total: total }) };
+  }
+  return { normalize: normalize, isBlankCorrect: isBlankCorrect, blankState: blankState, assembleFill: assembleFill,
+           fillProgress: fillProgress, checkOrder: checkOrder, assembleOrder: assembleOrder, checkMatch: checkMatch };
+})();
+
+(function () {
+  'use strict';
+  var DATA = JSON.parse(document.getElementById('guide-data').textContent);
+  var KEY = 'workshop-guide-static:' + DATA.id;
+  var STEPS = {};
+  DATA.steps.forEach(function (s) { STEPS[s.id] = s; });
+  var live = document.getElementById('live');
+
+  /* ---------- storage (every access in try/catch: private windows, blocked storage) ---------- */
+  function emptyState() { return { v: 1, fill: {}, order: {}, match: {}, hints: {}, done: {}, solved: {}, touched: {} }; }
+  var state = emptyState();
+  var storageOk = true;
+  try {
+    var raw = window.localStorage.getItem(KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.v === 1) Object.keys(state).forEach(function (k) { if (parsed[k]) state[k] = parsed[k]; });
+    }
+  } catch (e) { storageOk = false; }
+  function save() {
+    try { window.localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { storageOk = false; showStorageWarning(); }
+  }
+  function showStorageWarning() {
+    var w = document.getElementById('storage-warning');
+    if (w) w.hidden = storageOk;
+  }
+
+  function announce(msg) {
+    if (!live) return;
+    live.textContent = '';
+    window.setTimeout(function () { live.textContent = msg; }, 30);
+  }
+  function setStatus(sec, msg, tone) {
+    var el = sec.querySelector('[data-status]');
+    if (!el) return;
+    el.textContent = msg;
+    if (tone) el.setAttribute('data-tone', tone); else el.removeAttribute('data-tone');
+  }
+
+  /* ---------- clipboard (file:// pages may lack navigator.clipboard) ---------- */
+  function copyText(text, btn) {
+    function done(ok) {
+      if (!btn) return;
+      var old = btn.getAttribute('data-label') || btn.textContent;
+      btn.setAttribute('data-label', old);
+      btn.textContent = ok ? L.copied : L.copy_failed;
+      announce(ok ? L.copied_announce : L.copy_failed_announce);
+      window.setTimeout(function () { btn.textContent = old; }, 1600);
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      done(ok);
+    }
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+        return;
+      }
+    } catch (e) { /* use the fallback */ }
+    fallback();
+  }
+
+  /* ---------- step status ---------- */
+  function stepStatus(id) {
+    var s = STEPS[id];
+    if (state.done[id] || (s.check === 'app' && state.solved[id])) return 'done';
+    if (state.solved[id]) return 'ready';
+    if (state.touched[id] || state.hints[id]) return 'progress';
+    return 'none';
+  }
+  var LABELS = L.states;
+  function refreshStep(id) {
+    var st = stepStatus(id);
+    var sec = document.getElementById('step-' + id);
+    var link = document.querySelector('[data-nav="' + id + '"]');
+    sec.setAttribute('data-status-v', st);
+    sec.querySelector('[data-state]').textContent = LABELS[st];
+    if (link) {
+      link.setAttribute('data-status-v', st);
+      link.querySelector('[data-nav-state]').textContent = ', ' + LABELS[st].toLowerCase();
+    }
+    var box = sec.querySelector('[data-done]');
+    if (box) box.checked = !!state.done[id];
+  }
+  function refreshOverall() {
+    var req = 0, reqDone = 0, opt = 0, optDone = 0;
+    DATA.steps.forEach(function (s) {
+      var d = stepStatus(s.id) === 'done';
+      if (s.optional) { opt++; if (d) optDone++; } else { req++; if (d) reqDone++; }
+    });
+    document.getElementById('overall-text').textContent =
+      fmt(L.overall, { n: reqDone, total: req }) + (opt ? fmt(L.overall_optional, { n: optDone, total: opt }) : '');
+    var bar = document.getElementById('overall-bar');
+    bar.style.width = (req ? Math.round(100 * reqDone / req) : 0) + '%';
+    bar.parentNode.setAttribute('aria-valuenow', String(reqDone));
+  }
+  function touch(id) {
+    if (!state.touched[id]) { state.touched[id] = true; }
+  }
+  function changed(id) { save(); refreshStep(id); refreshOverall(); }
+
+  /* ---------- hints ---------- */
+  function initHints(sec, s) {
+    var items = sec.querySelectorAll('[data-hint]');
+    if (!items.length) return;
+    var next = sec.querySelector('[data-hint-next]');
+    var confirmBox = sec.querySelector('[data-confirm]');
+    var count = sec.querySelector('[data-hint-count]');
+    function render() {
+      var shown = Math.min(state.hints[s.id] || 0, items.length);
+      items.forEach(function (li, i) { li.hidden = i >= shown; });
+      var nextIsSolution = shown === items.length - 1 && items.length > 1;
+      next.hidden = shown >= items.length;
+      next.textContent = nextIsSolution ? L.show_solution : (shown === 0 ? L.show_hint : L.show_next_hint);
+      count.textContent = fmt(L.hints_shown, { n: shown, total: items.length });
+    }
+    function reveal(n) {
+      state.hints[s.id] = n;
+      render(); changed(s.id);
+      var li = items[n - 1];
+      if (li) { li.setAttribute('tabindex', '-1'); li.focus({ preventScroll: false }); }
+    }
+    next.addEventListener('click', function () {
+      var shown = state.hints[s.id] || 0;
+      if (shown === items.length - 1 && items.length > 1) {
+        confirmBox.hidden = false; next.hidden = true;
+        confirmBox.querySelector('[data-confirm-no]').focus();
+      } else reveal(shown + 1);
+    });
+    confirmBox.querySelector('[data-confirm-yes]').addEventListener('click', function () {
+      confirmBox.hidden = true; reveal(items.length);
+    });
+    confirmBox.querySelector('[data-confirm-no]').addEventListener('click', function () {
+      confirmBox.hidden = true; render(); next.focus();
+    });
+    render();
+  }
+
+  /* ---------- fill ---------- */
+  function initFill(sec, s) {
+    var inputs = sec.querySelectorAll('input[data-blank]');
+    var values = state.fill[s.id] || {};
+    function evaluate(quiet) {
+      inputs.forEach(function (inp) {
+        var st = WG.blankState(inp.value, s.blanks[inp.getAttribute('data-blank')]);
+        inp.setAttribute('data-state', st);
+        inp.setAttribute('aria-invalid', st === 'wrong' ? 'true' : 'false');
+      });
+      var p = WG.fillProgress(s, values);
+      var all = p.correct === p.total;
+      state.solved[s.id] = all;
+      if (all) setStatus(sec, fmt(L.fill_all, { total: p.total }) + L.run_check_tail, 'ok');
+      else setStatus(sec, fmt(L.fill_some, { n: p.correct, total: p.total }), null);
+      if (!quiet && all) announce(L.fill_all_announce);
+    }
+    inputs.forEach(function (inp) {
+      var id = inp.getAttribute('data-blank');
+      if (values[id]) inp.value = values[id];
+      inp.addEventListener('input', function () {
+        values[id] = inp.value; state.fill[s.id] = values; touch(s.id);
+        evaluate(false); changed(s.id);
+      });
+    });
+    sec.querySelector('[data-copy-assembled]').addEventListener('click', function (ev) {
+      copyText(WG.assembleFill(s, values), ev.currentTarget);
+    });
+    sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
+      values = {}; state.fill[s.id] = values;
+      inputs.forEach(function (inp) { inp.value = ''; });
+      evaluate(true); changed(s.id); inputs[0].focus();
+    });
+    evaluate(true);
+  }
+
+  /* ---------- order ---------- */
+  var dragged = null;
+  function initOrder(sec, s) {
+    var pool = sec.querySelector('[data-list="pool"]');
+    var answer = sec.querySelector('[data-list="answer"]');
+    var byId = {};
+    pool.querySelectorAll('[data-block]').forEach(function (li) { byId[li.getAttribute('data-block')] = li; });
+    var initialPool = Object.keys(byId).map(function (k) { return byId[k]; });
+    function current() {
+      return Array.prototype.map.call(answer.querySelectorAll('[data-block]'), function (li) { return li.getAttribute('data-block'); });
+    }
+    function clearMarks() {
+      sec.querySelectorAll('[data-block]').forEach(function (li) { li.removeAttribute('data-mark'); });
+    }
+    function persist(msg) {
+      state.order[s.id] = current(); touch(s.id);
+      state.solved[s.id] = false; clearMarks();
+      setStatus(sec, msg || '', null);
+      changed(s.id);
+    }
+    function blockLabel(li) {
+      var t = li.querySelector('code').textContent.split('\n')[0];
+      return t.length > 50 ? t.slice(0, 50) + '…' : t;
+    }
+    function act(li, action, btn) {
+      var list = li.parentNode;
+      var msg = '';
+      if (action === 'add') { answer.appendChild(li); msg = fmt(L.block_added, { b: blockLabel(li), n: current().length }); }
+      else if (action === 'remove') { pool.appendChild(li); msg = fmt(L.block_removed, { b: blockLabel(li) }); }
+      else if (action === 'up' && li.previousElementSibling) { list.insertBefore(li, li.previousElementSibling); }
+      else if (action === 'down' && li.nextElementSibling) { list.insertBefore(li.nextElementSibling, li); }
+      if (action === 'up' || action === 'down') msg = fmt(L.block_moved, { n: Array.prototype.indexOf.call(list.children, li) + 1 });
+      persist('');
+      announce(msg);
+      var again = li.querySelector('[data-act="' + action + '"]');
+      var target = (again && getComputedStyle(again).display !== 'none') ? again
+        : li.querySelector(action === 'add' ? '[data-act="remove"]' : '[data-act="add"]');
+      if (target) target.focus(); else if (btn) btn.focus();
+    }
+    sec.querySelectorAll('[data-block] [data-act]').forEach(function (btn) {
+      btn.addEventListener('click', function () { act(btn.closest('[data-block]'), btn.getAttribute('data-act'), btn); });
+    });
+    /* drag and drop */
+    Object.keys(byId).forEach(function (k) {
+      var li = byId[k];
+      li.addEventListener('dragstart', function (ev) {
+        dragged = li; li.classList.add('dragging');
+        try { ev.dataTransfer.setData('text/plain', k); ev.dataTransfer.effectAllowed = 'move'; } catch (e) { /* old browsers */ }
+      });
+      li.addEventListener('dragend', function () {
+        li.classList.remove('dragging'); dragged = null;
+        sec.querySelectorAll('.drag-over').forEach(function (el) { el.classList.remove('drag-over'); });
+      });
+    });
+    function afterElement(list, y) {
+      var items = Array.prototype.filter.call(list.querySelectorAll('[data-block]'), function (el) { return el !== dragged; });
+      for (var i = 0; i < items.length; i++) {
+        var r = items[i].getBoundingClientRect();
+        if (y < r.top + r.height / 2) return items[i];
+      }
+      return null;
+    }
+    [pool, answer].forEach(function (list) {
+      list.addEventListener('dragover', function (ev) {
+        if (!dragged || !sec.contains(dragged)) return;
+        ev.preventDefault(); list.classList.add('drag-over');
+      });
+      list.addEventListener('dragleave', function (ev) {
+        if (!list.contains(ev.relatedTarget)) list.classList.remove('drag-over');
+      });
+      list.addEventListener('drop', function (ev) {
+        if (!dragged || !sec.contains(dragged)) return;
+        ev.preventDefault(); list.classList.remove('drag-over');
+        var after = afterElement(list, ev.clientY);
+        if (after) list.insertBefore(dragged, after); else list.appendChild(dragged);
+        persist('');
+      });
+    });
+    sec.querySelector('[data-check-order]').addEventListener('click', function () {
+      var ans = current();
+      if (!ans.length) { setStatus(sec, L.answer_empty, 'bad'); return; }
+      var r = WG.checkOrder(s, ans);
+      touch(s.id); state.solved[s.id] = r.pass;
+      answer.querySelectorAll('[data-block]').forEach(function (li, i) {
+        li.setAttribute('data-mark', s.solution[i] === li.getAttribute('data-block') ? 'ok' : 'bad');
+      });
+      var tail = r.pass ? (s.check === 'notebook' ? L.run_check_tail : '') : '';
+      setStatus(sec, r.message + tail, r.pass ? 'ok' : 'bad');
+      announce(r.message);
+      changed(s.id);
+    });
+    sec.querySelector('[data-copy-assembled]').addEventListener('click', function (ev) {
+      var ans = current();
+      if (!ans.length) { setStatus(sec, L.answer_empty, 'bad'); return; }
+      copyText(WG.assembleOrder(s, ans), ev.currentTarget);
+    });
+    sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
+      initialPool.forEach(function (li) { pool.appendChild(li); });
+      persist('');
+      announce(L.blocks_reset);
+    });
+    /* restore */
+    var saved = state.order[s.id] || [];
+    saved.forEach(function (id) { if (byId[id]) answer.appendChild(byId[id]); });
+    if (state.solved[s.id]) {
+      var r0 = WG.checkOrder(s, current());
+      if (r0.pass) setStatus(sec, r0.message, 'ok'); else state.solved[s.id] = false;
+    }
+  }
+
+  /* ---------- match ---------- */
+  function initMatch(sec, s) {
+    var selects = sec.querySelectorAll('select.match-select');
+    var chips = sec.querySelectorAll('.chip');
+    var saved = state.match[s.id] || {};
+    function assignment() {
+      var a = {};
+      selects.forEach(function (sel) {
+        var slot = sel.closest('[data-slot]').getAttribute('data-slot');
+        a[slot] = sel.value === '' ? null : Number(sel.value);
+      });
+      return a;
+    }
+    function syncChips() {
+      var used = {};
+      selects.forEach(function (sel) { if (sel.value !== '') used[sel.value] = true; });
+      chips.forEach(function (c) { c.setAttribute('data-used', used[c.getAttribute('data-term')] ? 'true' : 'false'); });
+    }
+    function clearMarks() { sec.querySelectorAll('.match-row').forEach(function (r) { r.removeAttribute('data-mark'); }); }
+    function setTerm(sel, term) {
+      /* a term sits in one slot only: clear it elsewhere */
+      if (term !== '') selects.forEach(function (o) { if (o !== sel && o.value === term) o.value = ''; });
+      sel.value = term;
+      var a = assignment(), store = {};
+      Object.keys(a).forEach(function (k) { if (a[k] !== null) store[k] = a[k]; });
+      state.match[s.id] = store; touch(s.id);
+      state.solved[s.id] = false; clearMarks(); syncChips(); setStatus(sec, '', null);
+      changed(s.id);
+    }
+    selects.forEach(function (sel) {
+      var slot = sel.closest('[data-slot]').getAttribute('data-slot');
+      if (saved[slot] !== undefined && saved[slot] !== null) sel.value = String(saved[slot]);
+      sel.addEventListener('change', function () { setTerm(sel, sel.value); });
+    });
+    var draggedTerm = null;
+    chips.forEach(function (c) {
+      c.addEventListener('dragstart', function (ev) {
+        draggedTerm = c.getAttribute('data-term'); c.classList.add('dragging');
+        try { ev.dataTransfer.setData('text/plain', draggedTerm); ev.dataTransfer.effectAllowed = 'move'; } catch (e) { /* ignore */ }
+      });
+      c.addEventListener('dragend', function () {
+        c.classList.remove('dragging'); draggedTerm = null;
+        sec.querySelectorAll('.drag-over').forEach(function (el) { el.classList.remove('drag-over'); });
+      });
+    });
+    sec.querySelectorAll('[data-drop]').forEach(function (zone) {
+      var sel = zone.querySelector('select');
+      zone.addEventListener('dragover', function (ev) { if (draggedTerm === null) return; ev.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', function (ev) { if (!zone.contains(ev.relatedTarget)) zone.classList.remove('drag-over'); });
+      zone.addEventListener('drop', function (ev) {
+        if (draggedTerm === null) return;
+        ev.preventDefault(); zone.classList.remove('drag-over');
+        setTerm(sel, draggedTerm);
+        announce(L.term_placed + zone.closest('[data-slot]').querySelector('label').textContent);
+      });
+    });
+    function grade(quiet) {
+      var r = WG.checkMatch(s, assignment());
+      sec.querySelectorAll('.match-row').forEach(function (row) {
+        var slot = row.getAttribute('data-slot');
+        if (slot in r.slotCorrect) row.setAttribute('data-mark', r.slotCorrect[slot] ? 'ok' : 'bad');
+        else row.removeAttribute('data-mark');
+      });
+      state.solved[s.id] = r.pass;
+      setStatus(sec, r.message, r.pass ? 'ok' : 'bad');
+      if (!quiet) announce(r.message);
+      return r;
+    }
+    sec.querySelector('[data-check-match]').addEventListener('click', function () { touch(s.id); grade(false); changed(s.id); });
+    sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
+      selects.forEach(function (sel) { sel.value = ''; });
+      state.match[s.id] = {}; state.solved[s.id] = false; clearMarks(); syncChips(); setStatus(sec, '', null);
+      changed(s.id); selects[0].focus();
+    });
+    syncChips();
+    if (state.solved[s.id]) grade(true);
+  }
+
+  /* ---------- nav highlight ---------- */
+  function initNav() {
+    var links = document.querySelectorAll('[data-nav]');
+    function setCurrent(id) {
+      links.forEach(function (a) { a.setAttribute('aria-current', a.getAttribute('data-nav') === id ? 'true' : 'false'); });
+    }
+    if ('IntersectionObserver' in window) {
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) setCurrent(e.target.getAttribute('data-step')); });
+      }, { rootMargin: '-15% 0px -70% 0px' });
+      document.querySelectorAll('section.step').forEach(function (sec) { obs.observe(sec); });
+    }
+    links.forEach(function (a) { a.addEventListener('click', function () { setCurrent(a.getAttribute('data-nav')); }); });
+  }
+
+  /* ---------- wire everything ---------- */
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      copyText(btn.parentNode.querySelector('pre').textContent.replace(/\n$/, ''), btn);
+    });
+  });
+  DATA.steps.forEach(function (s) {
+    var sec = document.getElementById('step-' + s.id);
+    if (s.type === 'fill') initFill(sec, s);
+    else if (s.type === 'order') initOrder(sec, s);
+    else if (s.type === 'match') initMatch(sec, s);
+    initHints(sec, s);
+    var box = sec.querySelector('[data-done]');
+    if (box) box.addEventListener('change', function () {
+      state.done[s.id] = box.checked; touch(s.id); changed(s.id);
+      if (box.checked) announce(L.step_done);
+    });
+    refreshStep(s.id);
+  });
+  refreshOverall();
+  initNav();
+  showStorageWarning();
+  document.getElementById('reset-all').addEventListener('click', function () {
+    if (!window.confirm(L.reset_confirm)) return;
+    try { window.localStorage.removeItem(KEY); } catch (e) { /* nothing to clear */ }
+    window.location.reload();
+  });
+  document.documentElement.classList.add('js');
+})();
+</script>
+</body>
+</html>

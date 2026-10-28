@@ -1,5 +1,5 @@
 /**
- * Workshop 1 — Ingestion: SQL version of notebooks/workshops/_checks/ws_ingestion.ipynb.
+ * Workshop I — Ingestion: SQL version of notebooks/workshops/_checks/ws_ingestion.ipynb.
  *
  * The notebook objects are DataFrames, so every step except t11 saves its result to a
  * scratch table <catalog>.default._ws_ws_ingestion_<step> with one pre-filled line

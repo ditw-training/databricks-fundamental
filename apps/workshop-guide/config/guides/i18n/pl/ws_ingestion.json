@@ -1,0 +1,255 @@
+{
+  "id": "ws_ingestion",
+  "title": "Warsztat I — Ingestion",
+  "intro": "Jesteś inżynierem danych w RetailHub. Wczytasz surowe pliki klientów (CSV) i zamówień (JSON) jako DataFrame, przekształcisz je za pomocą PySpark i równoważnych zapytań SQL, a na koniec zapiszesz tabelę Bronze w formacie Delta z metadanymi ładowania. Kod uruchamiasz w notebooku `WORKSHOP_ingestion`; po każdym kroku uruchom jego komórkę, potem kliknij tutaj **Sprawdź**: aplikacja sprawdzi wynik i oznaczy krok. Ostatnia linia komórki kroku zapisuje twój wynik do tabeli `default._ws_...` w twoim katalogu; nie usuwaj jej. Kroki opcjonalne (⭐, w notebooku oznaczone OPTIONAL) możesz pominąć. DataFrame to tabela, którą Spark trzyma dla ciebie, podobnie jak wynik zapytania SELECT; `spark` i `display()` są gotowe w każdym notebooku Databricks.",
+  "steps": {
+    "t01": {
+      "title": "Funkcje PySpark i ich odpowiedniki w SQL",
+      "explain": "Komórka konfiguracyjna uruchamia `from pyspark.sql import functions as F`. `F` zawiera funkcje znane z SQL: `F.year` to `year()`, `F.count` to `COUNT`, a `F.when` to `CASE WHEN`. Dzięki prefiksowi `F` wbudowane funkcje Pythona, takie jak `sum()` czy `max()`, nadal działają. Dopasuj każde wyrażenie PySpark do kodu SQL, który robi to samo. Przydadzą ci się wszystkie w tym warsztacie.",
+      "expected": "Wszystkie sześć par dopasowanych.",
+      "hints": [
+        "Czytaj kod PySpark jak SQL: nazwa funkcji zwykle się nie zmienia (`year` → `year`, `count` → `COUNT`).",
+        "`.alias(...)` to w SQL `AS`, `.otherwise(...)` to `ELSE`, a `.filter(...)` staje się klauzulą `WHERE`.",
+        "Pary: `F.col(\"city\")` → `city`; `F.year(...)` → `year(registration_date)`; `F.count(\"*\").alias(...)` → `COUNT(*) AS order_count`; `F.when(...).otherwise(...)` → `CASE WHEN ... END`; `.cast(\"timestamp\")` → `CAST(... AS TIMESTAMP)`; `df.filter(...)` → `WHERE state = 'NY'`."
+      ],
+      "pairs": [
+        {
+          "left": "F.col(\"city\")",
+          "right": "city (odwołanie do kolumny)"
+        },
+        {
+          "left": "F.year(F.col(\"registration_date\"))",
+          "right": "year(registration_date)"
+        },
+        {
+          "left": "F.count(\"*\").alias(\"order_count\")",
+          "right": "COUNT(*) AS order_count"
+        },
+        {
+          "left": "F.when(cond, \"New\").otherwise(\"Loyal\")",
+          "right": "CASE WHEN cond THEN 'New' ELSE 'Loyal' END"
+        },
+        {
+          "left": "F.col(\"order_datetime\").cast(\"timestamp\")",
+          "right": "CAST(order_datetime AS TIMESTAMP)"
+        },
+        {
+          "left": "df.filter(F.col(\"state\") == \"NY\")",
+          "right": "WHERE state = 'NY'"
+        }
+      ],
+      "docs": [
+        {
+          "label": "Funkcje PySpark"
+        },
+        {
+          "label": "Podstawy PySpark"
+        }
+      ]
+    },
+    "t02": {
+      "title": "Wczytaj CSV z automatycznie wykrytym schematem",
+      "explain": "`spark.read` zwraca obiekt do odczytu, który konfigurujesz krok po kroku: format, opcje, wczytanie, a na końcu wyświetlenie. `header` mówi, że pierwszy wiersz zawiera nazwy kolumn. `inferSchema` każe Sparkowi przejrzeć plik i zgadnąć typy, co kosztuje dodatkowe przejście po danych. Nawiasy pozwalają rozpisać jedną instrukcję Pythona na kilka linii, po jednej metodzie w linii. Dwa bloki to pułapki.\n\nOdpowiednik w SQL: `SELECT * FROM read_files('<path>/customers.csv', format => 'csv', header => true)`.\n\nWklej swój kod nad ostatnią linią komórki w notebooku: ta linia zapisuje `customers_infer_df` do tabeli, żeby aplikacja mogła go sprawdzić.",
+      "expected": "`customers_infer_df` z 10 nazwanymi kolumnami (`customer_id`, `first_name`, ...) i 10 000 wierszy.",
+      "hints": [
+        "Odczyt zawsze zaczyna się od `spark.read` i kończy na `.load(path)`. Zapis (`.write`, `.saveAsTable`) tu nie pasuje.",
+        "Kolejność: przypisanie z `(`, `spark.read.format(\"csv\")`, blok opcji (obie linie `.option(...)`), `.load(CUSTOMERS_CSV)`, `)`, potem `display(...)`.",
+        "Pełne rozwiązanie:\n```python\ncustomers_infer_df = (\n    spark.read.format(\"csv\")\n    .option(\"header\", \"true\")        # first row = column names\n    .option(\"inferSchema\", \"true\")   # let Spark guess the types\n    .load(CUSTOMERS_CSV)\n)\ndisplay(customers_infer_df.limit(5))\n```"
+      ],
+      "docs": [
+        {
+          "label": "Odczyt i zapis plików CSV"
+        },
+        {
+          "label": "DataFrameReader"
+        }
+      ]
+    },
+    "t03": {
+      "title": "Wczytaj CSV z jawnym schematem",
+      "explain": "Schemat w formacie DDL to lista kolumn taka sama jak w `CREATE TABLE`: `\"customer_id STRING, first_name STRING, ...\"`. Przekaż go do `.schema(...)` zamiast `inferSchema`. Spark pomija wtedy dodatkowe skanowanie, a ty decydujesz o każdym typie. Kolumny CSV są dopasowywane po pozycji, więc kolejność musi być taka jak w pliku. `registration_date` ma format `YYYY-MM-DD`, więc `DATE` odczyta ją bezpośrednio.\n\nOdpowiednik w SQL: `read_files('<path>/customers.csv', format => 'csv', header => true, schema => 'customer_id STRING, ...')`.",
+      "expected": "`customers_df` z 10 kolumnami w kolejności z pliku CSV, `registration_date` jako DATE, pozostałe jako STRING; 10 000 wierszy.",
+      "hints": [
+        "Który typ SQL przechowuje datę bez czasu? Która opcja mówi, że pierwszy wiersz zawiera nazwy kolumn?",
+        "Metoda, która przyjmuje schemat, nazywa się tak samo jak to, co przyjmuje. Zmienna ze ścieżką jest zdefiniowana w komórce konfiguracyjnej.",
+        "Luki: `DATE`, `header`, `schema`, `CUSTOMERS_CSV`."
+      ],
+      "docs": [
+        {
+          "label": "Odczyt i zapis plików CSV"
+        },
+        {
+          "label": "DataFrameReader.schema"
+        }
+      ]
+    },
+    "t04": {
+      "title": "Poznaj DataFrame z klientami",
+      "explain": "Zanim zaczniesz przekształcać dane, obejrzyj je. `.count()` zwraca liczbę wierszy jako liczbę całkowitą Pythona. `.select(\"country\").distinct().count()` liczy unikalne wartości, a `.summary()` zwraca DataFrame z liczbą, średnią, minimum, maksimum i percentylami dla każdej kolumny.\n\nZapisz wyniki w `total_rows` (int), `distinct_countries` (int) i `summary_df` (DataFrame).\n\nOdpowiednik w SQL: `SELECT count(*), count(DISTINCT country) FROM customers_view`.",
+      "expected": "`total_rows` = 10 000, `distinct_countries` = 1 (wszyscy klienci są z USA), `summary_df` to DataFrame.",
+      "hints": [
+        "Trzy osobne jednolinijkowe instrukcje na `customers_df`. Liczenie zwraca `int` Pythona, a `summary()` zwraca DataFrame.",
+        "Wzorzec: `df.count()`, `df.select(\"col\").distinct().count()`, `df.summary()`.",
+        "Pełne rozwiązanie:\n```python\n# Step 04 — row count, distinct countries, summary statistics\ntotal_rows = customers_df.count()\ndistinct_countries = customers_df.select(\"country\").distinct().count()\nsummary_df = customers_df.summary()\n\nprint(f\"Total rows: {total_rows:,} | distinct countries: {distinct_countries}\")\ndisplay(summary_df)\n\n# saves your result so the app can check it\n(spark.createDataFrame([(total_rows, distinct_countries)], \"total_rows BIGINT, distinct_countries BIGINT\")\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t04\"))\n```"
+      ],
+      "docs": [
+        {
+          "label": "Klasa DataFrame"
+        },
+        {
+          "label": "Podstawy PySpark"
+        }
+      ]
+    },
+    "t05": {
+      "title": "Wczytaj zamówienia JSON ze schematem",
+      "explain": "`orders_batch.json` to JSON Lines: jeden obiekt JSON w każdej linii. Łańcuch odczytu jest taki sam jak dla CSV, zmienia się tylko format. JSON nie ma opcji nagłówka, a pola są dopasowywane po nazwie, więc kolejność kolumn w schemacie nie ma znaczenia. `order_datetime` zostaje tu typu STRING; przekonwertujesz go w kroku 07.\n\nOdpowiednik w SQL: `SELECT * FROM read_files('<path>/orders_batch.json', format => 'json', schema => 'order_id STRING, ...')`.",
+      "expected": "`orders_df` z 8 kolumnami, `total_amount` typu DOUBLE, `order_datetime` typu STRING; 100 000 wierszy.",
+      "hints": [
+        "Te same trzy kroki odczytu co w kroku 03: format, schemat, a potem metoda, która wczytuje ścieżkę.",
+        "Nazwę formatu piszesz małymi literami; cudzysłowy są już w kodzie.",
+        "Luki: `json`, `schema`, `load`."
+      ],
+      "docs": [
+        {
+          "label": "Odczyt i zapis plików JSON"
+        },
+        {
+          "label": "DataFrameReader"
+        }
+      ]
+    },
+    "t06": {
+      "title": "Przefiltruj klientów",
+      "explain": "`df.filter(condition)` zostawia wiersze, dla których warunek jest prawdziwy, tak jak `WHERE` w SQL. Dopasowanie do listy to `F.col(\"state\").isin([\"NY\", \"CA\"])`, czyli `IN` z SQL. Rok z daty to `F.year(F.col(\"registration_date\"))`. Możesz też napisać zapytanie w SQL na `customers_view` i przypisać jego wynik przez `spark.sql(...)`.\n\nOdpowiednik w SQL: `SELECT * FROM customers_view WHERE state IN ('NY', 'CA')`.",
+      "expected": "`customers_ny_ca` zawiera tylko NY i CA (około 1600 wierszy); w `customers_recent` nie ma klientów zarejestrowanych przed 2025 rokiem.",
+      "hints": [
+        "Dwa wywołania `filter` na `customers_df` albo jedno z nich jako `spark.sql(\"SELECT ... FROM customers_view WHERE ...\")`.",
+        "Elementy do użycia: `F.col(\"state\").isin([...])` i `F.year(F.col(\"registration_date\")) >= 2025`.",
+        "Pełne rozwiązanie:\n```python\n# Step 06 — PySpark filter with isin\ncustomers_ny_ca = customers_df.filter(F.col(\"state\").isin([\"NY\", \"CA\"]))\n\n# SQL option on the temp view (PySpark: F.year(F.col(\"registration_date\")) >= 2025)\ncustomers_recent = spark.sql(\"SELECT * FROM customers_view WHERE year(registration_date) >= 2025\")\n\nprint(f\"NY or CA: {customers_ny_ca.count():,} | recent: {customers_recent.count():,}\")\n\n# saves your result so the app can check it\n(customers_ny_ca.withColumn(\"_part\", F.lit(\"ny_ca\")).unionByName(customers_recent.withColumn(\"_part\", F.lit(\"recent\")), allowMissingColumns=True)\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t06\"))\n```"
+      ],
+      "docs": [
+        {
+          "label": "Podstawy PySpark"
+        },
+        {
+          "label": "createOrReplaceTempView"
+        }
+      ]
+    },
+    "t07": {
+      "title": "Dodaj kolumny i zmień typy",
+      "explain": "`df.withColumn(\"name\", expression)` zwraca nowy DataFrame z jedną kolumną więcej; kilka wywołań łączysz w łańcuch w nawiasach. `F.concat_ws(\" \", a, b)` łączy napisy separatorem i pomija NULL. `.cast(\"timestamp\")` zamienia tekst taki jak `2024-12-31T23:56:00` na znacznik czasu; NULL zostaje NULL. Jeśli tekstu nie da się przekonwertować, Databricks zgłasza błąd; `try_cast` zwraca wtedy NULL. W drugiej luce wpisz separator razem z cudzysłowami: `\" \"`.\n\nOdpowiedniki w SQL: `SELECT *, concat_ws(' ', first_name, last_name) AS full_name, year(registration_date) AS registration_year FROM customers_view` oraz `SELECT *, CAST(order_datetime AS TIMESTAMP) AS order_ts FROM orders_view`.",
+      "expected": "`customers_enriched` ma `full_name` (STRING) i `registration_year` (INT); `orders_typed` ma `order_ts` (TIMESTAMP) i nie ma nowych wartości NULL.",
+      "hints": [
+        "Linia tuż pod luką już używa metody, która dodaje kolumnę. Separator między imieniem a nazwiskiem to jedna spacja w cudzysłowie.",
+        "Nazwy funkcji PySpark są takie jak w SQL: `year(...)` i `CAST(...)` to `F.year(...)` i `.cast(...)`.",
+        "Luki: `withColumn`, `\" \"`, `year`, `cast`."
+      ],
+      "docs": [
+        {
+          "label": "Podstawy PySpark"
+        },
+        {
+          "label": "Column.cast (PySpark)"
+        },
+        {
+          "label": "Funkcja cast (SQL)"
+        }
+      ]
+    },
+    "t08": {
+      "title": "Kolumna warunkowa: segment klienta",
+      "explain": "`F.when(condition, value)` zaczyna wyrażenie warunkowe, `.when(...)` dodaje kolejne gałęzie, a `.otherwise(value)` to `ELSE`. Wygrywa pierwsza pasująca gałąź, więc sprawdź `>= 2025` przed `>= 2024`. Bez `.otherwise()` niepasujące wiersze dostają NULL. Reguły: `registration_year` >= 2025 → New, >= 2024 → Regular, w pozostałych przypadkach Loyal.\n\nOdpowiednik w SQL: `CASE WHEN year(registration_date) >= 2025 THEN 'New' WHEN ... ELSE 'Loyal' END AS customer_tier`.",
+      "expected": "`customers_tiered` ma kolumnę `customer_tier` z dokładnie trzema wartościami: New, Regular i Loyal, bez NULL.",
+      "hints": [
+        "Pierwsza gałąź musi złapać najnowszych klientów. Każda kolejna gałąź używa tej samej metody co pierwsza.",
+        "W SQL to `CASE WHEN ... WHEN ... ELSE ... END`: `WHEN` → `.when`, `ELSE` → `.otherwise`.",
+        "Luki: `2025`, `when`, `otherwise`."
+      ],
+      "docs": [
+        {
+          "label": "when (PySpark)"
+        },
+        {
+          "label": "Funkcje PySpark"
+        }
+      ]
+    },
+    "t09": {
+      "title": "Zagreguj zamówienia według metody płatności",
+      "explain": "`groupBy(...)` mówi, która kolumna tworzy grupy, `.agg(...)` liczy jedną wartość na grupę, a `.orderBy(...)` sortuje wynik. Kolejność ma znaczenie: po `total_revenue` posortujesz dopiero wtedy, gdy `.agg` utworzy tę kolumnę. `.alias(...)` to `AS` z SQL; bez niego Spark nazwie kolumnę `count(1)`. Wiersze bez metody płatności (NULL) tworzą osobną grupę. Dwa bloki to pułapki.\n\nOdpowiednik w SQL: `SELECT payment_method, COUNT(*) AS order_count, SUM(total_amount) AS total_revenue, AVG(total_amount) AS avg_order_value FROM orders_view GROUP BY payment_method ORDER BY total_revenue DESC`.\n\nWklej swój kod nad ostatnią linią komórki w notebooku: ta linia zapisuje `payment_stats` do tabeli, żeby aplikacja mogła go sprawdzić.",
+      "expected": "`payment_stats` z jednym wierszem na metodę płatności (5 wierszy razem z NULL), kolumny `payment_method`, `order_count`, `total_revenue`, `avg_order_value`, posortowane malejąco według `total_revenue`.",
+      "hints": [
+        "Pomyśl o kolejności klauzul SQL: `FROM` → `GROUP BY` → agregaty → `ORDER BY`. Grupować i sortować możesz tylko po kolumnach, które w tym miejscu już istnieją.",
+        "Kolejność: `payment_stats = (`, `orders_df`, `.groupBy(\"payment_method\")`, `.agg(...)`, `.orderBy(F.desc(\"total_revenue\"))`, `)`, `display(...)`.",
+        "Pełne rozwiązanie:\n```python\npayment_stats = (\n    orders_df\n    .groupBy(\"payment_method\")\n    .agg(\n        F.count(\"*\").alias(\"order_count\"),\n        F.sum(\"total_amount\").alias(\"total_revenue\"),\n        F.avg(\"total_amount\").alias(\"avg_order_value\"),\n    )\n    .orderBy(F.desc(\"total_revenue\"))\n)\ndisplay(payment_stats)\n```"
+      ],
+      "docs": [
+        {
+          "label": "DataFrame.groupBy"
+        },
+        {
+          "label": "Podstawy PySpark"
+        }
+      ]
+    },
+    "t10": {
+      "title": "SQL na widokach tymczasowych",
+      "explain": "`df.createOrReplaceTempView(\"name\")` (gotowe komórki po krokach 03 i 05) nadaje DataFrame nazwę dostępną w SQL, dopóki notebook nie zostanie odłączony albo klaster nie zostanie zrestartowany. Dane nie są przy tym kopiowane. `spark.sql(\"SELECT ...\")` zwraca zwykły DataFrame. Widok tymczasowy nie jest nigdzie zapisywany; widok utworzony przez `CREATE VIEW catalog.schema.name` zostaje.\n\nZwróć kolumny `state` i `customer_count`, posortowane malejąco według `customer_count`, 5 wierszy. Wszyscy klienci są z USA, więc ranking dotyczy stanów.",
+      "expected": "`top_states` z 5 wierszami i kolumnami `state`, `customer_count`, posortowany malejąco według `customer_count`.",
+      "hints": [
+        "Zwykły SQL w `spark.sql(\"\"\"...\"\"\")`: pogrupuj po stanie, policz, posortuj i ogranicz liczbę wierszy.",
+        "Szkielet: `SELECT state, COUNT(*) AS customer_count FROM customers_view GROUP BY ... ORDER BY ... LIMIT 5`.",
+        "Pełne rozwiązanie:\n```python\n# Step 10 — top 5 states by number of customers\ntop_states = spark.sql(\"\"\"\n    SELECT state, COUNT(*) AS customer_count\n    FROM customers_view\n    GROUP BY state\n    ORDER BY customer_count DESC\n    LIMIT 5\n\"\"\")\ndisplay(top_states)\n\n# saves your result so the app can check it\ntop_states.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t10\")\n```"
+      ],
+      "docs": [
+        {
+          "label": "createOrReplaceTempView"
+        },
+        {
+          "label": "Podstawy PySpark"
+        }
+      ]
+    },
+    "t11": {
+      "title": "Zapisz tabelę Bronze w formacie Delta",
+      "explain": "Warstwa Bronze przechowuje dane źródłowe bez zmian, plus metadane: kiedy je wczytano (`_load_ts`) i z jakiego pliku (`_source_file`). Zacznij od surowego `customers_df`. `_metadata` to ukryta kolumna dostępna w każdym DataFrame wczytanym z plików. Bez kolumn biznesowych: `full_name` i `customer_tier` należą do warstwy Silver. Delta to domyślny format tabel; `overwriteSchema` pozwala uruchomić komórkę ponownie po zmianie kolumn.\n\nOdpowiednik w SQL: `CREATE OR REPLACE TABLE <TARGET_TABLE> AS SELECT *, _metadata.file_path AS _source_file, current_timestamp() AS _load_ts FROM read_files(...)`.",
+      "expected": "`TARGET_TABLE` istnieje i ma 10 kolumn źródłowych plus `_load_ts` (TIMESTAMP) i `_source_file` (ścieżka kończąca się na `customers.csv`); tyle samo wierszy co `customers_df`.",
+      "hints": [
+        "Ścieżka pliku to pole `file_path` ukrytej kolumny `_metadata`. Czas wczytania zwraca funkcja SQL `current_timestamp()`.",
+        "Tryb zapisu, który zastępuje istniejące dane, to `overwrite`; metoda zapisu do tabeli Unity Catalog kończy się na `AsTable`.",
+        "Luki: `_metadata.file_path`, `current_timestamp`, `overwrite`, `saveAsTable`."
+      ],
+      "docs": [
+        {
+          "label": "Kolumna metadanych pliku"
+        },
+        {
+          "label": "saveAsTable"
+        },
+        {
+          "label": "Architektura medalionowa"
+        }
+      ]
+    },
+    "t12": {
+      "title": "Złącz zamówienia z klientami",
+      "explain": "Złączenie typu left join zachowuje każde zamówienie; tam, gdzie nie ma dopasowania, kolumny klienta mają NULL. `orders_df.join(customers_df, on=\"customer_id\", how=\"left\")` łączy po wspólnej kolumnie i zostawia jedną kolumnę `customer_id`, więc zwykłe `.select(\"order_id\", ...)` działa. Wybierz `order_id`, `customer_id`, `first_name`, `last_name`, `country`, `total_amount`, `payment_method`, potem policz zamówienia i zsumuj przychód dla każdego `country`, posortowane malejąco według `total_revenue`.\n\nOdpowiednik w SQL: `SELECT order_id, customer_id, first_name, ... FROM orders_view LEFT JOIN customers_view USING (customer_id)`.",
+      "expected": "`orders_enriched` ma 7 kolumn i 105 064 wiersze: `orders_df` ma 100 000, ale 266 identyfikatorów klientów występuje w surowym pliku klientów dwa razy, więc kilka zamówień pasuje podwójnie (usuwanie duplikatów to zadanie warstwy Silver). `orders_by_country` ma `country`, `order_count`, `total_revenue` i dwa wiersze: USA i NULL (zamówienia bez pasującego klienta); tak ma być.",
+      "hints": [
+        "Dwie części: `orders_df.join(customers_df, on=\"customer_id\", how=\"left\").select(...)`, potem `groupBy(\"country\").agg(...)` jak w kroku 09.",
+        "Warunek możesz też zapisać tak: `orders_df[\"customer_id\"] == customers_df[\"customer_id\"]`. Wtedy zostają obie kolumny `customer_id`, a w `.select` musisz napisać `orders_df[\"customer_id\"]`, żeby uniknąć niejednoznacznego odwołania. Z `on=\"customer_id\"` nie jest to potrzebne.",
+        "Pełne rozwiązanie:\n```python\n# Step 12 — left join orders with customers\norders_enriched = (\n    orders_df\n    .join(customers_df, on=\"customer_id\", how=\"left\")\n    .select(\"order_id\", \"customer_id\", \"first_name\", \"last_name\",\n            \"country\", \"total_amount\", \"payment_method\")\n)\n\n# Orders and revenue per country\norders_by_country = (\n    orders_enriched.groupBy(\"country\")\n    .agg(F.count(\"*\").alias(\"order_count\"), F.sum(\"total_amount\").alias(\"total_revenue\"))\n    .orderBy(F.desc(\"total_revenue\"))\n)\ndisplay(orders_by_country)\n\n# saves your result so the app can check it\n(orders_enriched.withColumn(\"_part\", F.lit(\"enriched\")).unionByName(orders_by_country.withColumn(\"_part\", F.lit(\"by_country\")), allowMissingColumns=True)\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t12\"))\n```"
+      ],
+      "docs": [
+        {
+          "label": "DataFrame.join"
+        },
+        {
+          "label": "Podstawy PySpark"
+        }
+      ]
+    }
+  }
+}

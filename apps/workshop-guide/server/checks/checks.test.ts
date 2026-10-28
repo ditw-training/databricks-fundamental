@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { sortGuides, workshopLabel, type Guide } from '../../shared/guide-schema';
+import { roman, sortGuides, workshopLabel, type Guide } from '../../shared/guide-schema';
 import { loadGuides, parseGuide } from '../guides';
 import { catalogFor, userSlugFor } from '../slug';
 import { CHECKS, runCheck, validateCheckPost } from './index';
@@ -84,7 +84,7 @@ describe('POST /api/check validation', () => {
   const guide: Guide = parseGuide({
     id: 'ws_ingestion',
     number: 1,
-    title: 'Workshop 1 — Ingestion',
+    title: 'Workshop I — Ingestion',
     notebook: 'notebooks/workshops/WORKSHOP_ingestion.ipynb',
     intro: '',
     steps: [
@@ -142,7 +142,7 @@ describe('runCheck', () => {
   });
 });
 
-describe('Workshop 1 — Ingestion checks', () => {
+describe('Workshop I — Ingestion checks', () => {
   it('t02: FAIL with the notebook text when the scratch table is missing', async () => {
     const r = await runCheck(INGESTION_CHECKS.t02, fakeCtx([noTable('_ws_ws_ingestion_t02')]));
     expect(r).toEqual({
@@ -196,7 +196,7 @@ describe('Workshop 1 — Ingestion checks', () => {
   });
 });
 
-describe('Workshop 2 — Delta Lake checks', () => {
+describe('Workshop II — Delta Lake checks', () => {
   const TABLE_COLS: [string, string][] = [['customer_id', 'STRING'], ['country', 'STRING'], ['loyalty_tier', 'STRING']];
 
   it('t01: FAIL when the table is missing', async () => {
@@ -279,13 +279,19 @@ describe('Workshop 2 — Delta Lake checks', () => {
 describe('workshop numbering', () => {
   const g = (id: string, title: string, number?: number) => ({ id, title, number });
   it('labels and sorts by number', () => {
-    expect(workshopLabel(g('ws_delta', 'Workshop — Delta Lake', 2))).toBe('Workshop 2 — Delta Lake');
-    expect(workshopLabel(g('ws_delta', 'Workshop 2 — Delta Lake', 2))).toBe('Workshop 2 — Delta Lake');
+    expect(workshopLabel(g('ws_delta', 'Workshop — Delta Lake', 2))).toBe('Workshop II — Delta Lake');
+    expect(workshopLabel(g('ws_delta', 'Workshop 2 — Delta Lake', 2))).toBe('Workshop II — Delta Lake');
+    expect(workshopLabel(g('ws_delta', 'Workshop II — Delta Lake', 2), 'pl')).toBe('Warsztat II — Delta Lake');
+    expect(workshopLabel(g('ws_ingestion', 'Warsztat I — Ingestion', 1), 'en')).toBe('Workshop I — Ingestion');
     expect(workshopLabel(g('ws_demo', 'Demo'))).toBe('Demo');
+    expect(workshopLabel(g('ws_demo', 'Demo'), 'pl')).toBe('Demo');
     expect(sortGuides([g('ws_demo', 'Demo'), g('ws_delta', 'D', 2), g('ws_ingestion', 'I', 1)]).map((x) => x.id)).toEqual([
       'ws_ingestion',
       'ws_delta',
       'ws_demo',
     ]);
+  });
+  it('writes Roman numerals', () => {
+    expect([1, 2, 3, 4, 5, 9, 10, 14, 40, 99].map(roman)).toEqual(['I', 'II', 'III', 'IV', 'V', 'IX', 'X', 'XIV', 'XL', 'XCIX']);
   });
 });

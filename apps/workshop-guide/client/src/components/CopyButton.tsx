@@ -1,6 +1,7 @@
 import { Button } from '@databricks/appkit-ui/react';
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useI18n } from '../i18n/context';
 import { copyText } from '../lib/api';
 
 interface CopyButtonProps {
@@ -15,7 +16,8 @@ interface CopyButtonProps {
   title?: string;
 }
 
-export function CopyButton({ text, label = 'Copy', compact, className, variant = 'outline', onCopied, disabled, title }: CopyButtonProps) {
+export function CopyButton({ text, label, compact, className, variant = 'outline', onCopied, disabled, title }: CopyButtonProps) {
+  const { m } = useI18n();
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function CopyButton({ text, label = 'Copy', compact, className, variant =
     });
   };
 
-  const text_ = state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed' : label;
+  const text_ = state === 'copied' ? m.copied : state === 'failed' ? m.copyFailed : (label ?? m.copy);
   return (
     <Button
       type="button"
@@ -46,7 +48,7 @@ export function CopyButton({ text, label = 'Copy', compact, className, variant =
       {state === 'copied' ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
       {compact ? <span className="sr-only">{text_}</span> : <span>{text_}</span>}
       <span className="sr-only" aria-live="polite">
-        {state === 'copied' ? 'Copied to clipboard' : ''}
+        {state === 'copied' ? m.copiedToClipboard : ''}
       </span>
     </Button>
   );

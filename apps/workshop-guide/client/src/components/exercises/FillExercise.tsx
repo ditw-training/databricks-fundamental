@@ -2,7 +2,8 @@ import { Button } from '@databricks/appkit-ui/react';
 import { CheckCircle2, RotateCcw } from 'lucide-react';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import type { FillStep } from '../../../../shared/guide-schema';
-import { assembleFill, blankInputWidth, blankState, fillProgress, parseTemplate } from '../../lib/exercise';
+import { assembleFill, blankInputWidth, blankState, fillProgress, keyedSegments } from '../../lib/exercise';
+import { useI18n } from '../../i18n/context';
 import { useStoredState } from '../../lib/storage';
 import { CopyButton } from '../CopyButton';
 
@@ -15,9 +16,10 @@ interface Props {
 
 /** Code with inline inputs; each blank is checked as you type. */
 export function FillExercise({ step, storageKey, pasteHint }: Props) {
+  const { m } = useI18n();
   const [values, setValues] = useStoredState<Record<string, string>>(storageKey, {});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const segments = useMemo(() => parseTemplate(step.template), [step.template]);
+  const segments = useMemo(() => keyedSegments(step.template), [step.template]);
   const { correct, total } = fillProgress(step, values);
   const allCorrect = correct === total;
   // Show "wrong" once the participant left the field or typed at least the answer length.
@@ -38,23 +40,23 @@ export function FillExercise({ step, storageKey, pasteHint }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="wg-code-surface" role="group" aria-label="Code with blanks">
+      <div className="wg-code-surface" role="group" aria-label={m.fillGroup}>
         <pre className="wg-fill-code">
-          {segments.map((seg, i) => {
-            if (seg.kind === 'text') return <Fragment key={i}>{seg.value}</Fragment>;
+          {segments.map((seg) => {
+            if (seg.kind === 'text') return <Fragment key={seg.key}>{seg.value}</Fragment>;
             const value = values[seg.id] ?? '';
             const visual = visualOf(seg.id);
             return (
               <input
-                key={i}
+                key={seg.key}
                 type="text"
                 spellCheck={false}
                 autoComplete="off"
                 autoCapitalize="off"
-                aria-label={`Blank ${blankNumbers.get(seg.id) ?? ''}`}
+                aria-label={m.blankN(blankNumbers.get(seg.id) ?? 0)}
                 aria-invalid={visual === 'wrong'}
                 className={`wg-blank wg-blank-${visual}`}
-                title={visual === 'wrong' ? 'Not the expected answer yet: check the spelling, the keyword and any quotes.' : undefined}
+                title={visual === 'wrong' ? m.blankWrongTitle : undefined}
                 style={{ width: `calc(${blankInputWidth(value)}ch + 0.8rem)` }}
                 value={value}
                 placeholder="____"
@@ -67,21 +69,17 @@ export function FillExercise({ step, storageKey, pasteHint }: Props) {
       </div>
 
       {anyWrong && (
-        <p className="text-xs text-[var(--destructive)]">
-          A red blank is not the expected answer yet. Check the spelling, the exact keyword and any quotes; the hints below help.
-        </p>
+        <p className="text-xs text-[var(--destructive)]">{m.fillAnyWrong}</p>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-sm text-muted-foreground" aria-live="polite">
           {allCorrect ? (
             <span className="inline-flex items-center gap-1.5 font-medium text-[var(--success)]">
-              <CheckCircle2 className="size-4" aria-hidden /> All {total} blanks correct. Copy the code to your notebook.
+              <CheckCircle2 className="size-4" aria-hidden /> {m.fillAllCorrect(total)}
             </span>
           ) : (
-            <>
-              {correct} of {total} blanks correct
-            </>
+            m.fillProgress(correct, total)
           )}
         </p>
         <div className="ml-auto flex gap-2">
@@ -94,18 +92,18 @@ export function FillExercise({ step, storageKey, pasteHint }: Props) {
               setTouched({});
             }}
           >
-            <RotateCcw className="size-4" aria-hidden /> Reset
+            <RotateCcw className="size-4" aria-hidden /> {m.reset}
           </Button>
           <CopyButton
             text={assembleFill(step, values)}
-            label="Copy to notebook"
+            label={m.copyToNotebook}
             variant={allCorrect ? 'default' : 'outline'}
           />
         </div>
       </div>
       {pasteHint}
       {!allCorrect && correct > 0 && (
-        <p className="text-xs text-muted-foreground">Empty blanks are copied as ____ so you can spot them in the notebook.</p>
+        <p className="text-xs text-muted-foreground">{m.fillEmptyCopied}</p>
       )}
     </div>
   );

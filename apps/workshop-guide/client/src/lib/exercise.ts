@@ -1,5 +1,6 @@
 /** Pure grading and assembly logic for the interactive exercises (unit-tested). */
 import type { Blank, FillStep, MatchStep, OrderStep } from '../../../shared/guide-schema';
+import { en } from '../i18n/en';
 
 export type TemplateSegment = { kind: 'text'; value: string } | { kind: 'blank'; id: string };
 
@@ -16,6 +17,16 @@ export function parseTemplate(template: string): TemplateSegment[] {
   }
   if (last < template.length) segments.push({ kind: 'text', value: template.slice(last) });
   return segments;
+}
+
+/** Segments with a stable React key: the kind plus the segment's offset in the template. */
+export function keyedSegments(template: string): (TemplateSegment & { key: string })[] {
+  let at = 0;
+  return parseTemplate(template).map((seg) => {
+    const key = `${seg.kind}@${at}`;
+    at += seg.kind === 'text' ? seg.value.length : seg.id.length + 4; // "{{" + id + "}}"
+    return { ...seg, key };
+  });
 }
 
 const normalize = (value: string, caseSensitive: boolean) => {
@@ -79,17 +90,8 @@ export function checkOrder(step: OrderStep, answer: string[]): OrderResult {
   const distractorsUsed = answer.filter((id) => step.distractors.includes(id)).length;
   const missing = step.solution.filter((id) => !answer.includes(id)).length;
 
-  let message: string;
-  if (pass) {
-    message = `Correct order: all ${total} blocks in place.`;
-  } else {
-    const parts = [`${correctPositions} of ${total} blocks in the right place.`];
-    if (distractorsUsed > 0) {
-      parts.push(`${distractorsUsed} block${distractorsUsed > 1 ? 's do' : ' does'} not belong here.`);
-    }
-    if (missing > 0) parts.push(`${missing} block${missing > 1 ? 's are' : ' is'} missing.`);
-    message = parts.join(' ');
-  }
+  // Stored in the progress table and shown to the trainer: always English (SPEC section 9).
+  const message = en.orderResult({ pass, total, correctPositions, distractorsUsed, missing });
   return { pass, correctPositions, total, distractorsUsed, missing, message };
 }
 
@@ -124,7 +126,7 @@ export function checkMatch(step: MatchStep, assignment: Record<number, number | 
     if (ok) correct += 1;
   });
   const pass = correct === total;
-  const message = pass ? `All ${total} pairs matched.` : `${correct} of ${total} pairs matched.`;
+  const message = en.matchResult(pass, correct, total);
   return { pass, correct, total, message, slotCorrect };
 }
 

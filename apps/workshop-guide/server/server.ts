@@ -6,7 +6,8 @@ import type { Row } from './checks/framework';
 import { runCheck, validateCheckPost } from './checks';
 import { catalogFor } from './slug';
 import type { ParticipantRow, ProgressResponse, TrainerRow } from '../shared/progress-schema';
-import { loadGuides } from './guides';
+import { loadGuides, loadOverlays } from './guides';
+import { langSchema, localizeGuides } from '../shared/guide-i18n';
 import { quizLangSchema, type QuizAnswerResponse, type QuizProgressRow, type QuizResponse } from '../shared/quiz-schema';
 import {
   loadLatestProgressSql,
@@ -42,6 +43,7 @@ import {
 
 // Fail fast on broken configuration or guide files.
 const guides = loadGuides();
+const overlays = loadOverlays(guides);
 const progressTable = resolveProgressTable();
 const insertStatement = buildProgressInsert(progressTable);
 const trainerEmails = parseEmailList(process.env.TRAINER_EMAILS);
@@ -59,7 +61,9 @@ const quizProgressSql = loadServerSql('quiz_progress.sql', progressTable);
 const quizInsert = buildQuizInsert(progressTable);
 
 console.log(
-  `[workshop-guide] guides: ${[...guides.keys()].join(', ')}; progress table: ${progressTable}; trainers: ${trainerEmails.size}; ` +
+  `[workshop-guide] guides: ${[...guides.keys()].join(', ')}; overlays: ${
+    Object.entries(overlays).map(([l, o]) => `${l} (${Object.keys(o ?? {}).length})`).join(', ') || 'none'
+  }; progress table: ${progressTable}; trainers: ${trainerEmails.size}; ` +
     `quiz: ${quiz ? `${quiz.questions.length} questions, key ${quizKeyPath}` : 'config/quiz/questions.json missing'}`,
 );
 
@@ -237,8 +241,21 @@ createApp({
         res.json(body);
       });
 
-      app.get('/api/guides', (_req, res) => {
-        const body: GuidesResponse = { guides: sortGuides([...guides.values()]) };
+      // English guides plus the overlays; the client switches language without a refetch.
+      // `?lang=pl` returns the guides already translated (handy for curl and other clients).
+      app.get('/api/guides', (req, res) => {
+        const sorted = sortGuides([...guides.values()]);
+        if (req.query.lang === undefined) {
+          const body: GuidesResponse = { guides: sorted, overlays };
+          res.json(body);
+          return;
+        }
+        const lang = langSchema.safeParse(req.query.lang);
+        if (!lang.success) {
+          res.status(400).json({ error: 'lang must be pl or en' });
+          return;
+        }
+        const body: GuidesResponse = { guides: localizeGuides(sorted, overlays, lang.data), overlays: {} };
         res.json(body);
       });
 

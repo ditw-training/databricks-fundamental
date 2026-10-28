@@ -1,6 +1,7 @@
 import { Button } from '@databricks/appkit-ui/react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useEffect } from 'react';
+import { useI18n } from '../i18n/context';
 import { useStoredState } from '../lib/storage';
 
 type Theme = 'system' | 'light' | 'dark';
@@ -8,6 +9,7 @@ const NEXT: Record<Theme, Theme> = { system: 'light', light: 'dark', dark: 'syst
 
 /** Cycles system → light → dark. AppKit UI themes via the .light / .dark class on <html>. */
 export function ThemeToggle() {
+  const { m } = useI18n();
   const [theme, setTheme] = useStoredState<Theme>('wg:theme', 'system');
 
   useEffect(() => {
@@ -23,8 +25,8 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={() => setTheme(NEXT[theme])}
-      aria-label={`Theme: ${theme}. Switch to ${NEXT[theme]}`}
-      title={`Theme: ${theme}`}
+      aria-label={m.themeSwitch(m.themeName(theme), m.themeName(NEXT[theme]))}
+      title={m.themeTitle(m.themeName(theme))}
     >
       <Icon className="size-4" aria-hidden />
     </Button>

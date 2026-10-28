@@ -1,4 +1,4 @@
-/** Course quiz: API calls, UI texts (PL/EN) and pure helpers (unit-tested). */
+/** Course quiz: API calls and pure helpers (unit-tested). UI texts live in client/src/i18n. */
 import type {
   Localized,
   QuizAnswerPost,
@@ -21,60 +21,7 @@ import { parseTs } from './status';
 export type { QuizLang, QuizParticipantRow, QuizProgressRow, QuizQuestions };
 export { quizParticipantRowSchema, quizProgressRowSchema };
 
-export const LANG_KEY = 'wg:quiz:lang';
-
 export const loc = (text: Localized, lang: QuizLang) => text[lang];
-
-const T = {
-  title: { pl: 'Quiz', en: 'Quiz' },
-  intro: {
-    pl: 'Sprawdź, co zostało z dzisiejszych modułów. Po każdej odpowiedzi zobaczysz wyjaśnienie i miejsce w notebooku, gdzie temat był omawiany. Możesz próbować do skutku; do wyniku liczy się pierwsza próba.',
-    en: 'Check what stayed with you from today’s modules. After each answer you see an explanation and the notebook section that covers it. Retry until you get it right; your score counts first attempts.',
-  },
-  allModules: { pl: 'Wszystkie moduły', en: 'All modules' },
-  module: { pl: 'Moduł', en: 'Module' },
-  question: { pl: 'Pytanie', en: 'Question' },
-  of: { pl: 'z', en: 'of' },
-  correct: { pl: 'Dobrze!', en: 'Correct!' },
-  incorrect: { pl: 'Nie tym razem. Spróbuj ponownie.', en: 'Not this time. Try again.' },
-  whereToLearn: { pl: 'Gdzie się tego nauczyć', en: 'Where to learn' },
-  next: { pl: 'Następne pytanie', en: 'Next question' },
-  prev: { pl: 'Poprzednie', en: 'Previous' },
-  skip: { pl: 'Pomiń', en: 'Skip' },
-  summary: { pl: 'Podsumowanie', en: 'Summary' },
-  answered: { pl: 'rozwiązane', en: 'solved' },
-  firstAttempt: { pl: 'Wynik za pierwszą próbę', en: 'First-attempt score' },
-  toReview: { pl: 'Do powtórki', en: 'To review' },
-  toReviewNote: {
-    pl: 'Pytania, w których pierwsza odpowiedź była błędna.',
-    en: 'Questions where your first answer was wrong.',
-  },
-  nothingToReview: { pl: 'Wszystko dobrze za pierwszym razem. Brawo!', en: 'All correct on the first try. Well done!' },
-  notAnswered: { pl: 'Bez odpowiedzi', en: 'Not answered yet' },
-  backToWorkshops: { pl: 'Wróć do warsztatów', en: 'Back to the workshops' },
-  restartView: { pl: 'Wróć do pytań', en: 'Back to the questions' },
-  notConfiguredTitle: { pl: 'Quiz nie jest jeszcze skonfigurowany', en: 'The quiz is not configured yet' },
-  notConfigured: {
-    pl: 'Brakuje klucza odpowiedzi. Daj znać prowadzącemu.',
-    en: 'The answer key is missing. Tell the trainer.',
-  },
-  trainerReason: { pl: 'Powód (widoczny tylko dla prowadzących)', en: 'Reason (visible to trainers only)' },
-  alreadySolved: {
-    pl: 'Rozwiązane. Wyjaśnienie pojawi się, gdy tylko serwer je zwróci.',
-    en: 'Solved. The explanation appears as soon as the server returns it.',
-  },
-  saving: { pl: 'Sprawdzam…', en: 'Checking…' },
-  loading: { pl: 'Ładowanie quizu…', en: 'Loading the quiz…' },
-  keyboard: { pl: 'Skróty: A–D wybiera odpowiedź, N następne pytanie.', en: 'Shortcuts: A–D picks an answer, N goes to the next question.' },
-  language: { pl: 'Język', en: 'Language' },
-  questions: { pl: 'Pytania', en: 'Questions' },
-  firstTry: { pl: 'za pierwszym razem', en: 'first try' },
-  retried: { pl: 'po kolejnej próbie', en: 'after a retry' },
-  progressLabel: { pl: 'Rozwiązane pytania', en: 'Questions solved' },
-} satisfies Record<string, Localized>;
-
-export type TextKey = keyof typeof T;
-export const t = (key: TextKey, lang: QuizLang) => T[key][lang];
 
 // ── API ──
 

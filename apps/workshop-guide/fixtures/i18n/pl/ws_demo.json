@@ -1,0 +1,45 @@
+{
+ "id": "ws_demo",
+ "lang": "pl",
+ "title": "Warsztat demo — podstawy Delta Lake",
+ "intro": "Treść demonstracyjna na czas, gdy pliki przewodnika nie są jeszcze zsynchronizowane. Zbudujesz małą tabelę `customers_delta` dla RetailHub, zaktualizujesz ją przez `MERGE`, zajrzysz do jej historii i uporządkujesz pliki. Kod uruchamiasz w notebooku; po każdym kroku uruchom jego komórkę `check(...)`, a przewodnik oznaczy krok.",
+ "steps": [
+  {
+   "id": "t01",
+   "title": "Utwórz tabelę Delta",
+   "explain": "Tabela Delta to folder plików Parquet z dziennikiem transakcji (`_delta_log`). W Unity Catalog tworzysz ją zwykłym SQL. Uzupełnij nazwę tabeli i format.",
+   "expected": "Tabela `customers_delta` istnieje w schemacie `silver`, ma 4 kolumny i 0 wierszy.",
+   "hints": [
+    "Nazwę tabeli znajdziesz w tytule kroku i w oczekiwanym wyniku.",
+    "Databricks domyślnie używa Delta, ale w warsztacie format piszemy jawnie po `USING`.",
+    "```sql\nCREATE TABLE IF NOT EXISTS silver.customers_delta (\n  customer_id INT,\n  name        STRING,\n  city        STRING,\n  updated_at  TIMESTAMP\n) USING DELTA\n```"
+   ],
+   "docs": [
+    {
+     "label": "CREATE TABLE [USING]"
+    }
+   ]
+  },
+  {
+   "id": "t03",
+   "title": "Pojęcia Delta Lake",
+   "pairs": [
+    {
+     "right": "Folder z commitami JSON, który zapisuje każdą zmianę tabeli"
+    },
+    {
+     "right": "Aktualizuje pasujące wiersze i wstawia nowe w jednym poleceniu"
+    },
+    {
+     "right": "Czyta tabelę w stanie z wcześniejszego commita"
+    },
+    {
+     "right": "Łączy wiele małych plików w mniej dużych"
+    },
+    {
+     "right": "Usuwa pliki danych, do których tabela już się nie odwołuje"
+    }
+   ]
+  }
+ ]
+}

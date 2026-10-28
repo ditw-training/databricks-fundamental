@@ -1,5 +1,5 @@
 /**
- * Workshop 2 — Delta Lake: SQL version of notebooks/workshops/_checks/ws_delta.ipynb.
+ * Workshop II — Delta Lake: SQL version of notebooks/workshops/_checks/ws_delta.ipynb.
  *
  * Most steps change the real table <catalog>.bronze.lab_delta_cust_ws, so the checks read
  * it (DESCRIBE DETAIL / HISTORY, SHOW TBLPROPERTIES, information_schema). Steps whose

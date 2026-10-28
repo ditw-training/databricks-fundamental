@@ -1,23 +1,15 @@
 import type { Guide, Step } from '../../../shared/guide-schema';
+import type { Dict } from '../i18n';
 import type { StepStatus } from './status';
 
-export const TYPE_LABEL: Record<Step['type'], string> = {
-  fill: 'Fill in the blanks',
-  order: 'Put in order',
-  match: 'Match pairs',
-  code: 'Write the code',
-};
+/** "Fill in the blanks" / "Uzupełnij luki". */
+export function typeLabel(type: Step['type'], m: Dict): string {
+  return { fill: m.typeFill, order: m.typeOrder, match: m.typeMatch, code: m.typeCode }[type];
+}
 
-/** Same marker as the notebook headings ("## Step 02 ⭐ OPTIONAL — …"). */
-export const OPTIONAL_LABEL = '⭐ Optional';
-
-const STATUS_LABEL: Record<StepStatus, string> = {
-  pass: 'Passed',
-  fail: 'Failed — try again',
-  none: 'Not started',
-};
-
-export const statusLabel = (status: StepStatus) => STATUS_LABEL[status];
+export function statusLabel(status: StepStatus, m: Dict): string {
+  return { pass: m.statusPass, fail: m.statusFail, none: m.statusNone }[status];
+}
 
 /** Notebook name as the workspace shows it: "WORKSHOP_delta" (no folder, no .ipynb). */
 export const notebookName = (guide: Guide) => (guide.notebook.split('/').pop() ?? guide.notebook).replace(/\.ipynb$/, '');

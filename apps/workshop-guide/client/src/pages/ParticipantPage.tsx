@@ -20,13 +20,14 @@ import {
 import { ArrowRight, ListChecks } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { workshopLabel, workshopTopic, type Guide } from '../../../shared/guide-schema';
+import { workshopLabel, workshopShortLabel, workshopTopic, type Guide } from '../../../shared/guide-schema';
 import { Markdown } from '../components/Markdown';
 import { NotebookLocation } from '../components/NotebookLocation';
 import { ResetProgress } from '../components/ResetProgress';
 import { StatusDot } from '../components/StatusDot';
 import { StepPane } from '../components/StepPane';
-import { OPTIONAL_LABEL, TYPE_LABEL } from '../lib/labels';
+import { useI18n } from '../i18n/context';
+import { typeLabel } from '../lib/labels';
 import { useParticipantProgress, type ParticipantRow } from '../lib/progress';
 import { formatAgo, parseTs, toStatus } from '../lib/status';
 import { clearStoredPrefix, stepKey } from '../lib/storage';
@@ -49,27 +50,24 @@ export function ParticipantPage({ guides, email }: { guides: Guide[]; email: str
 }
 
 function WorkshopPicker({ guides, unknown, onPick }: { guides: Guide[]; unknown: string | null; onPick: (id: string) => void }) {
+  const { lang, m } = useI18n();
   return (
     <div className="mx-auto max-w-4xl space-y-6 py-4">
       <div className="space-y-1">
-        <h2 className="text-2xl font-semibold tracking-tight">Choose your workshop</h2>
-        <p className="text-muted-foreground">
-          Open the matching notebook next to this guide. You write and run the code there; this guide explains each step and shows
-          your progress.
-        </p>
+        <h2 className="text-2xl font-semibold tracking-tight">{m.pickerTitle}</h2>
+        <p className="text-muted-foreground">{m.pickerIntro}</p>
       </div>
-      {unknown && <p className="text-sm text-[var(--destructive)]">Workshop “{unknown}” does not exist. Pick one below.</p>}
+      {unknown && <p className="text-sm text-[var(--destructive)]">{m.unknownWorkshop(unknown)}</p>}
       <div className="grid gap-4 md:grid-cols-2">
         {guides.map((g) => {
           const required = g.steps.filter((s) => !s.optional).length;
           return (
             <Card key={g.id} className="flex flex-col">
               <CardHeader>
-                <CardTitle className="text-lg">{workshopLabel(g)}</CardTitle>
+                <CardTitle className="text-lg">{workshopLabel(g, lang)}</CardTitle>
                 <CardDescription className="flex flex-col gap-1.5">
                   <span className="inline-flex items-center gap-1">
-                    <ListChecks className="size-3.5" aria-hidden /> {required} steps
-                    {g.steps.length > required ? ` + ${g.steps.length - required} ${OPTIONAL_LABEL.toLowerCase()}` : ''}
+                    <ListChecks className="size-3.5" aria-hidden /> {m.stepCount(required, g.steps.length - required)}
                   </span>
                   <NotebookLocation guide={g} />
                 </CardDescription>
@@ -79,7 +77,7 @@ function WorkshopPicker({ guides, unknown, onPick }: { guides: Guide[]; unknown:
               </CardContent>
               <CardFooter>
                 <Button type="button" onClick={() => onPick(g.id)}>
-                  Open {g.number ? `Workshop ${g.number}` : workshopTopic(g)} <ArrowRight className="size-4" aria-hidden />
+                  {m.openWorkshop(workshopShortLabel(g, lang) ?? workshopTopic(g))} <ArrowRight className="size-4" aria-hidden />
                 </Button>
               </CardFooter>
             </Card>
@@ -97,6 +95,7 @@ function newer(a: ParticipantRow | undefined, b: ParticipantRow | undefined) {
 }
 
 function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
+  const { lang, m } = useI18n();
   const [params, setParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [stepsOpen, setStepsOpen] = useState(false);
@@ -105,7 +104,7 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
   // After "Reset my progress": ignore polled rows requested before the reset.
   const [resetAt, setResetAt] = useState<Date | null>(null);
   const [resetGen, setResetGen] = useState(0);
-  const label = workshopLabel(guide);
+  const label = workshopLabel(guide, lang);
 
   const rows = useMemo(() => {
     const byStep = new Map<string, ParticipantRow>();
@@ -140,21 +139,19 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
   };
 
   const stepList = (
-    <nav aria-label="Workshop steps" className="flex flex-col gap-4">
+    <nav aria-label={m.workshopSteps} className="flex flex-col gap-4">
       <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-2 text-sm">
-          <span className="font-medium">
-            {passedRequired} / {required.length} steps passed
-          </span>
+          <span className="font-medium">{m.stepsPassed(passedRequired, required.length)}</span>
           <span className="text-xs text-muted-foreground">{pct}%</span>
         </div>
-        <Progress value={pct} aria-label="Required steps passed" />
+        <Progress value={pct} aria-label={m.requiredPassed} />
         <p className="text-xs text-muted-foreground">
           {progress.rows === null && !progress.error
-            ? 'Loading your progress…'
+            ? m.progressLoading
             : progress.error
-              ? 'Live status paused — retrying'
-              : `Live · updated ${formatAgo(progress.updatedAt)}`}
+              ? m.progressPaused
+              : m.progressLive(formatAgo(progress.updatedAt, undefined, lang))}
         </p>
       </div>
       <ol className="flex flex-col gap-0.5">
@@ -176,8 +173,8 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
                     {s.title}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    {TYPE_LABEL[s.type]}
-                    {s.optional ? ` · ${OPTIONAL_LABEL}` : ''}
+                    {typeLabel(s.type, m)}
+                    {s.optional ? ` · ${m.optional}` : ''}
                   </span>
                 </span>
               </button>
@@ -199,7 +196,7 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
           <ResetProgress workshop={guide.id} label={label} onReset={afterReset} />
           {isMobile && (
             <Button type="button" variant="outline" size="sm" onClick={() => setStepsOpen(true)}>
-              <ListChecks className="size-4" aria-hidden /> Steps ({passedRequired}/{required.length})
+              <ListChecks className="size-4" aria-hidden /> {m.stepsButton(passedRequired, required.length)}
             </Button>
           )}
         </div>
@@ -227,8 +224,8 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
           ) : (
             <Empty>
               <EmptyHeader>
-                <EmptyTitle>No steps</EmptyTitle>
-                <EmptyDescription>This workshop has no steps yet.</EmptyDescription>
+                <EmptyTitle>{m.noStepsTitle}</EmptyTitle>
+                <EmptyDescription>{m.noStepsText}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           )}

@@ -30,18 +30,17 @@ import {
   fetchMyQuizRows,
   fetchQuiz,
   fetchReview,
-  LANG_KEY,
   loc,
   nextUnsolved,
   postAnswer,
   questionStates,
   summarize,
-  t,
   type QuestionState,
   type QuizLang,
   type QuizQuestions,
 } from '../lib/quiz';
 import type { StepStatus } from '../lib/status';
+import { useI18n } from '../i18n/context';
 import { useStoredState } from '../lib/storage';
 
 type ReviewItems = QuizReviewResponse['items'];
@@ -61,23 +60,11 @@ function Inline({ children }: { children: string }) {
   );
 }
 
-function LangSwitch({ lang, onChange }: { lang: QuizLang; onChange: (l: QuizLang) => void }) {
-  return (
-    <div role="group" aria-label={t('language', lang)} className="wg-langswitch">
-      {(['pl', 'en'] as const).map((l) => (
-        <button key={l} type="button" aria-pressed={lang === l} onClick={() => onChange(l)} lang={l}>
-          {l.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 const statusOf = (s: QuestionState | undefined): StepStatus => (s?.passed ? 'pass' : s?.attempted ? 'fail' : 'none');
 
 export function QuizPage({ email }: { email: string }) {
-  const [storedLang, setLang] = useStoredState<QuizLang>(LANG_KEY, 'pl');
-  const lang: QuizLang = storedLang === 'en' ? 'en' : 'pl';
+  // Language comes from the switch in the header (shared with the whole app).
+  const { m } = useI18n();
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchQuiz>> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,26 +78,18 @@ export function QuizPage({ email }: { email: string }) {
     };
   }, []);
 
-  useEffect(() => {
-    const previous = document.documentElement.lang;
-    document.documentElement.lang = lang;
-    return () => {
-      document.documentElement.lang = previous || 'en';
-    };
-  }, [lang]);
-
   if (error) {
     return (
       <Alert variant="destructive" className="mx-auto max-w-xl">
         <AlertTriangle aria-hidden />
-        <AlertTitle>{t('notConfiguredTitle', lang)}</AlertTitle>
+        <AlertTitle>{m.quizNotConfiguredTitle}</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
   if (!data) {
     return (
-      <div className="grid gap-6 md:grid-cols-[300px_1fr]" aria-busy="true" aria-label={t('loading', lang)}>
+      <div className="grid gap-6 md:grid-cols-[300px_1fr]" aria-busy="true" aria-label={m.quizLoading}>
         <Skeleton className="h-80 w-full" />
         <Skeleton className="h-72 w-full" />
       </div>
@@ -119,17 +98,14 @@ export function QuizPage({ email }: { email: string }) {
   if (!data.configured) {
     return (
       <div className="mx-auto max-w-xl space-y-4">
-        <div className="flex justify-end">
-          <LangSwitch lang={lang} onChange={setLang} />
-        </div>
         <Alert>
           <AlertTriangle aria-hidden />
-          <AlertTitle>{t('notConfiguredTitle', lang)}</AlertTitle>
+          <AlertTitle>{m.quizNotConfiguredTitle}</AlertTitle>
           <AlertDescription>
-            <p>{t('notConfigured', lang)}</p>
+            <p>{m.quizNotConfigured}</p>
             {data.reason && (
               <p className="mt-2">
-                <strong>{t('trainerReason', lang)}:</strong> {data.reason}
+                <strong>{m.quizTrainerReason}:</strong> {data.reason}
               </p>
             )}
           </AlertDescription>
@@ -137,20 +113,11 @@ export function QuizPage({ email }: { email: string }) {
       </div>
     );
   }
-  return <QuizView quiz={data.quiz} email={email} lang={lang} setLang={setLang} />;
+  return <QuizView quiz={data.quiz} email={email} />;
 }
 
-function QuizView({
-  quiz,
-  email,
-  lang,
-  setLang,
-}: {
-  quiz: QuizQuestions;
-  email: string;
-  lang: QuizLang;
-  setLang: (l: QuizLang) => void;
-}) {
+function QuizView({ quiz, email }: { quiz: QuizQuestions; email: string }) {
+  const { lang, m } = useI18n();
   const [params, setParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [listOpen, setListOpen] = useState(false);
@@ -163,7 +130,7 @@ function QuizView({
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const moduleParam = params.get('module');
-  const moduleFilter = quiz.modules.some((m) => m.id === moduleParam) ? moduleParam : null;
+  const moduleFilter = quiz.modules.some((mod) => mod.id === moduleParam) ? moduleParam : null;
   const ids = useMemo(
     () => quiz.questions.filter((q) => !moduleFilter || q.module === moduleFilter).map((q) => q.id),
     [quiz, moduleFilter],
@@ -218,7 +185,7 @@ function QuizView({
   const nextId = nextUnsolved(ids, states, current.id);
   const filtered = summarize(quiz, states, ids);
   const pct = filtered.total ? Math.round((filtered.solved / filtered.total) * 100) : 0;
-  const moduleOf = (id: string) => quiz.modules.find((m) => m.id === id)!;
+  const moduleOf = (id: string) => quiz.modules.find((mod) => mod.id === id)!;
 
   const answer = (option: string) => {
     if (busy || solved || wrongHere.includes(option)) return;
@@ -268,40 +235,40 @@ function QuizView({
   }, [showSummary]);
 
   const list = (
-    <nav aria-label={t('questions', lang)} className="flex flex-col gap-4">
+    <nav aria-label={m.quizQuestions} className="flex flex-col gap-4">
       <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-2 text-sm">
           <span className="font-medium">
-            {filtered.solved} / {filtered.total} {t('answered', lang)}
+            {m.quizAnswered(filtered.solved, filtered.total)}
           </span>
           <span className="text-xs text-muted-foreground">{pct}%</span>
         </div>
-        <Progress value={pct} aria-label={t('progressLabel', lang)} />
+        <Progress value={pct} aria-label={m.quizProgressLabel} />
       </div>
       <Select value={moduleFilter ?? 'all'} onValueChange={(v) => setNav({ module: v === 'all' ? null : v })}>
-        <SelectTrigger className="w-full" aria-label={t('module', lang)}>
+        <SelectTrigger className="w-full" aria-label={m.quizModule}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">{t('allModules', lang)}</SelectItem>
-          {quiz.modules.map((m) => (
-            <SelectItem key={m.id} value={m.id}>
-              {loc(m.label, lang)} · {loc(m.title, lang)}
+          <SelectItem value="all">{m.quizAllModules}</SelectItem>
+          {quiz.modules.map((mod) => (
+            <SelectItem key={mod.id} value={mod.id}>
+              {loc(mod.label, lang)} · {loc(mod.title, lang)}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
       <div className="flex flex-col gap-3">
         {quiz.modules
-          .filter((m) => !moduleFilter || m.id === moduleFilter)
-          .map((m) => (
-            <section key={m.id} aria-label={`${loc(m.label, lang)}: ${loc(m.title, lang)}`}>
+          .filter((mod) => !moduleFilter || mod.id === moduleFilter)
+          .map((mod) => (
+            <section key={mod.id} aria-label={`${loc(mod.label, lang)}: ${loc(mod.title, lang)}`}>
               <h3 className="wg-section-title mb-1">
-                {loc(m.label, lang)} · {loc(m.title, lang)}
+                {loc(mod.label, lang)} · {loc(mod.title, lang)}
               </h3>
               <ol className="flex flex-col gap-0.5">
                 {quiz.questions
-                  .filter((q) => q.module === m.id)
+                  .filter((q) => q.module === mod.id)
                   .map((q) => {
                     const st = states.get(q.id);
                     const active = q.id === current.id && !showSummary;
@@ -319,7 +286,7 @@ function QuizView({
                             {loc(q.text, lang).replace(/[`*]/g, '')}
                           </span>
                           {st?.passed && st.firstCorrect === false && (
-                            <RotateCcw className="size-3.5 shrink-0 text-muted-foreground" aria-label={t('retried', lang)} />
+                            <RotateCcw className="size-3.5 shrink-0 text-muted-foreground" aria-label={m.quizRetried} />
                           )}
                         </button>
                       </li>
@@ -330,12 +297,12 @@ function QuizView({
           ))}
       </div>
       <Button type="button" variant={showSummary ? 'secondary' : 'outline'} onClick={() => setNav({ view: 'summary' })}>
-        <Trophy className="size-4" aria-hidden /> {t('summary', lang)}
+        <Trophy className="size-4" aria-hidden /> {m.quizSummary}
       </Button>
     </nav>
   );
 
-  const m = moduleOf(current.module);
+  const mod = moduleOf(current.module);
   const optionClass = (id: string) => {
     if (solved && item?.correct === id) return 'wg-option wg-option-pass';
     if (wrongHere.includes(id)) return 'wg-option wg-option-fail';
@@ -346,10 +313,10 @@ function QuizView({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 className="text-lg font-semibold">
-          {t('title', lang)} · Databricks Fundamental
+          {m.quizTitle} · Databricks Fundamental
         </h2>
         <Badge variant="secondary" className="font-mono text-xs">
-          {quiz.questions.length} {t('questions', lang).toLowerCase()}
+          {m.quizQuestionCount(quiz.questions.length)}
         </Badge>
         <div className="ml-auto flex items-center gap-2">
           {isMobile && (
@@ -357,7 +324,6 @@ function QuizView({
               <ListChecks className="size-4" aria-hidden /> {filtered.solved}/{filtered.total}
             </Button>
           )}
-          <LangSwitch lang={lang} onChange={setLang} />
         </div>
       </div>
 
@@ -374,15 +340,15 @@ function QuizView({
           ) : (
             <Card>
               <CardContent className="flex flex-col gap-5">
-                <p className="text-sm text-muted-foreground">{t('intro', lang)}</p>
+                <p className="text-sm text-muted-foreground">{m.quizIntro}</p>
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>
-                      {t('question', lang)} {index + 1} {t('of', lang)} {ids.length}
+                      {m.quizQuestion} {index + 1} {m.quizOf} {ids.length}
                     </span>
                     <span aria-hidden>·</span>
                     <span>
-                      {loc(m.label, lang)} · {loc(m.title, lang)}
+                      {loc(mod.label, lang)} · {loc(mod.title, lang)}
                     </span>
                   </div>
                   <h3 ref={headingRef} tabIndex={-1} className="text-lg font-semibold leading-snug outline-none" id="quiz-question">
@@ -409,7 +375,7 @@ function QuizView({
                           </span>
                           <span className="sr-only">
                             {o.id}
-                            {isRight ? `, ${t('correct', lang)}` : isWrong ? `, ${t('incorrect', lang)}` : ''}:
+                            {isRight ? `, ${m.quizCorrect}` : isWrong ? `, ${m.quizIncorrect}` : ''}:
                           </span>
                           <span className="min-w-0 flex-1 text-left">
                             <Inline>{loc(o.text, lang)}</Inline>
@@ -422,12 +388,12 @@ function QuizView({
 
                 <div role="status" aria-live="polite" className="empty:hidden">
                   {busy ? (
-                    <p className="text-sm text-muted-foreground">{t('saving', lang)}</p>
+                    <p className="text-sm text-muted-foreground">{m.quizSaving}</p>
                   ) : postError ? (
                     <p className="text-sm text-[var(--destructive)]">{postError}</p>
                   ) : state?.attempted ? (
                     <div className={`wg-feedback ${solved ? 'wg-feedback-pass' : 'wg-feedback-fail'} space-y-2`}>
-                      <p className="font-medium">{solved ? t('correct', lang) : t('incorrect', lang)}</p>
+                      <p className="font-medium">{solved ? m.quizCorrect : m.quizIncorrect}</p>
                       {item ? (
                         <>
                           <p>
@@ -436,12 +402,12 @@ function QuizView({
                           <p className="flex items-start gap-1.5 text-muted-foreground">
                             <BookOpen className="mt-0.5 size-4 shrink-0" aria-hidden />
                             <span>
-                              <span className="font-medium text-foreground">{t('whereToLearn', lang)}:</span> {item.module_ref}
+                              <span className="font-medium text-foreground">{m.quizWhereToLearn}:</span> {item.module_ref}
                             </span>
                           </p>
                         </>
                       ) : (
-                        solved && <p className="text-muted-foreground">{t('alreadySolved', lang)}</p>
+                        solved && <p className="text-muted-foreground">{m.quizAlreadySolved}</p>
                       )}
                     </div>
                   ) : null}
@@ -454,26 +420,26 @@ function QuizView({
                     disabled={index <= 0}
                     onClick={() => goTo(ids[index - 1])}
                   >
-                    <ArrowLeft className="size-4" aria-hidden /> {t('prev', lang)}
+                    <ArrowLeft className="size-4" aria-hidden /> {m.quizPrev}
                   </Button>
                   {solved ? (
                     nextId ? (
                       <Button type="button" onClick={() => goTo(nextId)} aria-keyshortcuts="N">
-                        {t('next', lang)} <ArrowRight className="size-4" aria-hidden />
+                        {m.quizNext} <ArrowRight className="size-4" aria-hidden />
                       </Button>
                     ) : (
                       <Button type="button" onClick={() => setNav({ view: 'summary' })} aria-keyshortcuts="N">
-                        <Trophy className="size-4" aria-hidden /> {t('summary', lang)}
+                        <Trophy className="size-4" aria-hidden /> {m.quizSummary}
                       </Button>
                     )
                   ) : (
                     index < ids.length - 1 && (
                       <Button type="button" variant="ghost" onClick={() => goTo(ids[index + 1])}>
-                        {t('skip', lang)} <ArrowRight className="size-4" aria-hidden />
+                        {m.quizSkip} <ArrowRight className="size-4" aria-hidden />
                       </Button>
                     )
                   )}
-                  <span className="ml-auto hidden text-xs text-muted-foreground md:inline">{t('keyboard', lang)}</span>
+                  <span className="ml-auto hidden text-xs text-muted-foreground md:inline">{m.quizKeyboard}</span>
                 </div>
               </CardContent>
             </Card>
@@ -484,7 +450,7 @@ function QuizView({
       <Sheet open={listOpen && isMobile} onOpenChange={setListOpen}>
         <SheetContent side="left" className="overflow-y-auto p-4">
           <SheetHeader className="px-0">
-            <SheetTitle>{t('title', lang)}</SheetTitle>
+            <SheetTitle>{m.quizTitle}</SheetTitle>
           </SheetHeader>
           {list}
         </SheetContent>
@@ -508,6 +474,7 @@ function QuizSummary({
   onOpen: (id: string) => void;
   onBack: () => void;
 }) {
+  const { m } = useI18n();
   const all = summarize(quiz, states);
   const pct = all.total ? Math.round((all.firstCorrect / all.total) * 100) : 0;
   const text = (id: string) => loc(quiz.questions.find((q) => q.id === id)!.text, lang);
@@ -518,7 +485,7 @@ function QuizSummary({
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-wrap items-end gap-6">
           <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('firstAttempt', lang)}</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{m.quizFirstAttempt}</div>
             <div className="mt-1 text-4xl font-semibold tabular-nums">
               {all.firstCorrect}
               <span className="text-xl text-muted-foreground"> / {all.total}</span>
@@ -527,11 +494,11 @@ function QuizSummary({
           </div>
           <div className="text-sm text-muted-foreground">
             <div>
-              {all.solved} / {all.total} {t('answered', lang)}
+              {m.quizAnswered(all.solved, all.total)}
             </div>
             {all.unanswered.length > 0 && (
               <div>
-                {t('notAnswered', lang)}: {all.unanswered.length}
+                {m.quizNotAnswered}: {all.unanswered.length}
               </div>
             )}
           </div>
@@ -539,15 +506,15 @@ function QuizSummary({
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <caption className="sr-only">{t('firstAttempt', lang)}</caption>
+            <caption className="sr-only">{m.quizFirstAttempt}</caption>
             <tbody>
-              {quiz.modules.map((m) => {
-                const ids = quiz.questions.filter((q) => q.module === m.id).map((q) => q.id);
+              {quiz.modules.map((mod) => {
+                const ids = quiz.questions.filter((q) => q.module === mod.id).map((q) => q.id);
                 const s = summarize(quiz, states, ids);
                 return (
-                  <tr key={m.id} className="border-b last:border-0">
+                  <tr key={mod.id} className="border-b last:border-0">
                     <th scope="row" className="py-1.5 pr-3 text-left font-normal">
-                      {loc(m.label, lang)} · {loc(m.title, lang)}
+                      {loc(mod.label, lang)} · {loc(mod.title, lang)}
                     </th>
                     <td className="py-1.5 text-right tabular-nums">
                       {s.firstCorrect} / {s.total}
@@ -560,12 +527,12 @@ function QuizSummary({
         </div>
 
         <section className="space-y-2">
-          <h3 className="font-semibold">{t('toReview', lang)}</h3>
+          <h3 className="font-semibold">{m.quizToReview}</h3>
           {all.review.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{all.firstCorrect > 0 ? t('nothingToReview', lang) : t('notAnswered', lang)}</p>
+            <p className="text-sm text-muted-foreground">{all.firstCorrect > 0 ? m.quizNothingToReview : m.quizNotAnswered}</p>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">{t('toReviewNote', lang)}</p>
+              <p className="text-sm text-muted-foreground">{m.quizToReviewNote}</p>
               <ul className="flex flex-col gap-1">
                 {all.review.map((id) => (
                   <li key={id}>
@@ -585,10 +552,10 @@ function QuizSummary({
 
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={onBack}>
-            <ArrowLeft className="size-4" aria-hidden /> {t('restartView', lang)}
+            <ArrowLeft className="size-4" aria-hidden /> {m.quizBackToQuestions}
           </Button>
           <Button asChild variant="ghost">
-            <Link to="/">{t('backToWorkshops', lang)}</Link>
+            <Link to="/">{m.backToWorkshops}</Link>
           </Button>
         </div>
       </CardContent>

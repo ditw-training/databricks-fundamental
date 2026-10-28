@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <meta name="generator" content="notebooks/workshops/guide/build_static.py">
-<title>Workshop 1 — Ingestion · Workshop Guide</title>
+<title>Workshop I — Ingestion · Workshop Guide</title>
 <style>
 :root{
   --bg:#ffffff;--surface:#f7f7f8;--surface-2:#efeff1;--fg:#18181b;--muted:#5d5d66;
@@ -45,6 +45,10 @@ a:hover{color:var(--accent)}
 .brand h1{font-size:17px;line-height:1.3;margin:0;font-weight:650}
 .brand .sub{font-size:12.5px;color:var(--muted)}
 .overall{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.langs{display:flex;align-items:center;gap:4px;font-size:13px}
+.langs a{padding:3px 8px;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--muted)}
+.langs a[aria-current=page]{color:var(--fg);font-weight:650;border-color:var(--fg)}
+.langs a.langs-index{border-color:transparent;margin-left:4px}
 .bar{width:140px;height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
 .bar>span{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
 .layout{max-width:1180px;margin:0 auto;padding:20px 16px 64px;display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px}
@@ -191,7 +195,8 @@ footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
 <div class="accent-bar"></div>
 <header class="topbar"><div class="topbar-inner">
 <div class="brand"><span class="logo" aria-hidden="true">WG</span>
-<div><h1>Workshop 1 — Ingestion</h1><div class="sub">Workshop Guide · static edition · notebook <code>WORKSHOP_ingestion</code></div></div></div>
+<div><h1>Workshop I — Ingestion</h1><div class="sub">Workshop Guide · static edition · notebook <code>WORKSHOP_ingestion</code></div></div></div>
+<nav class="langs" aria-label="Language"><a href="ws_ingestion.pl.html" lang="pl" hreflang="pl" title="Polski">PL</a><a href="ws_ingestion.en.html" lang="en" hreflang="en" aria-current="page" title="English">EN</a><a href="index.html" class="langs-index">All workshops</a></nav>
 <div class="overall"><span id="overall-text">0 of 8 steps done</span>
 <span class="bar" role="progressbar" aria-label="Required steps done" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0"><span id="overall-bar"></span></span></div>
 </div></header>
@@ -203,9 +208,7 @@ footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
 </nav>
 <main id="steps">
 <div class="notice" role="note">
-<p><strong>Static edition.</strong> This page works offline and saves your answers only in this browser. It is not connected to Databricks, so it cannot see your notebook and steps do not turn green on their own.</p>
-<p>Checks run in your notebook. Once per session, add a cell <code>%run ./_checks/ws_ingestion</code> after the setup cells of <code>WORKSHOP_ingestion</code> and run it: it defines <code>check()</code>.</p>
-<p>For each step: solve the exercise here, copy the code into <code>WORKSHOP_ingestion</code> and run the cell, then add a cell <code>check("ws_ingestion", "tNN")</code> under it. When it prints <strong>PASS</strong>, tick the box at the bottom of the step. Match steps are graded on this page.</p>
+<p><strong>Static edition.</strong> This page works offline and saves your answers only in this browser. It is not connected to Databricks, so it cannot see your notebook and steps do not turn green on their own.</p><p>Checks run in your notebook. Once per session, add a cell <code>%run ./_checks/ws_ingestion</code> after the setup cells of <code>WORKSHOP_ingestion</code> and run it: it defines <code>check()</code>.</p><p>For each step: solve the exercise here, copy the code into <code>WORKSHOP_ingestion</code> and run the cell, then add a cell <code>check("ws_ingestion", "tNN")</code> under it. When it prints <strong>PASS</strong>, tick the box at the bottom of the step. Match steps are graded on this page.</p>
 <p id="storage-warning" hidden><strong>Note:</strong> this browser blocks local storage, so progress is lost when you close the page.</p>
 </div>
 <div class="intro md"><p>You are a data engineer at RetailHub. Load raw customer (CSV) and order (JSON) files into DataFrames, transform them with PySpark and its SQL equivalents, and write a Bronze Delta table with load metadata. Code runs in your notebook <code>WORKSHOP_ingestion</code>; after each step run its cell, then run <code>check(...)</code> for it in a new cell (see the note above). The last line of a step cell saves your result to a table <code>default._ws_...</code> in your catalog; keep it. Steps marked ⭐ OPTIONAL can be skipped. A DataFrame is a table Spark holds for you, like the result of a SELECT; <code>spark</code> and <code>display()</code> are ready in every Databricks notebook.</p></div>
@@ -380,7 +383,21 @@ display(orders_by_country)
 </div>
 <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <script id="guide-data" type="application/json">{"id":"ws_ingestion","steps":[{"id":"t01","type":"match","check":"app","optional":false,"hints":3,"pairs":[{"left":"F.col(\"city\")","right":"city (a column reference)"},{"left":"F.year(F.col(\"registration_date\"))","right":"year(registration_date)"},{"left":"F.count(\"*\").alias(\"order_count\")","right":"COUNT(*) AS order_count"},{"left":"F.when(cond, \"New\").otherwise(\"Loyal\")","right":"CASE WHEN cond THEN 'New' ELSE 'Loyal' END"},{"left":"F.col(\"order_datetime\").cast(\"timestamp\")","right":"CAST(order_datetime AS TIMESTAMP)"},{"left":"df.filter(F.col(\"state\") == \"NY\")","right":"WHERE state = 'NY'"}]},{"id":"t02","type":"order","check":"notebook","optional":false,"hints":3,"blocks":[{"id":"f","code":"    .load(CUSTOMERS_CSV)"},{"id":"x1","code":"    .write"},{"id":"a","code":"customers_infer_df = ("},{"id":"h","code":"display(customers_infer_df.limit(5))"},{"id":"x2","code":"    .saveAsTable(CUSTOMERS_CSV)"},{"id":"b","code":"    spark.read.format(\"csv\")"},{"id":"g","code":")"},{"id":"d","code":"    .option(\"header\", \"true\")        # first row = column names\n    .option(\"inferSchema\", \"true\")   # let Spark guess the types"}],"solution":["a","b","d","f","g","h"],"distractors":["x1","x2"]},{"id":"t03","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# Schema as a DDL string: 10 columns in the CSV order\ncustomers_schema = (\n    \"customer_id STRING, first_name STRING, last_name STRING, email STRING, phone STRING, \"\n    \"city STRING, state STRING, country STRING, registration_date {{b1}}, customer_segment STRING\"\n)\n\n# Load the CSV with the explicit schema (no inferSchema)\ncustomers_df = (\n    spark.read\n    .format(\"csv\")\n    .option(\"{{b2}}\", \"true\")\n    .{{b3}}(customers_schema)\n    .load({{b4}})\n)\ndisplay(customers_df.limit(5))\n\n# saves your result so the app can check it\ncustomers_df.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t03\")","blanks":{"b1":{"answers":["DATE"],"case_sensitive":false},"b2":{"answers":["header"],"case_sensitive":false},"b3":{"answers":["schema"],"case_sensitive":false},"b4":{"answers":["CUSTOMERS_CSV"],"case_sensitive":false}}},{"id":"t04","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t05","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# The orders schema as a DDL string (JSON fields are matched by name)\norders_schema = (\n    \"order_id STRING, customer_id STRING, order_datetime STRING, quantity INT, \"\n    \"unit_price DOUBLE, total_amount DOUBLE, payment_method STRING, discount_percent DOUBLE\"\n)\n\n# Load ORDERS_JSON with this schema\norders_df = spark.read.format(\"{{b1}}\").{{b2}}(orders_schema).{{b3}}(ORDERS_JSON)\ndisplay(orders_df.limit(5))\n\n# saves your result so the app can check it\norders_df.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t05\")","blanks":{"b1":{"answers":["json"],"case_sensitive":false},"b2":{"answers":["schema"],"case_sensitive":false},"b3":{"answers":["load"],"case_sensitive":false}}},{"id":"t06","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t07","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# customers_enriched: full_name and registration_year\ncustomers_enriched = (\n    customers_df\n    .{{b1}}(\"full_name\", F.concat_ws({{b2}}, F.col(\"first_name\"), F.col(\"last_name\")))\n    .withColumn(\"registration_year\", F.{{b3}}(F.col(\"registration_date\")))\n)\n\n# orders_typed: order_datetime (STRING) cast to TIMESTAMP\norders_typed = orders_df.withColumn(\"order_ts\", F.col(\"order_datetime\").{{b4}}(\"timestamp\"))\n\ndisplay(customers_enriched.select(\"customer_id\", \"full_name\", \"registration_year\").limit(5))\ndisplay(orders_typed.select(\"order_id\", \"order_datetime\", \"order_ts\").limit(5))\n\n# saves your result so the app can check it\n(customers_enriched.withColumn(\"_part\", F.lit(\"customers\")).unionByName(orders_typed.withColumn(\"_part\", F.lit(\"orders\")), allowMissingColumns=True)\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t07\"))","blanks":{"b1":{"answers":["withColumn"],"case_sensitive":false},"b2":{"answers":["\" \"","' '"],"case_sensitive":false},"b3":{"answers":["year"],"case_sensitive":false},"b4":{"answers":["cast"],"case_sensitive":false}}},{"id":"t08","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# customer_tier: >= 2025 -> New, >= 2024 -> Regular, otherwise -> Loyal\ncustomers_tiered = customers_enriched.withColumn(\n    \"customer_tier\",\n    F.when(F.col(\"registration_year\") >= {{b1}}, \"New\")\n    .{{b2}}(F.col(\"registration_year\") >= 2024, \"Regular\")\n    .{{b3}}(\"Loyal\")\n)\n\ndisplay(customers_tiered.groupBy(\"customer_tier\").count().orderBy(\"customer_tier\"))\n\n# saves your result so the app can check it\ncustomers_tiered.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t08\")","blanks":{"b1":{"answers":["2025"],"case_sensitive":false},"b2":{"answers":["when"],"case_sensitive":false},"b3":{"answers":["otherwise"],"case_sensitive":false}}},{"id":"t09","type":"order","check":"notebook","optional":false,"hints":3,"blocks":[{"id":"e","code":"    .orderBy(F.desc(\"total_revenue\"))"},{"id":"a","code":"payment_stats = ("},{"id":"x1","code":"    .groupBy(\"order_count\")"},{"id":"g","code":"display(payment_stats)"},{"id":"c","code":"    .groupBy(\"payment_method\")"},{"id":"f","code":")"},{"id":"x2","code":"    .orderBy(F.desc(\"total_amount\"))"},{"id":"d","code":"    .agg(\n        F.count(\"*\").alias(\"order_count\"),\n        F.sum(\"total_amount\").alias(\"total_revenue\"),\n        F.avg(\"total_amount\").alias(\"avg_order_value\"),\n    )"},{"id":"b","code":"    orders_df"}],"solution":["a","b","c","d","e","f","g"],"distractors":["x1","x2"]},{"id":"t10","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t11","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# Raw data + two metadata columns\ncustomers_bronze = (\n    customers_df\n    .withColumn(\"_source_file\", F.col(\"{{b1}}\"))\n    .withColumn(\"_load_ts\", F.{{b2}}())\n)\n\n# Managed Delta table, safe to re-run\n(\n    customers_bronze.write\n    .mode(\"{{b3}}\")\n    .option(\"overwriteSchema\", \"true\")\n    .{{b4}}(TARGET_TABLE)\n)\ndisplay(spark.table(TARGET_TABLE).limit(5))","blanks":{"b1":{"answers":["_metadata.file_path"],"case_sensitive":false},"b2":{"answers":["current_timestamp"],"case_sensitive":false},"b3":{"answers":["overwrite"],"case_sensitive":false},"b4":{"answers":["saveAsTable"],"case_sensitive":false}}},{"id":"t12","type":"code","check":"notebook","optional":true,"hints":3}]}</script>
+<script id="guide-l10n" type="application/json">{"plural":"en","copied":"Copied","copy_failed":"Copy failed","copied_announce":"Code copied to the clipboard.","copy_failed_announce":"Copy failed. Select the code and copy it by hand.","states":{"none":"Not started","progress":"In progress","ready":"Ready: run check() in the notebook","done":"Done"},"overall":"{n} of {total} steps done","overall_optional":" · ⭐ {n} of {total} optional","show_solution":"Show the solution","show_hint":"Show a hint","show_next_hint":"Show the next hint","hints_shown":"{n} of {total} shown","fill_all":"All {total} blanks are right.","fill_some":"{n} of {total} blanks are right.","fill_all_announce":"All blanks are right.","run_check_tail":" Copy the code into the notebook, run the cell, then run check() for this step.","block_added":"Added “{b}” at position {n}.","block_removed":"Removed “{b}” from your answer.","block_moved":"Moved to position {n}.","answer_empty":"Your answer is empty: add blocks first.","blocks_reset":"All blocks are back in the list.","order_pass":"Correct order: all {total} blocks in place.","order_positions":"{n} of {total} blocks in the right place.","order_extra":["{n} block does not belong here.","{n} blocks do not belong here."],"order_missing":["{n} block is missing.","{n} blocks are missing."],"match_pass":"All {total} pairs matched.","match_some":"{n} of {total} pairs matched.","term_placed":"Placed the term on: ","step_done":"Step marked as done.","reset_confirm":"Clear all progress, answers and hints for this workshop in this browser?"}</script>
 <script>
+/* Page language: strings from #guide-l10n (build_static.py STRINGS[lang]["js"]). */
+var L = JSON.parse(document.getElementById('guide-l10n').textContent);
+function fmt(s, v) {
+  return String(s).replace(/\{(\w+)\}/g, function (m, k) { return v[k] !== undefined ? String(v[k]) : m; });
+}
+/* English forms: [one, other]; Polish forms: [one, few (2-4, not 12-14), many]. */
+function plural(n, forms) {
+  if (forms.length === 2) return forms[n === 1 ? 0 : 1];
+  if (n === 1) return forms[0];
+  var d = n % 10, h = n % 100;
+  return forms[(d >= 2 && d <= 4 && !(h >= 12 && h <= 14)) ? 1 : 2];
+}
+
 /* Pure grading logic: port of apps/workshop-guide/client/src/lib/exercise.ts. */
 var WG = (function () {
   function normalize(value, caseSensitive) {
@@ -415,11 +432,11 @@ var WG = (function () {
     var missing = step.solution.filter(function (id) { return answer.indexOf(id) < 0; }).length;
     var message;
     if (pass) {
-      message = 'Correct order: all ' + total + ' blocks in place.';
+      message = fmt(L.order_pass, { total: total });
     } else {
-      var parts = [correctPositions + ' of ' + total + ' blocks in the right place.'];
-      if (distractorsUsed > 0) parts.push(distractorsUsed + ' block' + (distractorsUsed > 1 ? 's do' : ' does') + ' not belong here.');
-      if (missing > 0) parts.push(missing + ' block' + (missing > 1 ? 's are' : ' is') + ' missing.');
+      var parts = [fmt(L.order_positions, { n: correctPositions, total: total })];
+      if (distractorsUsed > 0) parts.push(fmt(plural(distractorsUsed, L.order_extra), { n: distractorsUsed }));
+      if (missing > 0) parts.push(fmt(plural(missing, L.order_missing), { n: missing }));
       message = parts.join(' ');
     }
     return { pass: pass, correctPositions: correctPositions, total: total, distractorsUsed: distractorsUsed, missing: missing, message: message };
@@ -442,7 +459,7 @@ var WG = (function () {
     });
     var pass = correct === total;
     return { pass: pass, correct: correct, total: total, slotCorrect: slotCorrect,
-             message: pass ? 'All ' + total + ' pairs matched.' : correct + ' of ' + total + ' pairs matched.' };
+             message: fmt(pass ? L.match_pass : L.match_some, { n: correct, total: total }) };
   }
   return { normalize: normalize, isBlankCorrect: isBlankCorrect, blankState: blankState, assembleFill: assembleFill,
            fillProgress: fillProgress, checkOrder: checkOrder, assembleOrder: assembleOrder, checkMatch: checkMatch };
@@ -494,8 +511,8 @@ var WG = (function () {
       if (!btn) return;
       var old = btn.getAttribute('data-label') || btn.textContent;
       btn.setAttribute('data-label', old);
-      btn.textContent = ok ? 'Copied' : 'Copy failed';
-      announce(ok ? 'Code copied to the clipboard.' : 'Copy failed. Select the code and copy it by hand.');
+      btn.textContent = ok ? L.copied : L.copy_failed;
+      announce(ok ? L.copied_announce : L.copy_failed_announce);
       window.setTimeout(function () { btn.textContent = old; }, 1600);
     }
     function fallback() {
@@ -524,7 +541,7 @@ var WG = (function () {
     if (state.touched[id] || state.hints[id]) return 'progress';
     return 'none';
   }
-  var LABELS = { none: 'Not started', progress: 'In progress', ready: 'Ready: run check() in the notebook', done: 'Done' };
+  var LABELS = L.states;
   function refreshStep(id) {
     var st = stepStatus(id);
     var sec = document.getElementById('step-' + id);
@@ -545,7 +562,7 @@ var WG = (function () {
       if (s.optional) { opt++; if (d) optDone++; } else { req++; if (d) reqDone++; }
     });
     document.getElementById('overall-text').textContent =
-      reqDone + ' of ' + req + ' steps done' + (opt ? ' · ⭐ ' + optDone + ' of ' + opt + ' optional' : '');
+      fmt(L.overall, { n: reqDone, total: req }) + (opt ? fmt(L.overall_optional, { n: optDone, total: opt }) : '');
     var bar = document.getElementById('overall-bar');
     bar.style.width = (req ? Math.round(100 * reqDone / req) : 0) + '%';
     bar.parentNode.setAttribute('aria-valuenow', String(reqDone));
@@ -567,8 +584,8 @@ var WG = (function () {
       items.forEach(function (li, i) { li.hidden = i >= shown; });
       var nextIsSolution = shown === items.length - 1 && items.length > 1;
       next.hidden = shown >= items.length;
-      next.textContent = nextIsSolution ? 'Show the solution' : (shown === 0 ? 'Show a hint' : 'Show the next hint');
-      count.textContent = shown + ' of ' + items.length + ' shown';
+      next.textContent = nextIsSolution ? L.show_solution : (shown === 0 ? L.show_hint : L.show_next_hint);
+      count.textContent = fmt(L.hints_shown, { n: shown, total: items.length });
     }
     function reveal(n) {
       state.hints[s.id] = n;
@@ -605,9 +622,9 @@ var WG = (function () {
       var p = WG.fillProgress(s, values);
       var all = p.correct === p.total;
       state.solved[s.id] = all;
-      if (all) setStatus(sec, 'All ' + p.total + ' blanks are right. Copy the code into the notebook, run the cell, then run check() for this step.', 'ok');
-      else setStatus(sec, p.correct + ' of ' + p.total + ' blanks are right.', null);
-      if (!quiet && all) announce('All blanks are right.');
+      if (all) setStatus(sec, fmt(L.fill_all, { total: p.total }) + L.run_check_tail, 'ok');
+      else setStatus(sec, fmt(L.fill_some, { n: p.correct, total: p.total }), null);
+      if (!quiet && all) announce(L.fill_all_announce);
     }
     inputs.forEach(function (inp) {
       var id = inp.getAttribute('data-blank');
@@ -655,11 +672,11 @@ var WG = (function () {
     function act(li, action, btn) {
       var list = li.parentNode;
       var msg = '';
-      if (action === 'add') { answer.appendChild(li); msg = 'Added “' + blockLabel(li) + '” at position ' + current().length + '.'; }
-      else if (action === 'remove') { pool.appendChild(li); msg = 'Removed “' + blockLabel(li) + '” from your answer.'; }
+      if (action === 'add') { answer.appendChild(li); msg = fmt(L.block_added, { b: blockLabel(li), n: current().length }); }
+      else if (action === 'remove') { pool.appendChild(li); msg = fmt(L.block_removed, { b: blockLabel(li) }); }
       else if (action === 'up' && li.previousElementSibling) { list.insertBefore(li, li.previousElementSibling); }
       else if (action === 'down' && li.nextElementSibling) { list.insertBefore(li.nextElementSibling, li); }
-      if (action === 'up' || action === 'down') msg = 'Moved to position ' + (Array.prototype.indexOf.call(list.children, li) + 1) + '.';
+      if (action === 'up' || action === 'down') msg = fmt(L.block_moved, { n: Array.prototype.indexOf.call(list.children, li) + 1 });
       persist('');
       announce(msg);
       var again = li.querySelector('[data-act="' + action + '"]');
@@ -708,26 +725,26 @@ var WG = (function () {
     });
     sec.querySelector('[data-check-order]').addEventListener('click', function () {
       var ans = current();
-      if (!ans.length) { setStatus(sec, 'Your answer is empty: add blocks first.', 'bad'); return; }
+      if (!ans.length) { setStatus(sec, L.answer_empty, 'bad'); return; }
       var r = WG.checkOrder(s, ans);
       touch(s.id); state.solved[s.id] = r.pass;
       answer.querySelectorAll('[data-block]').forEach(function (li, i) {
         li.setAttribute('data-mark', s.solution[i] === li.getAttribute('data-block') ? 'ok' : 'bad');
       });
-      var tail = r.pass ? (s.check === 'notebook' ? ' Copy the code into the notebook, run the cell, then run check() for this step.' : '') : '';
+      var tail = r.pass ? (s.check === 'notebook' ? L.run_check_tail : '') : '';
       setStatus(sec, r.message + tail, r.pass ? 'ok' : 'bad');
       announce(r.message);
       changed(s.id);
     });
     sec.querySelector('[data-copy-assembled]').addEventListener('click', function (ev) {
       var ans = current();
-      if (!ans.length) { setStatus(sec, 'Your answer is empty: add blocks first.', 'bad'); return; }
+      if (!ans.length) { setStatus(sec, L.answer_empty, 'bad'); return; }
       copyText(WG.assembleOrder(s, ans), ev.currentTarget);
     });
     sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
       initialPool.forEach(function (li) { pool.appendChild(li); });
       persist('');
-      announce('All blocks are back in the list.');
+      announce(L.blocks_reset);
     });
     /* restore */
     var saved = state.order[s.id] || [];
@@ -791,7 +808,7 @@ var WG = (function () {
         if (draggedTerm === null) return;
         ev.preventDefault(); zone.classList.remove('drag-over');
         setTerm(sel, draggedTerm);
-        announce('Placed the term on: ' + zone.closest('[data-slot]').querySelector('label').textContent);
+        announce(L.term_placed + zone.closest('[data-slot]').querySelector('label').textContent);
       });
     });
     function grade(quiet) {
@@ -846,7 +863,7 @@ var WG = (function () {
     var box = sec.querySelector('[data-done]');
     if (box) box.addEventListener('change', function () {
       state.done[s.id] = box.checked; touch(s.id); changed(s.id);
-      if (box.checked) announce('Step marked as done.');
+      if (box.checked) announce(L.step_done);
     });
     refreshStep(s.id);
   });
@@ -854,7 +871,7 @@ var WG = (function () {
   initNav();
   showStorageWarning();
   document.getElementById('reset-all').addEventListener('click', function () {
-    if (!window.confirm('Clear all progress, answers and hints for this workshop in this browser?')) return;
+    if (!window.confirm(L.reset_confirm)) return;
     try { window.localStorage.removeItem(KEY); } catch (e) { /* nothing to clear */ }
     window.location.reload();
   });

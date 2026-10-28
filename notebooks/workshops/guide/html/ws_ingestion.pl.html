@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="notebooks/workshops/guide/build_static.py">
+<title>Warsztat I — Ingestion · Workshop Guide</title>
+<style>
+:root{
+  --bg:#ffffff;--surface:#f7f7f8;--surface-2:#efeff1;--fg:#18181b;--muted:#5d5d66;
+  --border:#e2e2e6;--code-bg:#f6f6f7;--code-border:#e3e3e7;
+  --accent:#E30613;--accent-soft:rgba(227,6,19,.09);
+  --ok:#147a3d;--ok-soft:rgba(20,122,61,.10);--bad:#b42318;--bad-soft:rgba(180,35,24,.09);
+  --warn:#8a5a00;--warn-soft:rgba(176,120,0,.12);--focus:#E30613;--shadow:0 1px 2px rgba(0,0,0,.05);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#111114;--surface:#18181c;--surface-2:#202026;--fg:#ececf0;--muted:#a2a2ad;
+    --border:#2c2c33;--code-bg:#16161a;--code-border:#2e2e36;
+    --accent:#ff3b47;--accent-soft:rgba(255,59,71,.13);
+    --ok:#4ade80;--ok-soft:rgba(74,222,128,.12);--bad:#f87171;--bad-soft:rgba(248,113,113,.12);
+    --warn:#fbbf24;--warn-soft:rgba(251,191,36,.12);--focus:#ff5a64;--shadow:none;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+code,pre,input.blank,select{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+a{color:inherit;text-underline-offset:2px}
+a:hover{color:var(--accent)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:absolute;left:-999px;top:8px;background:var(--fg);color:var(--bg);padding:6px 12px;border-radius:6px;z-index:10}
+.skip:focus{left:12px}
+.accent-bar{height:3px;background:var(--accent)}
+.topbar{border-bottom:1px solid var(--border);background:var(--bg)}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:14px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.logo{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:7px;background:var(--fg);color:var(--bg);
+  font-weight:700;font-size:13px;box-shadow:inset 0 -3px 0 var(--accent);flex:none}
+.brand{display:flex;gap:10px;align-items:center;min-width:0;flex:1}
+.brand h1{font-size:17px;line-height:1.3;margin:0;font-weight:650}
+.brand .sub{font-size:12.5px;color:var(--muted)}
+.overall{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.langs{display:flex;align-items:center;gap:4px;font-size:13px}
+.langs a{padding:3px 8px;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--muted)}
+.langs a[aria-current=page]{color:var(--fg);font-weight:650;border-color:var(--fg)}
+.langs a.langs-index{border-color:transparent;margin-left:4px}
+.bar{width:140px;height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar>span{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.layout{max-width:1180px;margin:0 auto;padding:20px 16px 64px;display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px}
+nav.steps-nav{position:sticky;top:12px;align-self:start;max-height:calc(100vh - 24px);overflow:auto}
+.nav-title-h{font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:4px 8px 8px}
+.steps-nav ol{list-style:none;margin:0;padding:0}
+.steps-nav a{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;text-decoration:none;font-size:13.5px;color:var(--muted)}
+.steps-nav a:hover{background:var(--surface);color:var(--fg)}
+.steps-nav a[aria-current="true"]{background:var(--surface-2);color:var(--fg);box-shadow:inset 2px 0 0 var(--accent)}
+.nav-num{font-variant-numeric:tabular-nums;font-size:12px;opacity:.8}
+.nav-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-opt{font-size:11px}
+.dot{width:10px;height:10px;border-radius:99px;border:2px solid var(--muted);opacity:.6;flex:none}
+[data-status-v="progress"] .dot{border-color:var(--warn);background:var(--warn-soft);opacity:1}
+[data-status-v="ready"] .dot{border-color:var(--warn);background:var(--warn);opacity:1}
+[data-status-v="done"] .dot{border-color:var(--ok);background:var(--ok);opacity:1}
+.nav-tools{margin:14px 8px 0;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--muted)}
+main{min-width:0}
+.notice{border:1px solid var(--border);border-left:3px solid var(--accent);background:var(--surface);border-radius:8px;
+  padding:12px 14px;margin:0 0 18px;font-size:14px}
+.notice p{margin:0 0 6px}.notice p:last-child{margin:0}
+.intro{font-size:15.5px;margin:0 0 26px}
+.intro p{margin:0 0 8px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin:-12px 0 24px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .dot{display:inline-block}
+.step{border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin:0 0 22px;background:var(--bg);box-shadow:var(--shadow);scroll-margin-top:12px}
+.step-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:8px}
+.step-num{flex:none;font-weight:700;font-size:13px;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:var(--surface-2);color:var(--muted);font-variant-numeric:tabular-nums}
+.step[data-status-v="done"] .step-num{background:var(--ok-soft);color:var(--ok)}
+.step-title{font-size:18px;line-height:1.35;margin:4px 0 6px;font-weight:650}
+.badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.badge,.state{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--muted);background:var(--surface)}
+.badge-opt{color:var(--warn);border-color:transparent;background:var(--warn-soft)}
+.state{border-color:transparent}
+[data-status-v="progress"] .state,[data-status-v="ready"] .state{color:var(--warn);background:var(--warn-soft)}
+[data-status-v="done"] .state{color:var(--ok);background:var(--ok-soft)}
+.md p,.explain p{margin:0 0 10px}
+.md code,.explain code,.hint code,.expected code,.finish code,.notice code,.intro code,.match-desc code{
+  font-size:.88em;background:var(--surface-2);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere}
+.sec-title{font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px}
+.sec-title .muted{text-transform:none;letter-spacing:0;font-weight:500;margin-left:6px}
+.col-title{font-size:12.5px;font-weight:650;margin:0 0 6px;color:var(--muted)}
+.exercise{margin:14px 0 4px}
+.ex-instr{font-size:14px;color:var(--muted);margin:0 0 10px}
+.codeblock{position:relative;border:1px solid var(--code-border);background:var(--code-bg);border-radius:8px;margin:0 0 10px}
+.codeblock pre{margin:0;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.55;tab-size:4}
+.codeblock pre code{background:none;padding:0;font-size:inherit}
+.codeblock .btn-copy{position:absolute;top:6px;right:6px;font-size:12px;padding:2px 9px;opacity:.85}
+.codeblock[data-lang]::before{content:attr(data-lang);position:absolute;top:-9px;left:10px;font-size:10.5px;padding:0 6px;
+  border-radius:4px;background:var(--bg);color:var(--muted);border:1px solid var(--code-border);text-transform:uppercase;letter-spacing:.05em}
+.codeblock-fill pre{white-space:pre;line-height:2.1}
+input.blank{font-size:13px;padding:1px 5px;margin:0 1px;border:1.5px dashed var(--muted);border-radius:5px;background:var(--bg);
+  color:var(--fg);vertical-align:baseline;max-width:60ch}
+input.blank:focus{border-style:solid;border-color:var(--focus);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+input.blank[data-state="correct"]{border:1.5px solid var(--ok);background:var(--ok-soft)}
+input.blank[data-state="wrong"]{border:1.5px solid var(--bad);background:var(--bad-soft)}
+.ex-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:8px}
+.ex-status{margin:0;font-size:13.5px;min-height:1.4em;color:var(--muted)}
+.ex-status[data-tone="ok"]{color:var(--ok)}.ex-status[data-tone="bad"]{color:var(--bad)}
+.ex-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-size:13px;font-weight:550;padding:5px 12px;border-radius:7px;border:1px solid var(--border);
+  background:var(--bg);color:var(--fg);cursor:pointer;line-height:1.4}
+.btn:hover{background:var(--surface)}
+.btn-primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.btn-primary:hover{background:var(--fg);opacity:.88}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn-ghost:hover{color:var(--fg);background:var(--surface)}
+.btn-icon{padding:2px 8px;min-width:30px;font-size:12.5px}
+.order-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.order-col{min-width:0;position:relative}
+.blocklist{list-style:none;margin:0;padding:8px;min-height:64px;border:1.5px dashed var(--border);border-radius:9px;background:var(--surface)}
+.blocklist.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.answer{counter-reset:pos}
+.block{display:flex;align-items:flex-start;gap:8px;padding:7px 8px;margin:0 0 6px;border:1px solid var(--code-border);
+  border-radius:7px;background:var(--code-bg);cursor:grab}
+.block:last-child{margin-bottom:0}
+.block.dragging{opacity:.45}
+.answer .block::before{counter-increment:pos;content:counter(pos);font-size:11px;font-weight:700;color:var(--muted);min-width:14px;padding-top:2px}
+.block[data-mark="ok"]{border-color:var(--ok)}.block[data-mark="bad"]{border-color:var(--bad);background:var(--bad-soft)}
+.grip{color:var(--muted);font-size:12px;letter-spacing:-2px;padding-top:2px;user-select:none}
+.block-code{margin:0;flex:1;min-width:0;font-size:12.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.block-actions{display:flex;gap:4px;flex:none}
+.pool [data-act="up"],.pool [data-act="down"],.pool [data-act="remove"],.answer [data-act="add"]{display:none}
+.empty-note{position:absolute;left:0;right:0;top:44px;text-align:center;font-size:13px;color:var(--muted);pointer-events:none;margin:0}
+.answer:not(:empty)+.empty-note{display:none}
+.chips{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--code-border);background:var(--code-bg);border-radius:7px;padding:4px 9px;cursor:grab;font-size:12.5px}
+.chip code{background:none;padding:0;font-size:inherit}
+.chip[data-used="true"]{opacity:.45}
+.chip.dragging{opacity:.3}
+.match-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.match-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:center;padding:8px 10px;
+  border:1px solid var(--border);border-radius:9px}
+.match-desc{font-size:14px}
+.dropzone{display:flex;align-items:center;gap:8px;border:1.5px dashed transparent;border-radius:8px;padding:2px}
+.dropzone.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.match-select{width:100%;font-size:12.5px;padding:6px 8px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--fg)}
+.mark{width:18px;flex:none;font-weight:700;text-align:center}
+.match-row[data-mark="ok"]{border-color:var(--ok)}.match-row[data-mark="ok"] .mark::before{content:"✓";color:var(--ok)}
+.match-row[data-mark="bad"]{border-color:var(--bad)}.match-row[data-mark="bad"] .mark::before{content:"✕";color:var(--bad)}
+.expected{border-radius:8px}
+.expected p{margin:0}
+.hint-list{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:8px}
+.hint{border:1px solid var(--border);border-radius:8px;padding:9px 12px;background:var(--surface)}
+.hint p{margin:0 0 6px}.hint p:last-child{margin:0}
+.hint .codeblock{margin:6px 0 0}
+.hint-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:3px}
+.hint-solution{border-color:var(--warn);background:var(--warn-soft)}
+.hint-solution .hint-label{color:var(--warn)}
+.hint-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px;border:1px solid var(--warn);background:var(--warn-soft);
+  border-radius:8px;padding:8px 10px}
+.confirm[hidden],[hidden]{display:none!important}
+.docs ul{margin:0;padding-left:18px}
+.docs li{margin:2px 0}
+.finish{border-top:1px solid var(--border);margin-top:18px;padding-top:2px}
+.finish p{margin:0 0 8px;font-size:14px}
+.done-toggle{display:inline-flex;gap:8px;align-items:center;font-size:14px;cursor:pointer;padding:6px 10px;border:1px solid var(--border);border-radius:8px}
+.done-toggle input{width:16px;height:16px;accent-color:var(--ok)}
+.step[data-status-v="done"] .done-toggle{border-color:var(--ok);background:var(--ok-soft)}
+footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr;gap:12px}
+  nav.steps-nav{position:static;max-height:none;border:1px solid var(--border);border-radius:10px;padding:8px}
+  .steps-nav ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+}
+@media (max-width:640px){
+  .order-grid{grid-template-columns:1fr}
+  .match-row{grid-template-columns:1fr}
+  .step{padding:16px 14px}
+  .step-num{display:none}
+  .bar{width:90px}
+}
+@media print{
+  .accent-bar,nav.steps-nav,.ex-actions,.hint-controls,.btn-copy,.notice{display:none}
+  .layout{display:block}.hint[hidden]{display:block!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#steps">Przejdź do kroków</a>
+<div class="accent-bar"></div>
+<header class="topbar"><div class="topbar-inner">
+<div class="brand"><span class="logo" aria-hidden="true">WG</span>
+<div><h1>Warsztat I — Ingestion</h1><div class="sub">Workshop Guide · wersja statyczna · notebook <code>WORKSHOP_ingestion</code></div></div></div>
+<nav class="langs" aria-label="Język"><a href="ws_ingestion.pl.html" lang="pl" hreflang="pl" aria-current="page" title="Polski">PL</a><a href="ws_ingestion.en.html" lang="en" hreflang="en" title="English">EN</a><a href="index.html" class="langs-index">Wszystkie warsztaty</a></nav>
+<div class="overall"><span id="overall-text">Zaliczone kroki: 0 / 8</span>
+<span class="bar" role="progressbar" aria-label="Zaliczone kroki obowiązkowe" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0"><span id="overall-bar"></span></span></div>
+</div></header>
+<div class="layout">
+<nav class="steps-nav" aria-label="Kroki">
+<p class="nav-title-h">Kroki</p>
+<ol><li><a href="#step-t01" data-nav="t01"><span class="dot" aria-hidden="true"></span><span class="nav-num">01</span><span class="nav-title">Funkcje PySpark i ich odpowiedniki w SQL</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t02" data-nav="t02"><span class="dot" aria-hidden="true"></span><span class="nav-num">02</span><span class="nav-title">Wczytaj CSV z automatycznie wykrytym schematem</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t03" data-nav="t03"><span class="dot" aria-hidden="true"></span><span class="nav-num">03</span><span class="nav-title">Wczytaj CSV z jawnym schematem</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t04" data-nav="t04"><span class="dot" aria-hidden="true"></span><span class="nav-num">04</span><span class="nav-title">Poznaj DataFrame z klientami</span> <span class="nav-opt" title="Opcjonalny">⭐</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t05" data-nav="t05"><span class="dot" aria-hidden="true"></span><span class="nav-num">05</span><span class="nav-title">Wczytaj zamówienia JSON ze schematem</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t06" data-nav="t06"><span class="dot" aria-hidden="true"></span><span class="nav-num">06</span><span class="nav-title">Przefiltruj klientów</span> <span class="nav-opt" title="Opcjonalny">⭐</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t07" data-nav="t07"><span class="dot" aria-hidden="true"></span><span class="nav-num">07</span><span class="nav-title">Dodaj kolumny i zmień typy</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t08" data-nav="t08"><span class="dot" aria-hidden="true"></span><span class="nav-num">08</span><span class="nav-title">Kolumna warunkowa: segment klienta</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t09" data-nav="t09"><span class="dot" aria-hidden="true"></span><span class="nav-num">09</span><span class="nav-title">Zagreguj zamówienia według metody płatności</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t10" data-nav="t10"><span class="dot" aria-hidden="true"></span><span class="nav-num">10</span><span class="nav-title">SQL na widokach tymczasowych</span> <span class="nav-opt" title="Opcjonalny">⭐</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t11" data-nav="t11"><span class="dot" aria-hidden="true"></span><span class="nav-num">11</span><span class="nav-title">Zapisz tabelę Bronze w formacie Delta</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li><li><a href="#step-t12" data-nav="t12"><span class="dot" aria-hidden="true"></span><span class="nav-num">12</span><span class="nav-title">Złącz zamówienia z klientami</span> <span class="nav-opt" title="Opcjonalny">⭐</span><span class="sr-only" data-nav-state>, nierozpoczęty</span></a></li></ol>
+<div class="nav-tools"><button type="button" class="btn btn-ghost" id="reset-all">Wyczyść moje postępy</button></div>
+</nav>
+<main id="steps">
+<div class="notice" role="note">
+<p><strong>Wersja statyczna.</strong> Ta strona działa offline i zapisuje twoje odpowiedzi tylko w tej przeglądarce. Nie jest połączona z Databricks, więc nie widzi twojego notebooka, a kroki nie zmieniają koloru na zielony same.</p><p>Sprawdzanie działa w notebooku. Raz na sesję dodaj komórkę <code>%run ./_checks/ws_ingestion</code> po komórkach konfiguracyjnych <code>WORKSHOP_ingestion</code> i ją uruchom: definiuje funkcję <code>check()</code>.</p><p>W każdym kroku: rozwiąż ćwiczenie tutaj, skopiuj kod do <code>WORKSHOP_ingestion</code> i uruchom komórkę, potem dodaj pod nią komórkę <code>check("ws_ingestion", "tNN")</code>. Gdy wypisze <strong>PASS</strong>, zaznacz pole na dole kroku. Kroki typu „Połącz w pary” są oceniane na tej stronie.</p>
+<p id="storage-warning" hidden><strong>Uwaga:</strong> ta przeglądarka blokuje pamięć lokalną, więc postęp zniknie po zamknięciu strony.</p>
+</div>
+<div class="intro md"><p>Jesteś inżynierem danych w RetailHub. Wczytasz surowe pliki klientów (CSV) i zamówień (JSON) jako DataFrame, przekształcisz je za pomocą PySpark i równoważnych zapytań SQL, a na koniec zapiszesz tabelę Bronze w formacie Delta z metadanymi ładowania. Kod uruchamiasz w notebooku <code>WORKSHOP_ingestion</code>; po każdym kroku uruchom jego komórkę, potem uruchom w nowej komórce <code>check(...)</code> dla tego kroku (zobacz uwagę powyżej). Ostatnia linia komórki kroku zapisuje twój wynik do tabeli <code>default._ws_...</code> w twoim katalogu; nie usuwaj jej. Kroki opcjonalne (⭐, w notebooku oznaczone OPTIONAL) możesz pominąć. DataFrame to tabela, którą Spark trzyma dla ciebie, podobnie jak wynik zapytania SELECT; <code>spark</code> i <code>display()</code> są gotowe w każdym notebooku Databricks.</p></div>
+<div class="legend" aria-hidden="true"><span><span class="dot"></span>Nierozpoczęty</span>
+<span data-status-v="progress"><span class="dot"></span>W toku</span>
+<span data-status-v="ready"><span class="dot"></span>Gotowe do check()</span>
+<span data-status-v="done"><span class="dot"></span>Zaliczony</span></div>
+<section class="step" id="step-t01" data-step="t01" data-type="match" data-check="app" data-optional="false" aria-labelledby="t01-title"><header class="step-head"><span class="step-num" aria-hidden="true">01</span><div><h3 id="t01-title" class="step-title">Krok 01 — Funkcje PySpark i ich odpowiedniki w SQL</h3><div class="badges"><span class="badge">Połącz w pary</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Komórka konfiguracyjna uruchamia <code>from pyspark.sql import functions as F</code>. <code>F</code> zawiera funkcje znane z SQL: <code>F.year</code> to <code>year()</code>, <code>F.count</code> to <code>COUNT</code>, a <code>F.when</code> to <code>CASE WHEN</code>. Dzięki prefiksowi <code>F</code> wbudowane funkcje Pythona, takie jak <code>sum()</code> czy <code>max()</code>, nadal działają. Dopasuj każde wyrażenie PySpark do kodu SQL, który robi to samo. Przydadzą ci się wszystkie w tym warsztacie.</p></div><div class="exercise exercise-match"><p class="ex-instr">Przeciągnij każde pojęcie na jego opis albo wybierz je z listy obok opisu.</p><h4 class="col-title" id="t01-terms-t">Pojęcia</h4><ul class="chips" aria-labelledby="t01-terms-t"><li class="chip" draggable="true" data-term="2"><code>F.count(&quot;*&quot;).alias(&quot;order_count&quot;)</code></li><li class="chip" draggable="true" data-term="0"><code>F.col(&quot;city&quot;)</code></li><li class="chip" draggable="true" data-term="3"><code>F.when(cond, &quot;New&quot;).otherwise(&quot;Loyal&quot;)</code></li><li class="chip" draggable="true" data-term="5"><code>df.filter(F.col(&quot;state&quot;) == &quot;NY&quot;)</code></li><li class="chip" draggable="true" data-term="4"><code>F.col(&quot;order_datetime&quot;).cast(&quot;timestamp&quot;)</code></li><li class="chip" draggable="true" data-term="1"><code>F.year(F.col(&quot;registration_date&quot;))</code></li></ul><ol class="match-list"><li class="match-row" data-slot="0"><label class="match-desc" for="t01-slot0">city (odwołanie do kolumny)</label><span class="dropzone" data-drop="0"><select id="t01-slot0" class="match-select"><option value="">Wybierz…</option><option value="2">F.count(&quot;*&quot;).alias(&quot;order_count&quot;)</option><option value="0">F.col(&quot;city&quot;)</option><option value="3">F.when(cond, &quot;New&quot;).otherwise(&quot;Loyal&quot;)</option><option value="5">df.filter(F.col(&quot;state&quot;) == &quot;NY&quot;)</option><option value="4">F.col(&quot;order_datetime&quot;).cast(&quot;timestamp&quot;)</option><option value="1">F.year(F.col(&quot;registration_date&quot;))</option></select><span class="mark" aria-hidden="true"></span></span></li><li class="match-row" data-slot="5"><label class="match-desc" for="t01-slot5">WHERE state = 'NY'</label><span class="dropzone" data-drop="5"><select id="t01-slot5" class="match-select"><option value="">Wybierz…</option><option value="2">F.count(&quot;*&quot;).alias(&quot;order_count&quot;)</option><option value="0">F.col(&quot;city&quot;)</option><option value="3">F.when(cond, &quot;New&quot;).otherwise(&quot;Loyal&quot;)</option><option value="5">df.filter(F.col(&quot;state&quot;) == &quot;NY&quot;)</option><option value="4">F.col(&quot;order_datetime&quot;).cast(&quot;timestamp&quot;)</option><option value="1">F.year(F.col(&quot;registration_date&quot;))</option></select><span class="mark" aria-hidden="true"></span></span></li><li class="match-row" data-slot="2"><label class="match-desc" for="t01-slot2">COUNT(*) AS order_count</label><span class="dropzone" data-drop="2"><select id="t01-slot2" class="match-select"><option value="">Wybierz…</option><option value="2">F.count(&quot;*&quot;).alias(&quot;order_count&quot;)</option><option value="0">F.col(&quot;city&quot;)</option><option value="3">F.when(cond, &quot;New&quot;).otherwise(&quot;Loyal&quot;)</option><option value="5">df.filter(F.col(&quot;state&quot;) == &quot;NY&quot;)</option><option value="4">F.col(&quot;order_datetime&quot;).cast(&quot;timestamp&quot;)</option><option value="1">F.year(F.col(&quot;registration_date&quot;))</option></select><span class="mark" aria-hidden="true"></span></span></li><li class="match-row" data-slot="4"><label class="match-desc" for="t01-slot4">CAST(order_datetime AS TIMESTAMP)</label><span class="dropzone" data-drop="4"><select id="t01-slot4" class="match-select"><option value="">Wybierz…</option><option value="2">F.count(&quot;*&quot;).alias(&quot;order_count&quot;)</option><option value="0">F.col(&quot;city&quot;)</option><option value="3">F.when(cond, &quot;New&quot;).otherwise(&quot;Loyal&quot;)</option><option value="5">df.filter(F.col(&quot;state&quot;) == &quot;NY&quot;)</option><option value="4">F.col(&quot;order_datetime&quot;).cast(&quot;timestamp&quot;)</option><option value="1">F.year(F.col(&quot;registration_date&quot;))</option></select><span class="mark" aria-hidden="true"></span></span></li><li class="match-row" data-slot="3"><label class="match-desc" for="t01-slot3">CASE WHEN cond THEN 'New' ELSE 'Loyal' END</label><span class="dropzone" data-drop="3"><select id="t01-slot3" class="match-select"><option value="">Wybierz…</option><option value="2">F.count(&quot;*&quot;).alias(&quot;order_count&quot;)</option><option value="0">F.col(&quot;city&quot;)</option><option value="3">F.when(cond, &quot;New&quot;).otherwise(&quot;Loyal&quot;)</option><option value="5">df.filter(F.col(&quot;state&quot;) == &quot;NY&quot;)</option><option value="4">F.col(&quot;order_datetime&quot;).cast(&quot;timestamp&quot;)</option><option value="1">F.year(F.col(&quot;registration_date&quot;))</option></select><span class="mark" aria-hidden="true"></span></span></li><li class="match-row" data-slot="1"><label class="match-desc" for="t01-slot1">year(registration_date)</label><span class="dropzone" data-drop="1"><select id="t01-slot1" class="match-select"><option value="">Wybierz…</option><option value="2">F.count(&quot;*&quot;).alias(&quot;order_count&quot;)</option><option value="0">F.col(&quot;city&quot;)</option><option value="3">F.when(cond, &quot;New&quot;).otherwise(&quot;Loyal&quot;)</option><option value="5">df.filter(F.col(&quot;state&quot;) == &quot;NY&quot;)</option><option value="4">F.col(&quot;order_datetime&quot;).cast(&quot;timestamp&quot;)</option><option value="1">F.year(F.col(&quot;registration_date&quot;))</option></select><span class="mark" aria-hidden="true"></span></span></li></ol><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn btn-primary" data-check-match>Sprawdź pary</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p>Wszystkie sześć par dopasowanych.</p></section><section class="hints" aria-labelledby="t01-hints-t"><h4 class="sec-title" id="t01-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Czytaj kod PySpark jak SQL: nazwa funkcji zwykle się nie zmienia (<code>year</code> → <code>year</code>, <code>count</code> → <code>COUNT</code>).</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p><code>.alias(...)</code> to w SQL <code>AS</code>, <code>.otherwise(...)</code> to <code>ELSE</code>, a <code>.filter(...)</code> staje się klauzulą <code>WHERE</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pary: <code>F.col("city")</code> → <code>city</code>; <code>F.year(...)</code> → <code>year(registration_date)</code>; <code>F.count("*").alias(...)</code> → <code>COUNT(*) AS order_count</code>; <code>F.when(...).otherwise(...)</code> → <code>CASE WHEN ... END</code>; <code>.cast("timestamp")</code> → <code>CAST(... AS TIMESTAMP)</code>; <code>df.filter(...)</code> → <code>WHERE state = 'NY'</code>.</p></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t01-docs-t"><h4 class="sec-title" id="t01-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/functions/" target="_blank" rel="noopener noreferrer">Funkcje PySpark</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/basics" target="_blank" rel="noopener noreferrer">Podstawy PySpark</a></li></ul></section><section class="finish"><h4 class="sec-title">Ocena na tej stronie</h4><p>Ten krok jest sprawdzany na tej stronie: jest zaliczony, gdy wszystkie odpowiedzi są poprawne.</p></section></section><section class="step" id="step-t02" data-step="t02" data-type="order" data-check="notebook" data-optional="false" aria-labelledby="t02-title"><header class="step-head"><span class="step-num" aria-hidden="true">02</span><div><h3 id="t02-title" class="step-title">Krok 02 — Wczytaj CSV z automatycznie wykrytym schematem</h3><div class="badges"><span class="badge">Ułóż w kolejności</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>spark.read</code> zwraca obiekt do odczytu, który konfigurujesz krok po kroku: format, opcje, wczytanie, a na końcu wyświetlenie. <code>header</code> mówi, że pierwszy wiersz zawiera nazwy kolumn. <code>inferSchema</code> każe Sparkowi przejrzeć plik i zgadnąć typy, co kosztuje dodatkowe przejście po danych. Nawiasy pozwalają rozpisać jedną instrukcję Pythona na kilka linii, po jednej metodzie w linii. Dwa bloki to pułapki.</p><p>Odpowiednik w SQL: <code>SELECT * FROM read_files('&lt;path&gt;/customers.csv', format =&gt; 'csv', header =&gt; true)</code>.</p><p>Wklej swój kod nad ostatnią linią komórki w notebooku: ta linia zapisuje <code>customers_infer_df</code> do tabeli, żeby aplikacja mogła go sprawdzić.</p></div><div class="exercise exercise-order"><p class="ex-instr">Przeciągnij bloki do sekcji <em>Twoja odpowiedź</em> we właściwej kolejności albo użyj przycisków Dodaj, ↑, ↓ i ✕. 2 bloki to pułapki i muszą zostać poza odpowiedzią.</p><div class="order-grid"><div class="order-col"><h4 class="col-title" id="t02-pool-t">Dostępne bloki</h4><ul class="blocklist pool" data-list="pool" aria-labelledby="t02-pool-t"><li class="block" data-block="x1" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    .write</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="b" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    spark.read.format("csv")</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="a" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>customers_infer_df = (</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="h" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>display(customers_infer_df.limit(5))</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="g" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>)</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="d" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    .option("header", "true")        # first row = column names
+    .option("inferSchema", "true")   # let Spark guess the types</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="f" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    .load(CUSTOMERS_CSV)</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="x2" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    .saveAsTable(CUSTOMERS_CSV)</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li></ul></div><div class="order-col"><h4 class="col-title" id="t02-ans-t">Twoja odpowiedź</h4><ol class="blocklist answer" data-list="answer" aria-labelledby="t02-ans-t"></ol><p class="empty-note">Upuść bloki tutaj.</p></div></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn btn-primary" data-check-order>Sprawdź kolejność</button><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>customers_infer_df</code> z 10 nazwanymi kolumnami (<code>customer_id</code>, <code>first_name</code>, ...) i 10 000 wierszy.</p></section><section class="hints" aria-labelledby="t02-hints-t"><h4 class="sec-title" id="t02-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Odczyt zawsze zaczyna się od <code>spark.read</code> i kończy na <code>.load(path)</code>. Zapis (<code>.write</code>, <code>.saveAsTable</code>) tu nie pasuje.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Kolejność: przypisanie z <code>(</code>, <code>spark.read.format("csv")</code>, blok opcji (obie linie <code>.option(...)</code>), <code>.load(CUSTOMERS_CSV)</code>, <code>)</code>, potem <code>display(...)</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>customers_infer_df = (
+    spark.read.format("csv")
+    .option("header", "true")        # first row = column names
+    .option("inferSchema", "true")   # let Spark guess the types
+    .load(CUSTOMERS_CSV)
+)
+display(customers_infer_df.limit(5))</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t02-docs-t"><h4 class="sec-title" id="t02-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/query/formats/csv" target="_blank" rel="noopener noreferrer">Odczyt i zapis plików CSV</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/dataframereader" target="_blank" rel="noopener noreferrer">DataFrameReader</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t02&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t02&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t03" data-step="t03" data-type="fill" data-check="notebook" data-optional="false" aria-labelledby="t03-title"><header class="step-head"><span class="step-num" aria-hidden="true">03</span><div><h3 id="t03-title" class="step-title">Krok 03 — Wczytaj CSV z jawnym schematem</h3><div class="badges"><span class="badge">Uzupełnij luki</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Schemat w formacie DDL to lista kolumn taka sama jak w <code>CREATE TABLE</code>: <code>"customer_id STRING, first_name STRING, ..."</code>. Przekaż go do <code>.schema(...)</code> zamiast <code>inferSchema</code>. Spark pomija wtedy dodatkowe skanowanie, a ty decydujesz o każdym typie. Kolumny CSV są dopasowywane po pozycji, więc kolejność musi być taka jak w pliku. <code>registration_date</code> ma format <code>YYYY-MM-DD</code>, więc <code>DATE</code> odczyta ją bezpośrednio.</p><p>Odpowiednik w SQL: <code>read_files('&lt;path&gt;/customers.csv', format =&gt; 'csv', header =&gt; true, schema =&gt; 'customer_id STRING, ...')</code>.</p></div><div class="exercise exercise-fill"><p class="ex-instr">Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.</p><div class="codeblock codeblock-fill" data-lang="python"><pre><code># Schema as a DDL string: 10 columns in the CSV order
+customers_schema = (
+    "customer_id STRING, first_name STRING, last_name STRING, email STRING, phone STRING, "
+    "city STRING, state STRING, country STRING, registration_date <input class="blank" type="text" id="t03-b1" data-blank="b1" aria-label="Luka 1 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:7ch">, customer_segment STRING"
+)
+
+# Load the CSV with the explicit schema (no inferSchema)
+customers_df = (
+    spark.read
+    .format("csv")
+    .option("<input class="blank" type="text" id="t03-b2" data-blank="b2" aria-label="Luka 2 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:9ch">", "true")
+    .<input class="blank" type="text" id="t03-b3" data-blank="b3" aria-label="Luka 3 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:9ch">(customers_schema)
+    .load(<input class="blank" type="text" id="t03-b4" data-blank="b4" aria-label="Luka 4 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:15ch">)
+)
+display(customers_df.limit(5))
+
+# saves your result so the app can check it
+customers_df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t03")</code></pre></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>customers_df</code> z 10 kolumnami w kolejności z pliku CSV, <code>registration_date</code> jako DATE, pozostałe jako STRING; 10 000 wierszy.</p></section><section class="hints" aria-labelledby="t03-hints-t"><h4 class="sec-title" id="t03-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Który typ SQL przechowuje datę bez czasu? Która opcja mówi, że pierwszy wiersz zawiera nazwy kolumn?</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Metoda, która przyjmuje schemat, nazywa się tak samo jak to, co przyjmuje. Zmienna ze ścieżką jest zdefiniowana w komórce konfiguracyjnej.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Luki: <code>DATE</code>, <code>header</code>, <code>schema</code>, <code>CUSTOMERS_CSV</code>.</p></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t03-docs-t"><h4 class="sec-title" id="t03-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/query/formats/csv" target="_blank" rel="noopener noreferrer">Odczyt i zapis plików CSV</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/dataframereader/schema" target="_blank" rel="noopener noreferrer">DataFrameReader.schema</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t03&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t03&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t04" data-step="t04" data-type="code" data-check="notebook" data-optional="true" aria-labelledby="t04-title"><header class="step-head"><span class="step-num" aria-hidden="true">04</span><div><h3 id="t04-title" class="step-title">Krok 04 — Poznaj DataFrame z klientami</h3><div class="badges"><span class="badge">Napisz kod</span><span class="badge badge-opt">⭐ Opcjonalny</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Zanim zaczniesz przekształcać dane, obejrzyj je. <code>.count()</code> zwraca liczbę wierszy jako liczbę całkowitą Pythona. <code>.select("country").distinct().count()</code> liczy unikalne wartości, a <code>.summary()</code> zwraca DataFrame z liczbą, średnią, minimum, maksimum i percentylami dla każdej kolumny.</p><p>Zapisz wyniki w <code>total_rows</code> (int), <code>distinct_countries</code> (int) i <code>summary_df</code> (DataFrame).</p><p>Odpowiednik w SQL: <code>SELECT count(*), count(DISTINCT country) FROM customers_view</code>.</p></div><div class="exercise exercise-code"><p class="ex-instr">Napisz kod w komórce notebooka. Komórka zaczyna się tak:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 04 — your code
+# total_rows         = number of rows in customers_df (int)
+# distinct_countries = number of distinct values in country (int)
+# summary_df         = summary statistics of customers_df (DataFrame)
+
+# saves your result so the app can check it
+(spark.createDataFrame([(total_rows, distinct_countries)], "total_rows BIGINT, distinct_countries BIGINT")
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t04"))</code></pre></div><p class="ex-instr">Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.</p></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>total_rows</code> = 10 000, <code>distinct_countries</code> = 1 (wszyscy klienci są z USA), <code>summary_df</code> to DataFrame.</p></section><section class="hints" aria-labelledby="t04-hints-t"><h4 class="sec-title" id="t04-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Trzy osobne jednolinijkowe instrukcje na <code>customers_df</code>. Liczenie zwraca <code>int</code> Pythona, a <code>summary()</code> zwraca DataFrame.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Wzorzec: <code>df.count()</code>, <code>df.select("col").distinct().count()</code>, <code>df.summary()</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 04 — row count, distinct countries, summary statistics
+total_rows = customers_df.count()
+distinct_countries = customers_df.select("country").distinct().count()
+summary_df = customers_df.summary()
+
+print(f"Total rows: {total_rows:,} | distinct countries: {distinct_countries}")
+display(summary_df)
+
+# saves your result so the app can check it
+(spark.createDataFrame([(total_rows, distinct_countries)], "total_rows BIGINT, distinct_countries BIGINT")
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t04"))</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t04-docs-t"><h4 class="sec-title" id="t04-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/dataframe" target="_blank" rel="noopener noreferrer">Klasa DataFrame</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/basics" target="_blank" rel="noopener noreferrer">Podstawy PySpark</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t04&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t04&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t05" data-step="t05" data-type="fill" data-check="notebook" data-optional="false" aria-labelledby="t05-title"><header class="step-head"><span class="step-num" aria-hidden="true">05</span><div><h3 id="t05-title" class="step-title">Krok 05 — Wczytaj zamówienia JSON ze schematem</h3><div class="badges"><span class="badge">Uzupełnij luki</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>orders_batch.json</code> to JSON Lines: jeden obiekt JSON w każdej linii. Łańcuch odczytu jest taki sam jak dla CSV, zmienia się tylko format. JSON nie ma opcji nagłówka, a pola są dopasowywane po nazwie, więc kolejność kolumn w schemacie nie ma znaczenia. <code>order_datetime</code> zostaje tu typu STRING; przekonwertujesz go w kroku 07.</p><p>Odpowiednik w SQL: <code>SELECT * FROM read_files('&lt;path&gt;/orders_batch.json', format =&gt; 'json', schema =&gt; 'order_id STRING, ...')</code>.</p></div><div class="exercise exercise-fill"><p class="ex-instr">Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.</p><div class="codeblock codeblock-fill" data-lang="python"><pre><code># The orders schema as a DDL string (JSON fields are matched by name)
+orders_schema = (
+    "order_id STRING, customer_id STRING, order_datetime STRING, quantity INT, "
+    "unit_price DOUBLE, total_amount DOUBLE, payment_method STRING, discount_percent DOUBLE"
+)
+
+# Load ORDERS_JSON with this schema
+orders_df = spark.read.format("<input class="blank" type="text" id="t05-b1" data-blank="b1" aria-label="Luka 1 z 3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:7ch">").<input class="blank" type="text" id="t05-b2" data-blank="b2" aria-label="Luka 2 z 3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:9ch">(orders_schema).<input class="blank" type="text" id="t05-b3" data-blank="b3" aria-label="Luka 3 z 3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:7ch">(ORDERS_JSON)
+display(orders_df.limit(5))
+
+# saves your result so the app can check it
+orders_df.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t05")</code></pre></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>orders_df</code> z 8 kolumnami, <code>total_amount</code> typu DOUBLE, <code>order_datetime</code> typu STRING; 100 000 wierszy.</p></section><section class="hints" aria-labelledby="t05-hints-t"><h4 class="sec-title" id="t05-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Te same trzy kroki odczytu co w kroku 03: format, schemat, a potem metoda, która wczytuje ścieżkę.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Nazwę formatu piszesz małymi literami; cudzysłowy są już w kodzie.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Luki: <code>json</code>, <code>schema</code>, <code>load</code>.</p></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t05-docs-t"><h4 class="sec-title" id="t05-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/query/formats/json" target="_blank" rel="noopener noreferrer">Odczyt i zapis plików JSON</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/dataframereader" target="_blank" rel="noopener noreferrer">DataFrameReader</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t05&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t05&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t06" data-step="t06" data-type="code" data-check="notebook" data-optional="true" aria-labelledby="t06-title"><header class="step-head"><span class="step-num" aria-hidden="true">06</span><div><h3 id="t06-title" class="step-title">Krok 06 — Przefiltruj klientów</h3><div class="badges"><span class="badge">Napisz kod</span><span class="badge badge-opt">⭐ Opcjonalny</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>df.filter(condition)</code> zostawia wiersze, dla których warunek jest prawdziwy, tak jak <code>WHERE</code> w SQL. Dopasowanie do listy to <code>F.col("state").isin(["NY", "CA"])</code>, czyli <code>IN</code> z SQL. Rok z daty to <code>F.year(F.col("registration_date"))</code>. Możesz też napisać zapytanie w SQL na <code>customers_view</code> i przypisać jego wynik przez <code>spark.sql(...)</code>.</p><p>Odpowiednik w SQL: <code>SELECT * FROM customers_view WHERE state IN ('NY', 'CA')</code>.</p></div><div class="exercise exercise-code"><p class="ex-instr">Napisz kod w komórce notebooka. Komórka zaczyna się tak:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 06 — your code
+# customers_ny_ca  = customers from the states NY or CA
+# customers_recent = customers registered in 2025 or later (PySpark or spark.sql)
+
+# saves your result so the app can check it
+(customers_ny_ca.withColumn("_part", F.lit("ny_ca")).unionByName(customers_recent.withColumn("_part", F.lit("recent")), allowMissingColumns=True)
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t06"))</code></pre></div><p class="ex-instr">Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.</p></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>customers_ny_ca</code> zawiera tylko NY i CA (około 1600 wierszy); w <code>customers_recent</code> nie ma klientów zarejestrowanych przed 2025 rokiem.</p></section><section class="hints" aria-labelledby="t06-hints-t"><h4 class="sec-title" id="t06-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Dwa wywołania <code>filter</code> na <code>customers_df</code> albo jedno z nich jako <code>spark.sql("SELECT ... FROM customers_view WHERE ...")</code>.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Elementy do użycia: <code>F.col("state").isin([...])</code> i <code>F.year(F.col("registration_date")) &gt;= 2025</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 06 — PySpark filter with isin
+customers_ny_ca = customers_df.filter(F.col("state").isin(["NY", "CA"]))
+
+# SQL option on the temp view (PySpark: F.year(F.col("registration_date")) &gt;= 2025)
+customers_recent = spark.sql("SELECT * FROM customers_view WHERE year(registration_date) &gt;= 2025")
+
+print(f"NY or CA: {customers_ny_ca.count():,} | recent: {customers_recent.count():,}")
+
+# saves your result so the app can check it
+(customers_ny_ca.withColumn("_part", F.lit("ny_ca")).unionByName(customers_recent.withColumn("_part", F.lit("recent")), allowMissingColumns=True)
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t06"))</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t06-docs-t"><h4 class="sec-title" id="t06-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/basics" target="_blank" rel="noopener noreferrer">Podstawy PySpark</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/dataframe/createorreplacetempview" target="_blank" rel="noopener noreferrer">createOrReplaceTempView</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t06&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t06&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t07" data-step="t07" data-type="fill" data-check="notebook" data-optional="false" aria-labelledby="t07-title"><header class="step-head"><span class="step-num" aria-hidden="true">07</span><div><h3 id="t07-title" class="step-title">Krok 07 — Dodaj kolumny i zmień typy</h3><div class="badges"><span class="badge">Uzupełnij luki</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>df.withColumn("name", expression)</code> zwraca nowy DataFrame z jedną kolumną więcej; kilka wywołań łączysz w łańcuch w nawiasach. <code>F.concat_ws(" ", a, b)</code> łączy napisy separatorem i pomija NULL. <code>.cast("timestamp")</code> zamienia tekst taki jak <code>2024-12-31T23:56:00</code> na znacznik czasu; NULL zostaje NULL. Jeśli tekstu nie da się przekonwertować, Databricks zgłasza błąd; <code>try_cast</code> zwraca wtedy NULL. W drugiej luce wpisz separator razem z cudzysłowami: <code>" "</code>.</p><p>Odpowiedniki w SQL: <code>SELECT *, concat_ws(' ', first_name, last_name) AS full_name, year(registration_date) AS registration_year FROM customers_view</code> oraz <code>SELECT *, CAST(order_datetime AS TIMESTAMP) AS order_ts FROM orders_view</code>.</p></div><div class="exercise exercise-fill"><p class="ex-instr">Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.</p><div class="codeblock codeblock-fill" data-lang="python"><pre><code># customers_enriched: full_name and registration_year
+customers_enriched = (
+    customers_df
+    .<input class="blank" type="text" id="t07-b1" data-blank="b1" aria-label="Luka 1 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:12ch">("full_name", F.concat_ws(<input class="blank" type="text" id="t07-b2" data-blank="b2" aria-label="Luka 2 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:6ch">, F.col("first_name"), F.col("last_name")))
+    .withColumn("registration_year", F.<input class="blank" type="text" id="t07-b3" data-blank="b3" aria-label="Luka 3 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:7ch">(F.col("registration_date")))
+)
+
+# orders_typed: order_datetime (STRING) cast to TIMESTAMP
+orders_typed = orders_df.withColumn("order_ts", F.col("order_datetime").<input class="blank" type="text" id="t07-b4" data-blank="b4" aria-label="Luka 4 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:7ch">("timestamp"))
+
+display(customers_enriched.select("customer_id", "full_name", "registration_year").limit(5))
+display(orders_typed.select("order_id", "order_datetime", "order_ts").limit(5))
+
+# saves your result so the app can check it
+(customers_enriched.withColumn("_part", F.lit("customers")).unionByName(orders_typed.withColumn("_part", F.lit("orders")), allowMissingColumns=True)
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t07"))</code></pre></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>customers_enriched</code> ma <code>full_name</code> (STRING) i <code>registration_year</code> (INT); <code>orders_typed</code> ma <code>order_ts</code> (TIMESTAMP) i nie ma nowych wartości NULL.</p></section><section class="hints" aria-labelledby="t07-hints-t"><h4 class="sec-title" id="t07-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Linia tuż pod luką już używa metody, która dodaje kolumnę. Separator między imieniem a nazwiskiem to jedna spacja w cudzysłowie.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Nazwy funkcji PySpark są takie jak w SQL: <code>year(...)</code> i <code>CAST(...)</code> to <code>F.year(...)</code> i <code>.cast(...)</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Luki: <code>withColumn</code>, <code>" "</code>, <code>year</code>, <code>cast</code>.</p></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t07-docs-t"><h4 class="sec-title" id="t07-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/basics" target="_blank" rel="noopener noreferrer">Podstawy PySpark</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/column/cast" target="_blank" rel="noopener noreferrer">Column.cast (PySpark)</a></li><li><a href="https://learn.microsoft.com/azure/databricks/sql/language-manual/functions/cast" target="_blank" rel="noopener noreferrer">Funkcja cast (SQL)</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t07&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t07&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t08" data-step="t08" data-type="fill" data-check="notebook" data-optional="false" aria-labelledby="t08-title"><header class="step-head"><span class="step-num" aria-hidden="true">08</span><div><h3 id="t08-title" class="step-title">Krok 08 — Kolumna warunkowa: segment klienta</h3><div class="badges"><span class="badge">Uzupełnij luki</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>F.when(condition, value)</code> zaczyna wyrażenie warunkowe, <code>.when(...)</code> dodaje kolejne gałęzie, a <code>.otherwise(value)</code> to <code>ELSE</code>. Wygrywa pierwsza pasująca gałąź, więc sprawdź <code>&gt;= 2025</code> przed <code>&gt;= 2024</code>. Bez <code>.otherwise()</code> niepasujące wiersze dostają NULL. Reguły: <code>registration_year</code> &gt;= 2025 → New, &gt;= 2024 → Regular, w pozostałych przypadkach Loyal.</p><p>Odpowiednik w SQL: <code>CASE WHEN year(registration_date) &gt;= 2025 THEN 'New' WHEN ... ELSE 'Loyal' END AS customer_tier</code>.</p></div><div class="exercise exercise-fill"><p class="ex-instr">Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.</p><div class="codeblock codeblock-fill" data-lang="python"><pre><code># customer_tier: &gt;= 2025 -&gt; New, &gt;= 2024 -&gt; Regular, otherwise -&gt; Loyal
+customers_tiered = customers_enriched.withColumn(
+    "customer_tier",
+    F.when(F.col("registration_year") &gt;= <input class="blank" type="text" id="t08-b1" data-blank="b1" aria-label="Luka 1 z 3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:7ch">, "New")
+    .<input class="blank" type="text" id="t08-b2" data-blank="b2" aria-label="Luka 2 z 3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:7ch">(F.col("registration_year") &gt;= 2024, "Regular")
+    .<input class="blank" type="text" id="t08-b3" data-blank="b3" aria-label="Luka 3 z 3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:11ch">("Loyal")
+)
+
+display(customers_tiered.groupBy("customer_tier").count().orderBy("customer_tier"))
+
+# saves your result so the app can check it
+customers_tiered.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t08")</code></pre></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>customers_tiered</code> ma kolumnę <code>customer_tier</code> z dokładnie trzema wartościami: New, Regular i Loyal, bez NULL.</p></section><section class="hints" aria-labelledby="t08-hints-t"><h4 class="sec-title" id="t08-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Pierwsza gałąź musi złapać najnowszych klientów. Każda kolejna gałąź używa tej samej metody co pierwsza.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>W SQL to <code>CASE WHEN ... WHEN ... ELSE ... END</code>: <code>WHEN</code> → <code>.when</code>, <code>ELSE</code> → <code>.otherwise</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Luki: <code>2025</code>, <code>when</code>, <code>otherwise</code>.</p></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t08-docs-t"><h4 class="sec-title" id="t08-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/functions/when" target="_blank" rel="noopener noreferrer">when (PySpark)</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/functions/" target="_blank" rel="noopener noreferrer">Funkcje PySpark</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t08&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t08&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t09" data-step="t09" data-type="order" data-check="notebook" data-optional="false" aria-labelledby="t09-title"><header class="step-head"><span class="step-num" aria-hidden="true">09</span><div><h3 id="t09-title" class="step-title">Krok 09 — Zagreguj zamówienia według metody płatności</h3><div class="badges"><span class="badge">Ułóż w kolejności</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>groupBy(...)</code> mówi, która kolumna tworzy grupy, <code>.agg(...)</code> liczy jedną wartość na grupę, a <code>.orderBy(...)</code> sortuje wynik. Kolejność ma znaczenie: po <code>total_revenue</code> posortujesz dopiero wtedy, gdy <code>.agg</code> utworzy tę kolumnę. <code>.alias(...)</code> to <code>AS</code> z SQL; bez niego Spark nazwie kolumnę <code>count(1)</code>. Wiersze bez metody płatności (NULL) tworzą osobną grupę. Dwa bloki to pułapki.</p><p>Odpowiednik w SQL: <code>SELECT payment_method, COUNT(*) AS order_count, SUM(total_amount) AS total_revenue, AVG(total_amount) AS avg_order_value FROM orders_view GROUP BY payment_method ORDER BY total_revenue DESC</code>.</p><p>Wklej swój kod nad ostatnią linią komórki w notebooku: ta linia zapisuje <code>payment_stats</code> do tabeli, żeby aplikacja mogła go sprawdzić.</p></div><div class="exercise exercise-order"><p class="ex-instr">Przeciągnij bloki do sekcji <em>Twoja odpowiedź</em> we właściwej kolejności albo użyj przycisków Dodaj, ↑, ↓ i ✕. 2 bloki to pułapki i muszą zostać poza odpowiedzią.</p><div class="order-grid"><div class="order-col"><h4 class="col-title" id="t09-pool-t">Dostępne bloki</h4><ul class="blocklist pool" data-list="pool" aria-labelledby="t09-pool-t"><li class="block" data-block="f" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>)</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="g" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>display(payment_stats)</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="d" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    .agg(
+        F.count("*").alias("order_count"),
+        F.sum("total_amount").alias("total_revenue"),
+        F.avg("total_amount").alias("avg_order_value"),
+    )</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="b" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    orders_df</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="e" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    .orderBy(F.desc("total_revenue"))</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="x1" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    .groupBy("order_count")</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="c" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    .groupBy("payment_method")</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="x2" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>    .orderBy(F.desc("total_amount"))</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li><li class="block" data-block="a" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><pre class="block-code"><code>payment_stats = (</code></pre><span class="block-actions"><button type="button" class="btn btn-icon" data-act="add" aria-label="Dodaj do odpowiedzi">Dodaj</button><button type="button" class="btn btn-icon" data-act="up" aria-label="Przesuń wyżej">↑</button><button type="button" class="btn btn-icon" data-act="down" aria-label="Przesuń niżej">↓</button><button type="button" class="btn btn-icon" data-act="remove" aria-label="Usuń z odpowiedzi">✕</button></span></li></ul></div><div class="order-col"><h4 class="col-title" id="t09-ans-t">Twoja odpowiedź</h4><ol class="blocklist answer" data-list="answer" aria-labelledby="t09-ans-t"></ol><p class="empty-note">Upuść bloki tutaj.</p></div></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn btn-primary" data-check-order>Sprawdź kolejność</button><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>payment_stats</code> z jednym wierszem na metodę płatności (5 wierszy razem z NULL), kolumny <code>payment_method</code>, <code>order_count</code>, <code>total_revenue</code>, <code>avg_order_value</code>, posortowane malejąco według <code>total_revenue</code>.</p></section><section class="hints" aria-labelledby="t09-hints-t"><h4 class="sec-title" id="t09-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Pomyśl o kolejności klauzul SQL: <code>FROM</code> → <code>GROUP BY</code> → agregaty → <code>ORDER BY</code>. Grupować i sortować możesz tylko po kolumnach, które w tym miejscu już istnieją.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Kolejność: <code>payment_stats = (</code>, <code>orders_df</code>, <code>.groupBy("payment_method")</code>, <code>.agg(...)</code>, <code>.orderBy(F.desc("total_revenue"))</code>, <code>)</code>, <code>display(...)</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code>payment_stats = (
+    orders_df
+    .groupBy("payment_method")
+    .agg(
+        F.count("*").alias("order_count"),
+        F.sum("total_amount").alias("total_revenue"),
+        F.avg("total_amount").alias("avg_order_value"),
+    )
+    .orderBy(F.desc("total_revenue"))
+)
+display(payment_stats)</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t09-docs-t"><h4 class="sec-title" id="t09-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/dataframe/groupby" target="_blank" rel="noopener noreferrer">DataFrame.groupBy</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/basics" target="_blank" rel="noopener noreferrer">Podstawy PySpark</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t09&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t09&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t10" data-step="t10" data-type="code" data-check="notebook" data-optional="true" aria-labelledby="t10-title"><header class="step-head"><span class="step-num" aria-hidden="true">10</span><div><h3 id="t10-title" class="step-title">Krok 10 — SQL na widokach tymczasowych</h3><div class="badges"><span class="badge">Napisz kod</span><span class="badge badge-opt">⭐ Opcjonalny</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p><code>df.createOrReplaceTempView("name")</code> (gotowe komórki po krokach 03 i 05) nadaje DataFrame nazwę dostępną w SQL, dopóki notebook nie zostanie odłączony albo klaster nie zostanie zrestartowany. Dane nie są przy tym kopiowane. <code>spark.sql("SELECT ...")</code> zwraca zwykły DataFrame. Widok tymczasowy nie jest nigdzie zapisywany; widok utworzony przez <code>CREATE VIEW catalog.schema.name</code> zostaje.</p><p>Zwróć kolumny <code>state</code> i <code>customer_count</code>, posortowane malejąco według <code>customer_count</code>, 5 wierszy. Wszyscy klienci są z USA, więc ranking dotyczy stanów.</p></div><div class="exercise exercise-code"><p class="ex-instr">Napisz kod w komórce notebooka. Komórka zaczyna się tak:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 10 — your code
+# top_states = spark.sql(...) on customers_view: columns state, customer_count; top 5 by count
+
+# saves your result so the app can check it
+top_states.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t10")</code></pre></div><p class="ex-instr">Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.</p></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>top_states</code> z 5 wierszami i kolumnami <code>state</code>, <code>customer_count</code>, posortowany malejąco według <code>customer_count</code>.</p></section><section class="hints" aria-labelledby="t10-hints-t"><h4 class="sec-title" id="t10-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Zwykły SQL w <code>spark.sql("""...""")</code>: pogrupuj po stanie, policz, posortuj i ogranicz liczbę wierszy.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Szkielet: <code>SELECT state, COUNT(*) AS customer_count FROM customers_view GROUP BY ... ORDER BY ... LIMIT 5</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 10 — top 5 states by number of customers
+top_states = spark.sql("""
+    SELECT state, COUNT(*) AS customer_count
+    FROM customers_view
+    GROUP BY state
+    ORDER BY customer_count DESC
+    LIMIT 5
+""")
+display(top_states)
+
+# saves your result so the app can check it
+top_states.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t10")</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t10-docs-t"><h4 class="sec-title" id="t10-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/dataframe/createorreplacetempview" target="_blank" rel="noopener noreferrer">createOrReplaceTempView</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/basics" target="_blank" rel="noopener noreferrer">Podstawy PySpark</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t10&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t10&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t11" data-step="t11" data-type="fill" data-check="notebook" data-optional="false" aria-labelledby="t11-title"><header class="step-head"><span class="step-num" aria-hidden="true">11</span><div><h3 id="t11-title" class="step-title">Krok 11 — Zapisz tabelę Bronze w formacie Delta</h3><div class="badges"><span class="badge">Uzupełnij luki</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Warstwa Bronze przechowuje dane źródłowe bez zmian, plus metadane: kiedy je wczytano (<code>_load_ts</code>) i z jakiego pliku (<code>_source_file</code>). Zacznij od surowego <code>customers_df</code>. <code>_metadata</code> to ukryta kolumna dostępna w każdym DataFrame wczytanym z plików. Bez kolumn biznesowych: <code>full_name</code> i <code>customer_tier</code> należą do warstwy Silver. Delta to domyślny format tabel; <code>overwriteSchema</code> pozwala uruchomić komórkę ponownie po zmianie kolumn.</p><p>Odpowiednik w SQL: <code>CREATE OR REPLACE TABLE &lt;TARGET_TABLE&gt; AS SELECT *, _metadata.file_path AS _source_file, current_timestamp() AS _load_ts FROM read_files(...)</code>.</p></div><div class="exercise exercise-fill"><p class="ex-instr">Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.</p><div class="codeblock codeblock-fill" data-lang="python"><pre><code># Raw data + two metadata columns
+customers_bronze = (
+    customers_df
+    .withColumn("_source_file", F.col("<input class="blank" type="text" id="t11-b1" data-blank="b1" aria-label="Luka 1 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:21ch">"))
+    .withColumn("_load_ts", F.<input class="blank" type="text" id="t11-b2" data-blank="b2" aria-label="Luka 2 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:19ch">())
+)
+
+# Managed Delta table, safe to re-run
+(
+    customers_bronze.write
+    .mode("<input class="blank" type="text" id="t11-b3" data-blank="b3" aria-label="Luka 3 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:11ch">")
+    .option("overwriteSchema", "true")
+    .<input class="blank" type="text" id="t11-b4" data-blank="b4" aria-label="Luka 4 z 4" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:13ch">(TARGET_TABLE)
+)
+display(spark.table(TARGET_TABLE).limit(5))</code></pre></div><div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p><span class="ex-actions"><button type="button" class="btn" data-copy-assembled>Kopiuj kod</button><button type="button" class="btn btn-ghost" data-reset-ex>Wyczyść</button></span></div></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>TARGET_TABLE</code> istnieje i ma 10 kolumn źródłowych plus <code>_load_ts</code> (TIMESTAMP) i <code>_source_file</code> (ścieżka kończąca się na <code>customers.csv</code>); tyle samo wierszy co <code>customers_df</code>.</p></section><section class="hints" aria-labelledby="t11-hints-t"><h4 class="sec-title" id="t11-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Ścieżka pliku to pole <code>file_path</code> ukrytej kolumny <code>_metadata</code>. Czas wczytania zwraca funkcja SQL <code>current_timestamp()</code>.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Tryb zapisu, który zastępuje istniejące dane, to <code>overwrite</code>; metoda zapisu do tabeli Unity Catalog kończy się na <code>AsTable</code>.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Luki: <code>_metadata.file_path</code>, <code>current_timestamp</code>, <code>overwrite</code>, <code>saveAsTable</code>.</p></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t11-docs-t"><h4 class="sec-title" id="t11-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/ingestion/file-metadata-column" target="_blank" rel="noopener noreferrer">Kolumna metadanych pliku</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/dataframewriter/saveastable" target="_blank" rel="noopener noreferrer">saveAsTable</a></li><li><a href="https://learn.microsoft.com/azure/databricks/lakehouse/medallion" target="_blank" rel="noopener noreferrer">Architektura medalionowa</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t11&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t11&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section><section class="step" id="step-t12" data-step="t12" data-type="code" data-check="notebook" data-optional="true" aria-labelledby="t12-title"><header class="step-head"><span class="step-num" aria-hidden="true">12</span><div><h3 id="t12-title" class="step-title">Krok 12 — Złącz zamówienia z klientami</h3><div class="badges"><span class="badge">Napisz kod</span><span class="badge badge-opt">⭐ Opcjonalny</span><span class="state" data-state>Nierozpoczęty</span></div></div></header><div class="md explain"><p>Złączenie typu left join zachowuje każde zamówienie; tam, gdzie nie ma dopasowania, kolumny klienta mają NULL. <code>orders_df.join(customers_df, on="customer_id", how="left")</code> łączy po wspólnej kolumnie i zostawia jedną kolumnę <code>customer_id</code>, więc zwykłe <code>.select("order_id", ...)</code> działa. Wybierz <code>order_id</code>, <code>customer_id</code>, <code>first_name</code>, <code>last_name</code>, <code>country</code>, <code>total_amount</code>, <code>payment_method</code>, potem policz zamówienia i zsumuj przychód dla każdego <code>country</code>, posortowane malejąco według <code>total_revenue</code>.</p><p>Odpowiednik w SQL: <code>SELECT order_id, customer_id, first_name, ... FROM orders_view LEFT JOIN customers_view USING (customer_id)</code>.</p></div><div class="exercise exercise-code"><p class="ex-instr">Napisz kod w komórce notebooka. Komórka zaczyna się tak:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 12 — your code
+# orders_enriched   = orders_df LEFT JOIN customers_df on customer_id, 7 columns
+# orders_by_country = order_count and total_revenue per country, total_revenue DESC
+
+# saves your result so the app can check it
+(orders_enriched.withColumn("_part", F.lit("enriched")).unionByName(orders_by_country.withColumn("_part", F.lit("by_country")), allowMissingColumns=True)
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t12"))</code></pre></div><p class="ex-instr">Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.</p></div><section class="expected"><h4 class="sec-title">Oczekiwany wynik</h4><p><code>orders_enriched</code> ma 7 kolumn i 105 064 wiersze: <code>orders_df</code> ma 100 000, ale 266 identyfikatorów klientów występuje w surowym pliku klientów dwa razy, więc kilka zamówień pasuje podwójnie (usuwanie duplikatów to zadanie warstwy Silver). <code>orders_by_country</code> ma <code>country</code>, <code>order_count</code>, <code>total_revenue</code> i dwa wiersze: USA i NULL (zamówienia bez pasującego klienta); tak ma być.</p></section><section class="hints" aria-labelledby="t12-hints-t"><h4 class="sec-title" id="t12-hints-t">Podpowiedzi <span class="muted" data-hint-count>dostępne: 3</span></h4><ol class="hint-list"><li class="hint" data-hint="0"><span class="hint-label">Podpowiedź 1</span><p>Dwie części: <code>orders_df.join(customers_df, on="customer_id", how="left").select(...)</code>, potem <code>groupBy("country").agg(...)</code> jak w kroku 09.</p></li><li class="hint" data-hint="1"><span class="hint-label">Podpowiedź 2</span><p>Warunek możesz też zapisać tak: <code>orders_df["customer_id"] == customers_df["customer_id"]</code>. Wtedy zostają obie kolumny <code>customer_id</code>, a w <code>.select</code> musisz napisać <code>orders_df["customer_id"]</code>, żeby uniknąć niejednoznacznego odwołania. Z <code>on="customer_id"</code> nie jest to potrzebne.</p></li><li class="hint hint-solution" data-hint="2"><span class="hint-label">Rozwiązanie</span><p>Pełne rozwiązanie:</p><div class="codeblock" data-lang="python"><button type="button" class="btn btn-ghost btn-copy" data-copy>Kopiuj</button><pre><code># Step 12 — left join orders with customers
+orders_enriched = (
+    orders_df
+    .join(customers_df, on="customer_id", how="left")
+    .select("order_id", "customer_id", "first_name", "last_name",
+            "country", "total_amount", "payment_method")
+)
+
+# Orders and revenue per country
+orders_by_country = (
+    orders_enriched.groupBy("country")
+    .agg(F.count("*").alias("order_count"), F.sum("total_amount").alias("total_revenue"))
+    .orderBy(F.desc("total_revenue"))
+)
+display(orders_by_country)
+
+# saves your result so the app can check it
+(orders_enriched.withColumn("_part", F.lit("enriched")).unionByName(orders_by_country.withColumn("_part", F.lit("by_country")), allowMissingColumns=True)
+ .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.default._ws_ws_ingestion_t12"))</code></pre></div></li></ol><div class="hint-controls"><button type="button" class="btn" data-hint-next hidden>Pokaż podpowiedź</button><span class="confirm" data-confirm hidden role="group" aria-label="Potwierdź"><span>Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz z podpowiedziami, które już masz.</span><button type="button" class="btn btn-primary" data-confirm-yes>Pokaż rozwiązanie</button><button type="button" class="btn btn-ghost" data-confirm-no>Spróbuję jeszcze</button></span></div></section><section class="docs" aria-labelledby="t12-docs-t"><h4 class="sec-title" id="t12-docs-t">Dokumentacja</h4><ul><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/reference/classes/dataframe/join" target="_blank" rel="noopener noreferrer">DataFrame.join</a></li><li><a href="https://learn.microsoft.com/azure/databricks/pyspark/basics" target="_blank" rel="noopener noreferrer">Podstawy PySpark</a></li></ul></section><section class="finish"><h4 class="sec-title">Sprawdź w notebooku</h4><p>Uruchom komórkę kroku w <code>WORKSHOP_ingestion</code> (zostaw jej ostatnią linię: zapisuje twój wynik), potem dodaj pod nią komórkę <code>check(&quot;ws_ingestion&quot;, &quot;t12&quot;)</code> i ją uruchom. Gdy wypisze <strong>PASS</strong>, zaznacz pole.</p><label class="done-toggle"><input type="checkbox" data-done> <span><code>check(&quot;ws_ingestion&quot;, &quot;t12&quot;)</code> zwraca PASS w moim notebooku</span></label></section></section>
+<footer class="foot">Wygenerowano z <code>ws_ingestion.json + i18n/pl/ws_ingestion.json</code> przez <code>build_static.py</code>. Wersja tego przewodnika w aplikacji Databricks pokazuje wyniki sprawdzania na bieżąco.</footer>
+</main>
+</div>
+<div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+<script id="guide-data" type="application/json">{"id":"ws_ingestion","steps":[{"id":"t01","type":"match","check":"app","optional":false,"hints":3,"pairs":[{"left":"F.col(\"city\")","right":"city (odwołanie do kolumny)"},{"left":"F.year(F.col(\"registration_date\"))","right":"year(registration_date)"},{"left":"F.count(\"*\").alias(\"order_count\")","right":"COUNT(*) AS order_count"},{"left":"F.when(cond, \"New\").otherwise(\"Loyal\")","right":"CASE WHEN cond THEN 'New' ELSE 'Loyal' END"},{"left":"F.col(\"order_datetime\").cast(\"timestamp\")","right":"CAST(order_datetime AS TIMESTAMP)"},{"left":"df.filter(F.col(\"state\") == \"NY\")","right":"WHERE state = 'NY'"}]},{"id":"t02","type":"order","check":"notebook","optional":false,"hints":3,"blocks":[{"id":"f","code":"    .load(CUSTOMERS_CSV)"},{"id":"x1","code":"    .write"},{"id":"a","code":"customers_infer_df = ("},{"id":"h","code":"display(customers_infer_df.limit(5))"},{"id":"x2","code":"    .saveAsTable(CUSTOMERS_CSV)"},{"id":"b","code":"    spark.read.format(\"csv\")"},{"id":"g","code":")"},{"id":"d","code":"    .option(\"header\", \"true\")        # first row = column names\n    .option(\"inferSchema\", \"true\")   # let Spark guess the types"}],"solution":["a","b","d","f","g","h"],"distractors":["x1","x2"]},{"id":"t03","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# Schema as a DDL string: 10 columns in the CSV order\ncustomers_schema = (\n    \"customer_id STRING, first_name STRING, last_name STRING, email STRING, phone STRING, \"\n    \"city STRING, state STRING, country STRING, registration_date {{b1}}, customer_segment STRING\"\n)\n\n# Load the CSV with the explicit schema (no inferSchema)\ncustomers_df = (\n    spark.read\n    .format(\"csv\")\n    .option(\"{{b2}}\", \"true\")\n    .{{b3}}(customers_schema)\n    .load({{b4}})\n)\ndisplay(customers_df.limit(5))\n\n# saves your result so the app can check it\ncustomers_df.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t03\")","blanks":{"b1":{"answers":["DATE"],"case_sensitive":false},"b2":{"answers":["header"],"case_sensitive":false},"b3":{"answers":["schema"],"case_sensitive":false},"b4":{"answers":["CUSTOMERS_CSV"],"case_sensitive":false}}},{"id":"t04","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t05","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# The orders schema as a DDL string (JSON fields are matched by name)\norders_schema = (\n    \"order_id STRING, customer_id STRING, order_datetime STRING, quantity INT, \"\n    \"unit_price DOUBLE, total_amount DOUBLE, payment_method STRING, discount_percent DOUBLE\"\n)\n\n# Load ORDERS_JSON with this schema\norders_df = spark.read.format(\"{{b1}}\").{{b2}}(orders_schema).{{b3}}(ORDERS_JSON)\ndisplay(orders_df.limit(5))\n\n# saves your result so the app can check it\norders_df.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t05\")","blanks":{"b1":{"answers":["json"],"case_sensitive":false},"b2":{"answers":["schema"],"case_sensitive":false},"b3":{"answers":["load"],"case_sensitive":false}}},{"id":"t06","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t07","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# customers_enriched: full_name and registration_year\ncustomers_enriched = (\n    customers_df\n    .{{b1}}(\"full_name\", F.concat_ws({{b2}}, F.col(\"first_name\"), F.col(\"last_name\")))\n    .withColumn(\"registration_year\", F.{{b3}}(F.col(\"registration_date\")))\n)\n\n# orders_typed: order_datetime (STRING) cast to TIMESTAMP\norders_typed = orders_df.withColumn(\"order_ts\", F.col(\"order_datetime\").{{b4}}(\"timestamp\"))\n\ndisplay(customers_enriched.select(\"customer_id\", \"full_name\", \"registration_year\").limit(5))\ndisplay(orders_typed.select(\"order_id\", \"order_datetime\", \"order_ts\").limit(5))\n\n# saves your result so the app can check it\n(customers_enriched.withColumn(\"_part\", F.lit(\"customers\")).unionByName(orders_typed.withColumn(\"_part\", F.lit(\"orders\")), allowMissingColumns=True)\n .write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t07\"))","blanks":{"b1":{"answers":["withColumn"],"case_sensitive":false},"b2":{"answers":["\" \"","' '"],"case_sensitive":false},"b3":{"answers":["year"],"case_sensitive":false},"b4":{"answers":["cast"],"case_sensitive":false}}},{"id":"t08","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# customer_tier: >= 2025 -> New, >= 2024 -> Regular, otherwise -> Loyal\ncustomers_tiered = customers_enriched.withColumn(\n    \"customer_tier\",\n    F.when(F.col(\"registration_year\") >= {{b1}}, \"New\")\n    .{{b2}}(F.col(\"registration_year\") >= 2024, \"Regular\")\n    .{{b3}}(\"Loyal\")\n)\n\ndisplay(customers_tiered.groupBy(\"customer_tier\").count().orderBy(\"customer_tier\"))\n\n# saves your result so the app can check it\ncustomers_tiered.write.mode(\"overwrite\").option(\"overwriteSchema\", \"true\").saveAsTable(f\"{CATALOG}.default._ws_ws_ingestion_t08\")","blanks":{"b1":{"answers":["2025"],"case_sensitive":false},"b2":{"answers":["when"],"case_sensitive":false},"b3":{"answers":["otherwise"],"case_sensitive":false}}},{"id":"t09","type":"order","check":"notebook","optional":false,"hints":3,"blocks":[{"id":"e","code":"    .orderBy(F.desc(\"total_revenue\"))"},{"id":"a","code":"payment_stats = ("},{"id":"x1","code":"    .groupBy(\"order_count\")"},{"id":"g","code":"display(payment_stats)"},{"id":"c","code":"    .groupBy(\"payment_method\")"},{"id":"f","code":")"},{"id":"x2","code":"    .orderBy(F.desc(\"total_amount\"))"},{"id":"d","code":"    .agg(\n        F.count(\"*\").alias(\"order_count\"),\n        F.sum(\"total_amount\").alias(\"total_revenue\"),\n        F.avg(\"total_amount\").alias(\"avg_order_value\"),\n    )"},{"id":"b","code":"    orders_df"}],"solution":["a","b","c","d","e","f","g"],"distractors":["x1","x2"]},{"id":"t10","type":"code","check":"notebook","optional":true,"hints":3},{"id":"t11","type":"fill","check":"notebook","optional":false,"hints":3,"template":"# Raw data + two metadata columns\ncustomers_bronze = (\n    customers_df\n    .withColumn(\"_source_file\", F.col(\"{{b1}}\"))\n    .withColumn(\"_load_ts\", F.{{b2}}())\n)\n\n# Managed Delta table, safe to re-run\n(\n    customers_bronze.write\n    .mode(\"{{b3}}\")\n    .option(\"overwriteSchema\", \"true\")\n    .{{b4}}(TARGET_TABLE)\n)\ndisplay(spark.table(TARGET_TABLE).limit(5))","blanks":{"b1":{"answers":["_metadata.file_path"],"case_sensitive":false},"b2":{"answers":["current_timestamp"],"case_sensitive":false},"b3":{"answers":["overwrite"],"case_sensitive":false},"b4":{"answers":["saveAsTable"],"case_sensitive":false}}},{"id":"t12","type":"code","check":"notebook","optional":true,"hints":3}]}</script>
+<script id="guide-l10n" type="application/json">{"plural":"pl","copied":"Skopiowano","copy_failed":"Nie skopiowano","copied_announce":"Kod skopiowany do schowka.","copy_failed_announce":"Nie udało się skopiować. Zaznacz kod i skopiuj go ręcznie.","states":{"none":"Nierozpoczęty","progress":"W toku","ready":"Gotowe: uruchom check() w notebooku","done":"Zaliczony"},"overall":"Zaliczone kroki: {n} / {total}","overall_optional":" · ⭐ opcjonalne: {n} / {total}","show_solution":"Pokaż rozwiązanie","show_hint":"Pokaż podpowiedź","show_next_hint":"Pokaż następną podpowiedź","hints_shown":"pokazane: {n} z {total}","fill_all":"Wszystkie luki są poprawne ({total}).","fill_some":"Poprawne luki: {n} z {total}.","fill_all_announce":"Wszystkie luki są poprawne.","run_check_tail":" Skopiuj kod do notebooka, uruchom komórkę, a potem uruchom check() dla tego kroku.","block_added":"Dodano „{b}” na pozycji {n}.","block_removed":"Usunięto „{b}” z odpowiedzi.","block_moved":"Przesunięto na pozycję {n}.","answer_empty":"Twoja odpowiedź jest pusta: najpierw dodaj bloki.","blocks_reset":"Wszystkie bloki wróciły na listę.","order_pass":"Poprawna kolejność: wszystkie bloki ({total}) są na miejscu.","order_positions":"Bloki na właściwym miejscu: {n} z {total}.","order_extra":["{n} blok tu nie pasuje.","{n} bloki tu nie pasują.","{n} bloków tu nie pasuje."],"order_missing":["Brakuje {n} bloku.","Brakuje {n} bloków.","Brakuje {n} bloków."],"match_pass":"Wszystkie pary dopasowane ({total}).","match_some":"Dopasowane pary: {n} z {total}.","term_placed":"Umieszczono pojęcie przy opisie: ","step_done":"Krok oznaczony jako zaliczony.","reset_confirm":"Wyczyścić cały postęp, odpowiedzi i podpowiedzi tego warsztatu w tej przeglądarce?"}</script>
+<script>
+/* Page language: strings from #guide-l10n (build_static.py STRINGS[lang]["js"]). */
+var L = JSON.parse(document.getElementById('guide-l10n').textContent);
+function fmt(s, v) {
+  return String(s).replace(/\{(\w+)\}/g, function (m, k) { return v[k] !== undefined ? String(v[k]) : m; });
+}
+/* English forms: [one, other]; Polish forms: [one, few (2-4, not 12-14), many]. */
+function plural(n, forms) {
+  if (forms.length === 2) return forms[n === 1 ? 0 : 1];
+  if (n === 1) return forms[0];
+  var d = n % 10, h = n % 100;
+  return forms[(d >= 2 && d <= 4 && !(h >= 12 && h <= 14)) ? 1 : 2];
+}
+
+/* Pure grading logic: port of apps/workshop-guide/client/src/lib/exercise.ts. */
+var WG = (function () {
+  function normalize(value, caseSensitive) {
+    var collapsed = String(value).trim().replace(/\s+/g, ' ');
+    return caseSensitive ? collapsed : collapsed.toLowerCase();
+  }
+  function isBlankCorrect(value, blank) {
+    if (!String(value || '').trim()) return false;
+    var typed = normalize(value, blank.case_sensitive);
+    return blank.answers.some(function (a) { return normalize(a, blank.case_sensitive) === typed; });
+  }
+  function blankState(value, blank) {
+    if (!String(value || '').trim()) return 'empty';
+    return isBlankCorrect(value, blank) ? 'correct' : 'wrong';
+  }
+  function assembleFill(step, values) {
+    return step.template.replace(/\{\{(b\d+)\}\}/g, function (_, id) {
+      var v = (values[id] || '').trim();
+      return v || '____';
+    });
+  }
+  function fillProgress(step, values) {
+    var ids = Object.keys(step.blanks);
+    var correct = ids.filter(function (id) { return isBlankCorrect(values[id] || '', step.blanks[id]); }).length;
+    return { correct: correct, total: ids.length };
+  }
+  function checkOrder(step, answer) {
+    var total = step.solution.length;
+    var pass = answer.length === total && answer.every(function (id, i) { return id === step.solution[i]; });
+    var correctPositions = answer.filter(function (id, i) { return step.solution[i] === id; }).length;
+    var distractorsUsed = answer.filter(function (id) { return step.distractors.indexOf(id) >= 0; }).length;
+    var missing = step.solution.filter(function (id) { return answer.indexOf(id) < 0; }).length;
+    var message;
+    if (pass) {
+      message = fmt(L.order_pass, { total: total });
+    } else {
+      var parts = [fmt(L.order_positions, { n: correctPositions, total: total })];
+      if (distractorsUsed > 0) parts.push(fmt(plural(distractorsUsed, L.order_extra), { n: distractorsUsed }));
+      if (missing > 0) parts.push(fmt(plural(missing, L.order_missing), { n: missing }));
+      message = parts.join(' ');
+    }
+    return { pass: pass, correctPositions: correctPositions, total: total, distractorsUsed: distractorsUsed, missing: missing, message: message };
+  }
+  function assembleOrder(step, answer) {
+    var byId = {};
+    step.blocks.forEach(function (b) { byId[b.id] = b.code; });
+    return answer.map(function (id) { return byId[id] || ''; }).join('\n');
+  }
+  /* assignment: slot index (pair whose right text the slot shows) -> index of the dropped term. */
+  function checkMatch(step, assignment) {
+    var total = step.pairs.length, correct = 0, slotCorrect = {};
+    step.pairs.forEach(function (pair, slot) {
+      var term = assignment[slot];
+      if (term === null || term === undefined || term === '') return;
+      var t = step.pairs[Number(term)];
+      var ok = !!t && (t.left === pair.left || t.right === pair.right);
+      slotCorrect[slot] = ok;
+      if (ok) correct += 1;
+    });
+    var pass = correct === total;
+    return { pass: pass, correct: correct, total: total, slotCorrect: slotCorrect,
+             message: fmt(pass ? L.match_pass : L.match_some, { n: correct, total: total }) };
+  }
+  return { normalize: normalize, isBlankCorrect: isBlankCorrect, blankState: blankState, assembleFill: assembleFill,
+           fillProgress: fillProgress, checkOrder: checkOrder, assembleOrder: assembleOrder, checkMatch: checkMatch };
+})();
+
+(function () {
+  'use strict';
+  var DATA = JSON.parse(document.getElementById('guide-data').textContent);
+  var KEY = 'workshop-guide-static:' + DATA.id;
+  var STEPS = {};
+  DATA.steps.forEach(function (s) { STEPS[s.id] = s; });
+  var live = document.getElementById('live');
+
+  /* ---------- storage (every access in try/catch: private windows, blocked storage) ---------- */
+  function emptyState() { return { v: 1, fill: {}, order: {}, match: {}, hints: {}, done: {}, solved: {}, touched: {} }; }
+  var state = emptyState();
+  var storageOk = true;
+  try {
+    var raw = window.localStorage.getItem(KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.v === 1) Object.keys(state).forEach(function (k) { if (parsed[k]) state[k] = parsed[k]; });
+    }
+  } catch (e) { storageOk = false; }
+  function save() {
+    try { window.localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { storageOk = false; showStorageWarning(); }
+  }
+  function showStorageWarning() {
+    var w = document.getElementById('storage-warning');
+    if (w) w.hidden = storageOk;
+  }
+
+  function announce(msg) {
+    if (!live) return;
+    live.textContent = '';
+    window.setTimeout(function () { live.textContent = msg; }, 30);
+  }
+  function setStatus(sec, msg, tone) {
+    var el = sec.querySelector('[data-status]');
+    if (!el) return;
+    el.textContent = msg;
+    if (tone) el.setAttribute('data-tone', tone); else el.removeAttribute('data-tone');
+  }
+
+  /* ---------- clipboard (file:// pages may lack navigator.clipboard) ---------- */
+  function copyText(text, btn) {
+    function done(ok) {
+      if (!btn) return;
+      var old = btn.getAttribute('data-label') || btn.textContent;
+      btn.setAttribute('data-label', old);
+      btn.textContent = ok ? L.copied : L.copy_failed;
+      announce(ok ? L.copied_announce : L.copy_failed_announce);
+      window.setTimeout(function () { btn.textContent = old; }, 1600);
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      done(ok);
+    }
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+        return;
+      }
+    } catch (e) { /* use the fallback */ }
+    fallback();
+  }
+
+  /* ---------- step status ---------- */
+  function stepStatus(id) {
+    var s = STEPS[id];
+    if (state.done[id] || (s.check === 'app' && state.solved[id])) return 'done';
+    if (state.solved[id]) return 'ready';
+    if (state.touched[id] || state.hints[id]) return 'progress';
+    return 'none';
+  }
+  var LABELS = L.states;
+  function refreshStep(id) {
+    var st = stepStatus(id);
+    var sec = document.getElementById('step-' + id);
+    var link = document.querySelector('[data-nav="' + id + '"]');
+    sec.setAttribute('data-status-v', st);
+    sec.querySelector('[data-state]').textContent = LABELS[st];
+    if (link) {
+      link.setAttribute('data-status-v', st);
+      link.querySelector('[data-nav-state]').textContent = ', ' + LABELS[st].toLowerCase();
+    }
+    var box = sec.querySelector('[data-done]');
+    if (box) box.checked = !!state.done[id];
+  }
+  function refreshOverall() {
+    var req = 0, reqDone = 0, opt = 0, optDone = 0;
+    DATA.steps.forEach(function (s) {
+      var d = stepStatus(s.id) === 'done';
+      if (s.optional) { opt++; if (d) optDone++; } else { req++; if (d) reqDone++; }
+    });
+    document.getElementById('overall-text').textContent =
+      fmt(L.overall, { n: reqDone, total: req }) + (opt ? fmt(L.overall_optional, { n: optDone, total: opt }) : '');
+    var bar = document.getElementById('overall-bar');
+    bar.style.width = (req ? Math.round(100 * reqDone / req) : 0) + '%';
+    bar.parentNode.setAttribute('aria-valuenow', String(reqDone));
+  }
+  function touch(id) {
+    if (!state.touched[id]) { state.touched[id] = true; }
+  }
+  function changed(id) { save(); refreshStep(id); refreshOverall(); }
+
+  /* ---------- hints ---------- */
+  function initHints(sec, s) {
+    var items = sec.querySelectorAll('[data-hint]');
+    if (!items.length) return;
+    var next = sec.querySelector('[data-hint-next]');
+    var confirmBox = sec.querySelector('[data-confirm]');
+    var count = sec.querySelector('[data-hint-count]');
+    function render() {
+      var shown = Math.min(state.hints[s.id] || 0, items.length);
+      items.forEach(function (li, i) { li.hidden = i >= shown; });
+      var nextIsSolution = shown === items.length - 1 && items.length > 1;
+      next.hidden = shown >= items.length;
+      next.textContent = nextIsSolution ? L.show_solution : (shown === 0 ? L.show_hint : L.show_next_hint);
+      count.textContent = fmt(L.hints_shown, { n: shown, total: items.length });
+    }
+    function reveal(n) {
+      state.hints[s.id] = n;
+      render(); changed(s.id);
+      var li = items[n - 1];
+      if (li) { li.setAttribute('tabindex', '-1'); li.focus({ preventScroll: false }); }
+    }
+    next.addEventListener('click', function () {
+      var shown = state.hints[s.id] || 0;
+      if (shown === items.length - 1 && items.length > 1) {
+        confirmBox.hidden = false; next.hidden = true;
+        confirmBox.querySelector('[data-confirm-no]').focus();
+      } else reveal(shown + 1);
+    });
+    confirmBox.querySelector('[data-confirm-yes]').addEventListener('click', function () {
+      confirmBox.hidden = true; reveal(items.length);
+    });
+    confirmBox.querySelector('[data-confirm-no]').addEventListener('click', function () {
+      confirmBox.hidden = true; render(); next.focus();
+    });
+    render();
+  }
+
+  /* ---------- fill ---------- */
+  function initFill(sec, s) {
+    var inputs = sec.querySelectorAll('input[data-blank]');
+    var values = state.fill[s.id] || {};
+    function evaluate(quiet) {
+      inputs.forEach(function (inp) {
+        var st = WG.blankState(inp.value, s.blanks[inp.getAttribute('data-blank')]);
+        inp.setAttribute('data-state', st);
+        inp.setAttribute('aria-invalid', st === 'wrong' ? 'true' : 'false');
+      });
+      var p = WG.fillProgress(s, values);
+      var all = p.correct === p.total;
+      state.solved[s.id] = all;
+      if (all) setStatus(sec, fmt(L.fill_all, { total: p.total }) + L.run_check_tail, 'ok');
+      else setStatus(sec, fmt(L.fill_some, { n: p.correct, total: p.total }), null);
+      if (!quiet && all) announce(L.fill_all_announce);
+    }
+    inputs.forEach(function (inp) {
+      var id = inp.getAttribute('data-blank');
+      if (values[id]) inp.value = values[id];
+      inp.addEventListener('input', function () {
+        values[id] = inp.value; state.fill[s.id] = values; touch(s.id);
+        evaluate(false); changed(s.id);
+      });
+    });
+    sec.querySelector('[data-copy-assembled]').addEventListener('click', function (ev) {
+      copyText(WG.assembleFill(s, values), ev.currentTarget);
+    });
+    sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
+      values = {}; state.fill[s.id] = values;
+      inputs.forEach(function (inp) { inp.value = ''; });
+      evaluate(true); changed(s.id); inputs[0].focus();
+    });
+    evaluate(true);
+  }
+
+  /* ---------- order ---------- */
+  var dragged = null;
+  function initOrder(sec, s) {
+    var pool = sec.querySelector('[data-list="pool"]');
+    var answer = sec.querySelector('[data-list="answer"]');
+    var byId = {};
+    pool.querySelectorAll('[data-block]').forEach(function (li) { byId[li.getAttribute('data-block')] = li; });
+    var initialPool = Object.keys(byId).map(function (k) { return byId[k]; });
+    function current() {
+      return Array.prototype.map.call(answer.querySelectorAll('[data-block]'), function (li) { return li.getAttribute('data-block'); });
+    }
+    function clearMarks() {
+      sec.querySelectorAll('[data-block]').forEach(function (li) { li.removeAttribute('data-mark'); });
+    }
+    function persist(msg) {
+      state.order[s.id] = current(); touch(s.id);
+      state.solved[s.id] = false; clearMarks();
+      setStatus(sec, msg || '', null);
+      changed(s.id);
+    }
+    function blockLabel(li) {
+      var t = li.querySelector('code').textContent.split('\n')[0];
+      return t.length > 50 ? t.slice(0, 50) + '…' : t;
+    }
+    function act(li, action, btn) {
+      var list = li.parentNode;
+      var msg = '';
+      if (action === 'add') { answer.appendChild(li); msg = fmt(L.block_added, { b: blockLabel(li), n: current().length }); }
+      else if (action === 'remove') { pool.appendChild(li); msg = fmt(L.block_removed, { b: blockLabel(li) }); }
+      else if (action === 'up' && li.previousElementSibling) { list.insertBefore(li, li.previousElementSibling); }
+      else if (action === 'down' && li.nextElementSibling) { list.insertBefore(li.nextElementSibling, li); }
+      if (action === 'up' || action === 'down') msg = fmt(L.block_moved, { n: Array.prototype.indexOf.call(list.children, li) + 1 });
+      persist('');
+      announce(msg);
+      var again = li.querySelector('[data-act="' + action + '"]');
+      var target = (again && getComputedStyle(again).display !== 'none') ? again
+        : li.querySelector(action === 'add' ? '[data-act="remove"]' : '[data-act="add"]');
+      if (target) target.focus(); else if (btn) btn.focus();
+    }
+    sec.querySelectorAll('[data-block] [data-act]').forEach(function (btn) {
+      btn.addEventListener('click', function () { act(btn.closest('[data-block]'), btn.getAttribute('data-act'), btn); });
+    });
+    /* drag and drop */
+    Object.keys(byId).forEach(function (k) {
+      var li = byId[k];
+      li.addEventListener('dragstart', function (ev) {
+        dragged = li; li.classList.add('dragging');
+        try { ev.dataTransfer.setData('text/plain', k); ev.dataTransfer.effectAllowed = 'move'; } catch (e) { /* old browsers */ }
+      });
+      li.addEventListener('dragend', function () {
+        li.classList.remove('dragging'); dragged = null;
+        sec.querySelectorAll('.drag-over').forEach(function (el) { el.classList.remove('drag-over'); });
+      });
+    });
+    function afterElement(list, y) {
+      var items = Array.prototype.filter.call(list.querySelectorAll('[data-block]'), function (el) { return el !== dragged; });
+      for (var i = 0; i < items.length; i++) {
+        var r = items[i].getBoundingClientRect();
+        if (y < r.top + r.height / 2) return items[i];
+      }
+      return null;
+    }
+    [pool, answer].forEach(function (list) {
+      list.addEventListener('dragover', function (ev) {
+        if (!dragged || !sec.contains(dragged)) return;
+        ev.preventDefault(); list.classList.add('drag-over');
+      });
+      list.addEventListener('dragleave', function (ev) {
+        if (!list.contains(ev.relatedTarget)) list.classList.remove('drag-over');
+      });
+      list.addEventListener('drop', function (ev) {
+        if (!dragged || !sec.contains(dragged)) return;
+        ev.preventDefault(); list.classList.remove('drag-over');
+        var after = afterElement(list, ev.clientY);
+        if (after) list.insertBefore(dragged, after); else list.appendChild(dragged);
+        persist('');
+      });
+    });
+    sec.querySelector('[data-check-order]').addEventListener('click', function () {
+      var ans = current();
+      if (!ans.length) { setStatus(sec, L.answer_empty, 'bad'); return; }
+      var r = WG.checkOrder(s, ans);
+      touch(s.id); state.solved[s.id] = r.pass;
+      answer.querySelectorAll('[data-block]').forEach(function (li, i) {
+        li.setAttribute('data-mark', s.solution[i] === li.getAttribute('data-block') ? 'ok' : 'bad');
+      });
+      var tail = r.pass ? (s.check === 'notebook' ? L.run_check_tail : '') : '';
+      setStatus(sec, r.message + tail, r.pass ? 'ok' : 'bad');
+      announce(r.message);
+      changed(s.id);
+    });
+    sec.querySelector('[data-copy-assembled]').addEventListener('click', function (ev) {
+      var ans = current();
+      if (!ans.length) { setStatus(sec, L.answer_empty, 'bad'); return; }
+      copyText(WG.assembleOrder(s, ans), ev.currentTarget);
+    });
+    sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
+      initialPool.forEach(function (li) { pool.appendChild(li); });
+      persist('');
+      announce(L.blocks_reset);
+    });
+    /* restore */
+    var saved = state.order[s.id] || [];
+    saved.forEach(function (id) { if (byId[id]) answer.appendChild(byId[id]); });
+    if (state.solved[s.id]) {
+      var r0 = WG.checkOrder(s, current());
+      if (r0.pass) setStatus(sec, r0.message, 'ok'); else state.solved[s.id] = false;
+    }
+  }
+
+  /* ---------- match ---------- */
+  function initMatch(sec, s) {
+    var selects = sec.querySelectorAll('select.match-select');
+    var chips = sec.querySelectorAll('.chip');
+    var saved = state.match[s.id] || {};
+    function assignment() {
+      var a = {};
+      selects.forEach(function (sel) {
+        var slot = sel.closest('[data-slot]').getAttribute('data-slot');
+        a[slot] = sel.value === '' ? null : Number(sel.value);
+      });
+      return a;
+    }
+    function syncChips() {
+      var used = {};
+      selects.forEach(function (sel) { if (sel.value !== '') used[sel.value] = true; });
+      chips.forEach(function (c) { c.setAttribute('data-used', used[c.getAttribute('data-term')] ? 'true' : 'false'); });
+    }
+    function clearMarks() { sec.querySelectorAll('.match-row').forEach(function (r) { r.removeAttribute('data-mark'); }); }
+    function setTerm(sel, term) {
+      /* a term sits in one slot only: clear it elsewhere */
+      if (term !== '') selects.forEach(function (o) { if (o !== sel && o.value === term) o.value = ''; });
+      sel.value = term;
+      var a = assignment(), store = {};
+      Object.keys(a).forEach(function (k) { if (a[k] !== null) store[k] = a[k]; });
+      state.match[s.id] = store; touch(s.id);
+      state.solved[s.id] = false; clearMarks(); syncChips(); setStatus(sec, '', null);
+      changed(s.id);
+    }
+    selects.forEach(function (sel) {
+      var slot = sel.closest('[data-slot]').getAttribute('data-slot');
+      if (saved[slot] !== undefined && saved[slot] !== null) sel.value = String(saved[slot]);
+      sel.addEventListener('change', function () { setTerm(sel, sel.value); });
+    });
+    var draggedTerm = null;
+    chips.forEach(function (c) {
+      c.addEventListener('dragstart', function (ev) {
+        draggedTerm = c.getAttribute('data-term'); c.classList.add('dragging');
+        try { ev.dataTransfer.setData('text/plain', draggedTerm); ev.dataTransfer.effectAllowed = 'move'; } catch (e) { /* ignore */ }
+      });
+      c.addEventListener('dragend', function () {
+        c.classList.remove('dragging'); draggedTerm = null;
+        sec.querySelectorAll('.drag-over').forEach(function (el) { el.classList.remove('drag-over'); });
+      });
+    });
+    sec.querySelectorAll('[data-drop]').forEach(function (zone) {
+      var sel = zone.querySelector('select');
+      zone.addEventListener('dragover', function (ev) { if (draggedTerm === null) return; ev.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', function (ev) { if (!zone.contains(ev.relatedTarget)) zone.classList.remove('drag-over'); });
+      zone.addEventListener('drop', function (ev) {
+        if (draggedTerm === null) return;
+        ev.preventDefault(); zone.classList.remove('drag-over');
+        setTerm(sel, draggedTerm);
+        announce(L.term_placed + zone.closest('[data-slot]').querySelector('label').textContent);
+      });
+    });
+    function grade(quiet) {
+      var r = WG.checkMatch(s, assignment());
+      sec.querySelectorAll('.match-row').forEach(function (row) {
+        var slot = row.getAttribute('data-slot');
+        if (slot in r.slotCorrect) row.setAttribute('data-mark', r.slotCorrect[slot] ? 'ok' : 'bad');
+        else row.removeAttribute('data-mark');
+      });
+      state.solved[s.id] = r.pass;
+      setStatus(sec, r.message, r.pass ? 'ok' : 'bad');
+      if (!quiet) announce(r.message);
+      return r;
+    }
+    sec.querySelector('[data-check-match]').addEventListener('click', function () { touch(s.id); grade(false); changed(s.id); });
+    sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
+      selects.forEach(function (sel) { sel.value = ''; });
+      state.match[s.id] = {}; state.solved[s.id] = false; clearMarks(); syncChips(); setStatus(sec, '', null);
+      changed(s.id); selects[0].focus();
+    });
+    syncChips();
+    if (state.solved[s.id]) grade(true);
+  }
+
+  /* ---------- nav highlight ---------- */
+  function initNav() {
+    var links = document.querySelectorAll('[data-nav]');
+    function setCurrent(id) {
+      links.forEach(function (a) { a.setAttribute('aria-current', a.getAttribute('data-nav') === id ? 'true' : 'false'); });
+    }
+    if ('IntersectionObserver' in window) {
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) setCurrent(e.target.getAttribute('data-step')); });
+      }, { rootMargin: '-15% 0px -70% 0px' });
+      document.querySelectorAll('section.step').forEach(function (sec) { obs.observe(sec); });
+    }
+    links.forEach(function (a) { a.addEventListener('click', function () { setCurrent(a.getAttribute('data-nav')); }); });
+  }
+
+  /* ---------- wire everything ---------- */
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      copyText(btn.parentNode.querySelector('pre').textContent.replace(/\n$/, ''), btn);
+    });
+  });
+  DATA.steps.forEach(function (s) {
+    var sec = document.getElementById('step-' + s.id);
+    if (s.type === 'fill') initFill(sec, s);
+    else if (s.type === 'order') initOrder(sec, s);
+    else if (s.type === 'match') initMatch(sec, s);
+    initHints(sec, s);
+    var box = sec.querySelector('[data-done]');
+    if (box) box.addEventListener('change', function () {
+      state.done[s.id] = box.checked; touch(s.id); changed(s.id);
+      if (box.checked) announce(L.step_done);
+    });
+    refreshStep(s.id);
+  });
+  refreshOverall();
+  initNav();
+  showStorageWarning();
+  document.getElementById('reset-all').addEventListener('click', function () {
+    if (!window.confirm(L.reset_confirm)) return;
+    try { window.localStorage.removeItem(KEY); } catch (e) { /* nothing to clear */ }
+    window.location.reload();
+  });
+  document.documentElement.classList.add('js');
+})();
+</script>
+</body>
+</html>

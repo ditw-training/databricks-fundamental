@@ -1,7 +1,7 @@
 {
  "id": "ws_ingestion",
  "number": 1,
- "title": "Workshop 1 — Ingestion",
+ "title": "Workshop I — Ingestion",
  "notebook": "notebooks/workshops/WORKSHOP_ingestion.ipynb",
  "intro": "You are a data engineer at RetailHub. Load raw customer (CSV) and order (JSON) files into DataFrames, transform them with PySpark and its SQL equivalents, and write a Bronze Delta table with load metadata. Code runs in your notebook `WORKSHOP_ingestion`; after each step run its cell, then click **Check** here: the app checks your result and marks the step. The last line of a step cell saves your result to a table `default._ws_...` in your catalog; keep it. Steps marked ⭐ OPTIONAL can be skipped. A DataFrame is a table Spark holds for you, like the result of a SELECT; `spark` and `display()` are ready in every Databricks notebook.",
  "steps": [

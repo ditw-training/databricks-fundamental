@@ -103,10 +103,10 @@ Same agenda as in `notebooks/modules/00_intro.ipynb`.
 | 10:20 – 10:35 | **M02** How Spark works | How Spark runs your code; one engine for SQL and PySpark |
 | 10:35 – 10:50 | Break | |
 | 10:50 – 11:45 | **M03** Medallion + ingestion | Python primer, reading CSV/JSON, transforming data, writing to Delta |
-| 11:45 – 12:25 | **Workshop 1 — Ingestion** | At most 8 tasks, the rest ⭐ OPTIONAL |
+| 11:45 – 12:25 | **Workshop I — Ingestion** | At most 8 tasks, the rest ⭐ OPTIONAL |
 | 12:25 – 13:05 | Lunch | |
 | 13:05 – 13:45 | **M04** Delta Lake | Delta tables, changing data, MERGE, history, time travel, RESTORE |
-| 13:45 – 14:20 | **Workshop 2 — Delta Lake** | 7 tasks in SQL, the rest ⭐ OPTIONAL |
+| 13:45 – 14:20 | **Workshop II — Delta Lake** | 7 tasks in SQL, the rest ⭐ OPTIONAL |
 | 14:20 – 14:30 | Break | |
 | 14:30 – 15:05 | **M05** Lakeflow Jobs | A job from ready notebooks: parameters, schedule, repair run |
 | 15:05 – 15:20 | **M06** Unity Catalog | Groups and permissions: `GRANT`, `SHOW GRANTS`, `REVOKE` |

@@ -12,11 +12,12 @@ import {
 } from '@databricks/appkit-ui/react';
 import { Loader2, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
+import { useI18n } from '../i18n/context';
 import { resetMyProgress } from '../lib/api';
 
 interface Props {
   workshop: string;
-  /** "Workshop 1 — Ingestion" */
+  /** "Warsztat I — Ingestion" */
   label: string;
   onReset: () => void;
 }
@@ -26,6 +27,7 @@ interface Props {
  * workshop (DELETE /api/progress/me). Notebook tables and the code in the notebook stay.
  */
 export function ResetProgress({ workshop, label, onReset }: Props) {
+  const { m } = useI18n();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,24 +54,21 @@ export function ResetProgress({ workshop, label, onReset }: Props) {
     >
       <AlertDialogTrigger asChild>
         <Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
-          <RotateCcw className="size-4" aria-hidden /> Reset my progress
+          <RotateCcw className="size-4" aria-hidden /> {m.resetButton}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Reset your progress in {label}?</AlertDialogTitle>
-          <AlertDialogDescription>
-            All your results in this workshop are deleted and every step starts again as not checked. Only your own results
-            change. Your notebook, its code and the tables in your catalog stay as they are. This cannot be undone.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{m.resetTitle(label)}</AlertDialogTitle>
+          <AlertDialogDescription>{m.resetText}</AlertDialogDescription>
         </AlertDialogHeader>
         {error && (
           <p role="alert" className="text-sm text-[var(--destructive)]">
-            Could not reset: {error}
+            {m.resetFailed(error)}
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={busy}>{m.cancel}</AlertDialogCancel>
           <AlertDialogAction
             disabled={busy}
             onClick={(e) => {
@@ -77,7 +76,7 @@ export function ResetProgress({ workshop, label, onReset }: Props) {
               confirm();
             }}
           >
-            {busy && <Loader2 className="size-4 animate-spin" aria-hidden />} Reset progress
+            {busy && <Loader2 className="size-4 animate-spin" aria-hidden />} {m.resetConfirm}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

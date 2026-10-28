@@ -22,10 +22,10 @@ Sections are named by their headings. Cell numbers shift with every edit, so thi
 | 10:20 – 10:35 | 15 | **M02** How Spark works | Driver/executors, lazy evaluation, "SQL = PySpark, same engine", one sentence on shuffle |
 | 10:35 – 10:50 | 15 | Break | |
 | 10:50 – 11:45 | 55 | **M03** Medallion + ingestion | Python in 5 minutes, CSV/JSON/`read_files`, DDL schema, `display`/`show`/`describe`/`summary`, `select`/`filter`, `withColumn` + `cast` (ANSI, `try_cast`) + `when`, `groupBy.agg`, temp view + SQL, **write to Delta**; every operation with its SQL equivalent |
-| 11:45 – 12:25 | 40 | **Workshop 1 — Ingestion** | At most 8 tasks, the rest ⭐ OPTIONAL |
+| 11:45 – 12:25 | 40 | **Workshop I — Ingestion** | At most 8 tasks, the rest ⭐ OPTIONAL |
 | 12:25 – 13:05 | 40 | Lunch | |
 | 13:05 – 13:45 | 40 | **M04** Delta Lake | Table, schema enforcement/evolution, DML, MERGE, HISTORY, time travel, RESTORE; as concepts: VACUUM, UNDROP, predictive optimization / liquid clustering |
-| 13:45 – 14:20 | 35 | **Workshop 2 — Delta Lake** | 7 tasks (01, 03, 05+06, 08, 10, 12), SQL in `%sql`; 02/04/07/09/11 ⭐ OPTIONAL |
+| 13:45 – 14:20 | 35 | **Workshop II — Delta Lake** | 7 tasks (01, 03, 05+06, 08, 10, 12), SQL in `%sql`; 02/04/07/09/11 ⭐ OPTIONAL |
 | 14:20 – 14:30 | 10 | Break | |
 | 14:30 – 15:05 | 35 | **M05** Lakeflow Jobs | Ready notebooks from `materials/orchestration`, compute for jobs, parameters, simple task values, schedule, Repair run |
 | 15:05 – 15:20 | 15 | **M06** Unity Catalog | Groups, `GRANT` / `SHOW GRANTS` / `REVOKE` (3 lines), Permissions tab |
@@ -158,7 +158,7 @@ Minutes per section (by heading):
   - BONUS 18 (more column operations): show when participants ask how to write these SQL steps in PySpark.
   - BONUS 22 (joins): cover it before the optional Workshop Task 12.
 
-### Workshop 1 — Ingestion (`WORKSHOP_ingestion`): 40 min
+### Workshop I — Ingestion (`WORKSHOP_ingestion`): 40 min
 
 - **CORE:** at most 8 tasks, ending with the Bronze Delta write (raw data + load metadata).
   Schemas can be written as DDL strings; aggregation and filter tasks can be solved in SQL.
@@ -193,7 +193,7 @@ Minutes per section (by heading):
   VACUUM demo: advanced groups and the 2-day format. External tables: core message "Managed tables = Databricks manages
   the data lifecycle. Use them by default."
 
-### Workshop 2 — Delta Lake (`WORKSHOP_delta`): 35 min
+### Workshop II — Delta Lake (`WORKSHOP_delta`): 35 min
 
 - **CORE:** tasks 01, 03, 05+06, 08 (MERGE), 10, 12. SQL in `%sql` cells; Python only in CHECK cells.
 - **⭐ OPTIONAL:** tasks 02, 04, 07, 09, 11.

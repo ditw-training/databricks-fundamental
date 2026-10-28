@@ -22,13 +22,15 @@ import { useSearchParams } from 'react-router';
 import { workshopLabel, type Guide } from '../../../shared/guide-schema';
 import { Kpi } from '../components/Kpi';
 import { StatusDot } from '../components/StatusDot';
-import { statusLabel, TYPE_LABEL } from '../lib/labels';
+import { useI18n } from '../i18n/context';
+import { statusLabel, typeLabel } from '../lib/labels';
 import { useTrainerMatrix, type TrainerRow } from '../lib/progress';
-import { formatAgo, parseTs, toStatus } from '../lib/status';
+import { formatAgo, locale, parseTs, toStatus } from '../lib/status';
 import { buildMatrix } from '../lib/trainer';
 import { QuizStatsView } from './QuizStatsView';
 
 export function TrainerPage({ guides, isTrainer }: { guides: Guide[]; isTrainer: boolean }) {
+  const { lang, m } = useI18n();
   const [params, setParams] = useSearchParams();
 
   if (!isTrainer) {
@@ -38,9 +40,9 @@ export function TrainerPage({ guides, isTrainer }: { guides: Guide[]; isTrainer:
           <EmptyMedia variant="icon">
             <Lock aria-hidden />
           </EmptyMedia>
-          <EmptyTitle>Trainer view</EmptyTitle>
+          <EmptyTitle>{m.trainerTitle}</EmptyTitle>
           <EmptyDescription>
-            This page is for trainers. Ask the trainer to add your email to <code>TRAINER_EMAILS</code> in the app configuration.
+            {m.trainerOnly} <code>TRAINER_EMAILS</code> {m.trainerOnlyAfter}
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
@@ -53,29 +55,27 @@ export function TrainerPage({ guides, isTrainer }: { guides: Guide[]; isTrainer:
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Group progress</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">{m.groupProgress}</h2>
           <p className="text-sm text-muted-foreground">
-            {tab === 'quiz'
-              ? 'Quiz results per participant and question. Refreshes every 5 seconds.'
-              : 'Latest result per participant and step. Refreshes every 5 seconds.'}
+            {tab === 'quiz' ? m.trainerIntroQuiz : m.trainerIntroWorkshops}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Tabs value={tab} onValueChange={(v) => setParams(v === 'quiz' ? { tab: 'quiz' } : { ws: guide.id })}>
-            <TabsList aria-label="Trainer view">
-              <TabsTrigger value="workshops">Workshops</TabsTrigger>
-              <TabsTrigger value="quiz">Quiz</TabsTrigger>
+            <TabsList aria-label={m.trainerTitle}>
+              <TabsTrigger value="workshops">{m.tabWorkshops}</TabsTrigger>
+              <TabsTrigger value="quiz">{m.tabQuiz}</TabsTrigger>
             </TabsList>
           </Tabs>
           {tab === 'workshops' && (
             <Select value={guide.id} onValueChange={(id) => setParams({ ws: id })}>
-              <SelectTrigger className="w-72" aria-label="Workshop">
+              <SelectTrigger className="w-72" aria-label={m.workshop}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {guides.map((g) => (
                   <SelectItem key={g.id} value={g.id}>
-                    {workshopLabel(g)}
+                    {workshopLabel(g, lang)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -89,6 +89,7 @@ export function TrainerPage({ guides, isTrainer }: { guides: Guide[]; isTrainer:
 }
 
 function TrainerMatrix({ guide }: { guide: Guide }) {
+  const { lang, m } = useI18n();
   const { rows, error, updatedAt } = useTrainerMatrix(guide.id);
   const matrix = useMemo(() => buildMatrix(guide, rows ?? []), [guide, rows]);
   const loading = rows === null && !error;
@@ -96,29 +97,33 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi label="Participants" value={loading ? null : String(matrix.participants.length)} note="with at least one result" />
+        <Kpi label={m.kpiParticipants} value={loading ? null : String(matrix.participants.length)} note={m.kpiParticipantsNote} />
         <Kpi
-          label="Finished all required"
+          label={m.kpiFinished}
           value={loading ? null : `${matrix.finishedRequired}`}
-          note={`of ${matrix.participants.length} · ${matrix.requiredCount} required steps`}
+          note={m.kpiFinishedNote(matrix.participants.length, matrix.requiredCount)}
         />
         <Kpi
-          label="Stuck right now"
+          label={m.kpiStuck}
           value={loading ? null : String(matrix.participants.filter((p) => p.failing > 0).length)}
-          note="latest result on a step is a fail"
+          note={m.kpiStuckNote}
         />
-        <Kpi label="Last activity" value={loading ? null : formatAgo(matrix.lastActivity)} note="any participant" />
+        <Kpi
+          label={m.kpiLastActivity}
+          value={loading ? null : formatAgo(matrix.lastActivity, undefined, lang)}
+          note={m.kpiLastActivityNote}
+        />
       </div>
 
       {/* No aria-live on the timestamp: it changes on every poll. Only errors are announced. */}
       <p className="text-xs text-muted-foreground">
-        {updatedAt ? `Updated ${updatedAt.toLocaleTimeString()} · source: progress table` : error ? '' : 'Loading…'}
+        {updatedAt ? m.updatedAt(updatedAt.toLocaleTimeString(locale(lang)), m.sourceProgress) : error ? '' : `${m.loading}…`}
       </p>
       <p role="status" className={error ? 'text-xs text-[var(--destructive)]' : 'sr-only'}>
         {error
           ? rows === null
-            ? `Could not load the matrix: ${error}`
-            : `Could not refresh: ${error}. Showing the last data received; retrying.`
+            ? m.matrixLoadFailed(error)
+            : m.refreshFailed(error)
           : ''}
       </p>
 
@@ -130,11 +135,8 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
             <EmptyMedia variant="icon">
               <Users aria-hidden />
             </EmptyMedia>
-            <EmptyTitle>No results yet</EmptyTitle>
-            <EmptyDescription>
-              Participants appear here after their first Check or their first checked exercise in the
-              guide.
-            </EmptyDescription>
+            <EmptyTitle>{m.noResultsTitle}</EmptyTitle>
+            <EmptyDescription>{m.noResultsText}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
@@ -144,23 +146,23 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
             <div className="relative max-w-full overflow-x-auto">
               <table className="wg-matrix">
                 <caption className="sr-only">
-                  {workshopLabel(guide)}: result per participant and step
+                  {m.matrixCaption(workshopLabel(guide, lang))}
                 </caption>
                 <thead>
                   <tr>
                     <th scope="col" className="wg-matrix-sticky text-left">
-                      Participant
+                      {m.colParticipant}
                     </th>
                     {guide.steps.map((s, i) => (
-                      <th key={s.id} scope="col" title={`${s.title} — ${TYPE_LABEL[s.type]}${s.optional ? ' (optional)' : ''}`}>
+                      <th key={s.id} scope="col" title={`${s.title} — ${typeLabel(s.type, m)}${s.optional ? m.optionalSuffix : ''}`}>
                         <span className={s.optional ? 'text-muted-foreground' : undefined}>{String(i + 1).padStart(2, '0')}</span>
-                        {s.optional && <span className="block text-[10px] font-normal text-muted-foreground">⭐ opt</span>}
+                        {s.optional && <span className="block text-[10px] font-normal text-muted-foreground">{m.optionalShort}</span>}
                       </th>
                     ))}
-                    <th scope="col">Done</th>
-                    <th scope="col">Hints</th>
+                    <th scope="col">{m.colDone}</th>
+                    <th scope="col">{m.colHints}</th>
                     <th scope="col" className="text-right">
-                      Last activity
+                      {m.colLastActivity}
                     </th>
                   </tr>
                 </thead>
@@ -179,20 +181,20 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
                         {p.passedRequired}/{matrix.requiredCount}
                       </td>
                       <td className="text-center tabular-nums">{p.hintsTotal || '—'}</td>
-                      <td className="whitespace-nowrap text-right text-muted-foreground">{formatAgo(p.lastActivity)}</td>
+                      <td className="whitespace-nowrap text-right text-muted-foreground">{formatAgo(p.lastActivity, undefined, lang)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr>
                     <th scope="row" className="wg-matrix-sticky text-left">
-                      Passed
+                      {m.rowPassed}
                     </th>
                     {matrix.steps.map((s) => (
                       <td
                         key={s.stepId}
                         className="whitespace-nowrap text-center tabular-nums"
-                        title={`${s.passed} passed, ${s.attempted - s.passed} tried but not passed, ${matrix.participants.length - s.attempted} not started`}
+                        title={m.stepTotals(s.passed, s.attempted - s.passed, matrix.participants.length - s.attempted)}
                       >
                         {s.passed}/{matrix.participants.length}
                       </td>
@@ -212,43 +214,45 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
 }
 
 function Cell({ row, stepTitle }: { row: TrainerRow | undefined; stepTitle: string }) {
+  const { lang, m } = useI18n();
   const status = toStatus(row?.status);
   const ts = parseTs(row?.ts);
   const details = row
     ? [
-        `${stepTitle}: ${statusLabel(status)}`,
+        `${stepTitle}: ${statusLabel(status, m)}`,
         row.message ?? '',
-        `${row.runs} run${row.runs === 1 ? '' : 's'}`,
-        row.hints_used !== null ? `hints: ${row.hints_used}` : '',
-        row.attempts !== null ? `attempts: ${row.attempts}` : '',
-        ts ? ts.toLocaleTimeString() : '',
+        m.cellRuns(row.runs),
+        row.hints_used !== null ? m.cellHints(row.hints_used) : '',
+        row.attempts !== null ? m.cellAttempts(row.attempts) : '',
+        ts ? ts.toLocaleTimeString(locale(lang)) : '',
       ]
         .filter(Boolean)
         .join(' · ')
-    : `${stepTitle}: not started`;
+    : `${stepTitle}: ${m.cellNotStarted}`;
   return (
     <span className="inline-flex items-center justify-center" title={details}>
       <StatusDot status={status} />
-      {row?.hints_used ? <span className="wg-hint-count" aria-label={`${row.hints_used} hints`}>{row.hints_used}</span> : null}
+      {row?.hints_used ? <span className="wg-hint-count" aria-label={m.hintsCount(row.hints_used)}>{row.hints_used}</span> : null}
       <span className="sr-only">{details}</span>
     </span>
   );
 }
 
 function Legend() {
+  const { m } = useI18n();
   return (
-    <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground" aria-label="Legend">
+    <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground" aria-label={m.legend}>
       <li className="inline-flex items-center gap-1.5">
-        <StatusDot status="pass" /> passed
+        <StatusDot status="pass" /> {m.legendPass}
       </li>
       <li className="inline-flex items-center gap-1.5">
-        <StatusDot status="fail" /> latest check failed
+        <StatusDot status="fail" /> {m.legendFail}
       </li>
       <li className="inline-flex items-center gap-1.5">
-        <StatusDot status="none" /> not started
+        <StatusDot status="none" /> {m.legendNone}
       </li>
       <li className="inline-flex items-center gap-1.5">
-        <span className="wg-hint-count">2</span> hints used (app-graded steps)
+        <span className="wg-hint-count">2</span> {m.legendHints}
       </li>
     </ul>
   );

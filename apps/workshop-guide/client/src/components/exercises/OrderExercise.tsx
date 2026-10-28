@@ -24,6 +24,7 @@ import { ArrowDown, ArrowUp, GripVertical, Plus, RotateCcw, X } from 'lucide-rea
 import { useMemo, useState, type ReactNode } from 'react';
 import type { OrderStep } from '../../../../shared/guide-schema';
 import { assembleOrder, checkOrder, seededShuffle, type OrderResult } from '../../lib/exercise';
+import { useI18n } from '../../i18n/context';
 import { useStoredState } from '../../lib/storage';
 import { CopyButton } from '../CopyButton';
 
@@ -44,6 +45,7 @@ interface Props {
 }
 
 export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Props) {
+  const { m } = useI18n();
   const isMobile = useIsMobile();
   const initial = useMemo<Lists>(
     () => ({ pool: seededShuffle(step.blocks.map((b) => b.id), step.id), answer: [] }),
@@ -134,14 +136,10 @@ export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Pr
   return (
     <div className="space-y-3">
       {isMobile ? (
-        <p className="text-sm text-muted-foreground">
-          Tap <strong className="text-foreground">+</strong> to add a block to <strong className="text-foreground">Your solution</strong>,
-          then use ↑ / ↓ to put the blocks in order and × to take one out.
-        </p>
+        <p className="text-sm text-muted-foreground">{m.orderHowMobile('+', m.yourSolution)}</p>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Drag blocks into <strong className="text-foreground">Your solution</strong> and put them in order, or use the + / ↑ / ↓ / ×
-          buttons. With the keyboard: focus a handle, press Space, move with the arrow keys, press Space again.
+          {m.orderHowDesktopBefore} <strong className="text-foreground">{m.yourSolution}</strong> {m.orderHowDesktopAfter}
         </p>
       )}
       <DndContext
@@ -156,26 +154,26 @@ export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Pr
         <div className="flex min-w-0 flex-col gap-4">
           <BlockList
             id="pool"
-            title="Available blocks"
+            title={m.availableBlocks}
             ids={current.pool}
             codeById={codeById}
-            emptyText="All blocks are in your solution."
+            emptyText={m.allBlocksUsed}
             renderActions={(id) => (
-              <Button type="button" variant="ghost" size="icon" className="size-7" onClick={() => moveTo(id, 'answer')} aria-label={`Add to solution: ${firstLine(id)}`}>
+              <Button type="button" variant="ghost" size="icon" className="size-7" onClick={() => moveTo(id, 'answer')} aria-label={m.addToSolution(firstLine(id))}>
                 <Plus className="size-4" aria-hidden />
               </Button>
             )}
           />
           <BlockList
             id="answer"
-            title="Your solution"
+            title={m.yourSolution}
             ids={current.answer}
             codeById={codeById}
             numbered
-            emptyText="Drag blocks here."
+            emptyText={m.dragBlocksHere}
             renderActions={(id, index) => (
               <>
-                <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === 0} onClick={() => nudge(id, -1)} aria-label={`Move up: ${firstLine(id)}`}>
+                <Button type="button" variant="ghost" size="icon" className="size-7" disabled={index === 0} onClick={() => nudge(id, -1)} aria-label={m.moveUp(firstLine(id))}>
                   <ArrowUp className="size-4" aria-hidden />
                 </Button>
                 <Button
@@ -185,11 +183,11 @@ export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Pr
                   className="size-7"
                   disabled={index === current.answer.length - 1}
                   onClick={() => nudge(id, 1)}
-                  aria-label={`Move down: ${firstLine(id)}`}
+                  aria-label={m.moveDown(firstLine(id))}
                 >
                   <ArrowDown className="size-4" aria-hidden />
                 </Button>
-                <Button type="button" variant="ghost" size="icon" className="size-7" onClick={() => moveTo(id, 'pool')} aria-label={`Remove from solution: ${firstLine(id)}`}>
+                <Button type="button" variant="ghost" size="icon" className="size-7" onClick={() => moveTo(id, 'pool')} aria-label={m.removeFromSolution(firstLine(id))}>
                   <X className="size-4" aria-hidden />
                 </Button>
               </>
@@ -201,26 +199,26 @@ export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Pr
 
       {result && (
         <div role="status" className={`wg-feedback ${result.pass ? 'wg-feedback-pass' : 'wg-feedback-fail'}`}>
-          {result.message}
-          {result.pass && step.check === 'notebook' && ' Copy the code to your notebook and run the check cell.'}
+          {m.orderResult(result)}
+          {result.pass && step.check === 'notebook' && ` ${m.orderCopyNext}`}
         </div>
       )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={() => update(initial)}>
-          <RotateCcw className="size-4" aria-hidden /> Reset
+          <RotateCcw className="size-4" aria-hidden /> {m.reset}
         </Button>
         {step.check === 'notebook' && (
           <CopyButton
             text={assembleOrder(step, current.answer)}
-            label="Copy to notebook"
+            label={m.copyToNotebook}
             variant={result?.pass ? 'default' : 'outline'}
             disabled={current.answer.length === 0}
-            title={current.answer.length === 0 ? 'Add blocks to your solution first' : undefined}
+            title={current.answer.length === 0 ? m.addBlocksFirst : undefined}
           />
         )}
         <Button type="button" onClick={runCheck} disabled={busy || current.answer.length === 0}>
-          Check order
+          {m.checkOrder}
         </Button>
       </div>
       {pasteHint}
@@ -263,6 +261,7 @@ function BlockList({ id, title, ids, codeById, emptyText, numbered, renderAction
 }
 
 function SortableBlock({ id, code, index, children }: { id: string; code: string; index?: number; children: ReactNode }) {
+  const { m } = useI18n();
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition };
   return (
@@ -275,7 +274,7 @@ function SortableBlock({ id, code, index, children }: { id: string; code: string
             type="button"
             ref={setActivatorNodeRef}
             className="wg-handle"
-            aria-label={`Drag block: ${code.split('\n')[0]}`}
+            aria-label={m.dragBlock(code.split('\n')[0])}
             {...attributes}
             {...listeners}
           >

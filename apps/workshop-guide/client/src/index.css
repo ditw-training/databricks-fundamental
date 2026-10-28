@@ -64,6 +64,27 @@ body {
   background: var(--secondary);
   color: var(--foreground);
 }
+/* Phone width: the three tabs, PL|EN and the theme toggle share one row (390 px). Tabs get
+   tighter and the nav scrolls sideways instead of running under the right-hand block. */
+.wg-navbar {
+  scrollbar-width: none;
+}
+.wg-navbar::-webkit-scrollbar {
+  display: none;
+}
+.wg-nav {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+@media (max-width: 639px) {
+  .wg-nav {
+    padding: 0.3rem 0.4rem;
+  }
+  .wg-langswitch button[type='button'] {
+    min-width: 2rem;
+    padding: 0.25rem 0.3rem;
+  }
+}
 .wg-section-title {
   font-size: 0.75rem;
   font-weight: 600;

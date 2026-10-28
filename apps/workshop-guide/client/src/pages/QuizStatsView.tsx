@@ -19,12 +19,14 @@ import type { QuizResponse } from '../../../shared/quiz-schema';
 import { Kpi } from '../components/Kpi';
 import { useQuizStats } from '../lib/progress';
 import { buildQuizStats, fetchQuiz } from '../lib/quiz';
-import { formatAgo } from '../lib/status';
+import { useI18n } from '../i18n/context';
+import { formatAgo, locale } from '../lib/status';
 
 const pct = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100)}%`);
 
 /** Trainer tab: first-attempt score per participant, first-attempt rate per question. */
 export function QuizStatsView() {
+  const { m } = useI18n();
   const [quiz, setQuiz] = useState<QuizResponse | null>(null);
   const [quizError, setQuizError] = useState<string | null>(null);
   useEffect(() => {
@@ -37,7 +39,7 @@ export function QuizStatsView() {
     return (
       <Alert variant="destructive">
         <AlertTriangle aria-hidden />
-        <AlertTitle>Quiz unavailable</AlertTitle>
+        <AlertTitle>{m.quizUnavailable}</AlertTitle>
         <AlertDescription>{quizError}</AlertDescription>
       </Alert>
     );
@@ -48,12 +50,13 @@ export function QuizStatsView() {
       {!quiz.configured && (
         <Alert>
           <AlertTriangle aria-hidden />
-          <AlertTitle>The quiz is not configured: participants cannot answer</AlertTitle>
+          <AlertTitle>{m.quizNotConfiguredTrainer}</AlertTitle>
           <AlertDescription>
-            <p>{quiz.reason ?? 'Unknown reason.'}</p>
+            <p>{quiz.reason ?? m.unknownReason}</p>
             <p>
-              Fix: run <code>npm run quiz-from-md</code>, upload <code>utilization/quiz_key.json</code> to the volume and grant the
-              app service principal <code>READ VOLUME</code> (README, “Quiz”). The app reloads the key within 30 s.
+              {m.quizFixBefore} <code>npm run quiz-from-md</code>
+              {m.quizFixUpload} <code>utilization/quiz_key.json</code> {m.quizFixGrant} <code>READ VOLUME</code>{' '}
+              {m.quizFixAfter}
             </p>
           </AlertDescription>
         </Alert>
@@ -64,27 +67,33 @@ export function QuizStatsView() {
 }
 
 function QuizStatsTables({ quiz }: { quiz: QuizResponse['quiz'] }) {
+  const { lang, m } = useI18n();
   const { rows, error, updatedAt } = useQuizStats();
   const stats = useMemo(() => buildQuizStats(quiz, rows ?? []), [quiz, rows]);
   const loading = rows === null && !error;
   const total = quiz.questions.length;
-  const questionText = (id: string) => quiz.questions.find((q) => q.id === id)?.text.en.replace(/[`*]/g, '') ?? id;
-  const moduleLabel = (id: string) => quiz.modules.find((m) => m.id === id)?.label.en.replace('Module ', 'M') ?? id;
+  const questionText = (id: string) => quiz.questions.find((q) => q.id === id)?.text[lang].replace(/[`*]/g, '') ?? id;
+  // "M03": short module label in both languages (the full label is "Module 03" / "Moduł 03").
+  const moduleLabel = (id: string) => quiz.modules.find((mod) => mod.id === id)?.label.en.replace('Module ', 'M') ?? id;
 
   return (
     <>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi label="Participants" value={loading ? null : String(stats.participants.length)} note="answered at least one question" />
-        <Kpi label="Completed" value={loading ? null : String(stats.completed)} note={`solved all ${total} questions`} />
-        <Kpi label="Average score" value={loading ? null : pct(stats.averageScore)} note="first attempts correct" />
-        <Kpi label="Last activity" value={loading ? null : formatAgo(stats.lastActivity)} note="any participant" />
+        <Kpi label={m.kpiParticipants} value={loading ? null : String(stats.participants.length)} note={m.kpiQuizParticipantsNote} />
+        <Kpi label={m.kpiCompleted} value={loading ? null : String(stats.completed)} note={m.kpiCompletedNote(total)} />
+        <Kpi label={m.kpiAverage} value={loading ? null : pct(stats.averageScore)} note={m.kpiAverageNote} />
+        <Kpi
+          label={m.kpiLastActivity}
+          value={loading ? null : formatAgo(stats.lastActivity, undefined, lang)}
+          note={m.kpiLastActivityNote}
+        />
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {updatedAt ? `Updated ${updatedAt.toLocaleTimeString()} · source: progress table (workshop = quiz)` : error ? '' : 'Loading…'}
+        {updatedAt ? m.updatedAt(updatedAt.toLocaleTimeString(locale(lang)), m.sourceQuiz) : error ? '' : `${m.loading}…`}
       </p>
       <p role="status" className={error ? 'text-xs text-[var(--destructive)]' : 'sr-only'}>
-        {error ? (rows === null ? `Could not load quiz results: ${error}` : `Could not refresh: ${error}. Retrying.`) : ''}
+        {error ? (rows === null ? m.quizLoadFailed(error) : m.quizRefreshFailed(error)) : ''}
       </p>
 
       {rows === null && error ? null : loading ? (
@@ -95,29 +104,29 @@ function QuizStatsTables({ quiz }: { quiz: QuizResponse['quiz'] }) {
             <EmptyMedia variant="icon">
               <Users aria-hidden />
             </EmptyMedia>
-            <EmptyTitle>No quiz answers yet</EmptyTitle>
-            <EmptyDescription>Participants appear here after their first answer on the Quiz page.</EmptyDescription>
+            <EmptyTitle>{m.noQuizAnswersTitle}</EmptyTitle>
+            <EmptyDescription>{m.noQuizAnswersText}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <div className="grid items-start gap-5 xl:grid-cols-2">
           <Card className="overflow-hidden">
             <CardHeader>
-              <CardTitle className="text-base">Participants</CardTitle>
+              <CardTitle className="text-base">{m.kpiParticipants}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="wg-matrix w-full">
-                  <caption className="sr-only">First-attempt score and completion per participant</caption>
+                  <caption className="sr-only">{m.participantsCaption}</caption>
                   <thead>
                     <tr>
                       <th scope="col" className="text-left">
-                        Participant
+                        {m.colParticipant}
                       </th>
-                      <th scope="col">First-attempt score</th>
-                      <th scope="col">Solved</th>
+                      <th scope="col">{m.colFirstAttempt}</th>
+                      <th scope="col">{m.colSolved}</th>
                       <th scope="col" className="text-right">
-                        Last activity
+                        {m.colLastActivity}
                       </th>
                     </tr>
                   </thead>
@@ -131,12 +140,12 @@ function QuizStatsTables({ quiz }: { quiz: QuizResponse['quiz'] }) {
                           {p.firstCorrect}/{total} <span className="text-muted-foreground">({pct(p.score)})</span>
                         </td>
                         <td className="text-center tabular-nums">
-                          {p.completed ? 'all' : `${p.solved}/${total}`}
+                          {p.completed ? m.solvedAll : `${p.solved}/${total}`}
                           {p.attempted > p.solved ? (
-                            <span className="text-muted-foreground"> · {p.attempted - p.solved} open</span>
+                            <span className="text-muted-foreground">{m.solvedOpen(p.attempted - p.solved)}</span>
                           ) : null}
                         </td>
-                        <td className="whitespace-nowrap text-right text-muted-foreground">{formatAgo(p.lastActivity)}</td>
+                        <td className="whitespace-nowrap text-right text-muted-foreground">{formatAgo(p.lastActivity, undefined, lang)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -147,19 +156,19 @@ function QuizStatsTables({ quiz }: { quiz: QuizResponse['quiz'] }) {
 
           <Card className="overflow-hidden">
             <CardHeader>
-              <CardTitle className="text-base">Questions, hardest first</CardTitle>
+              <CardTitle className="text-base">{m.questionsHardest}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="wg-matrix w-full">
-                  <caption className="sr-only">First-attempt correct rate per question, lowest first</caption>
+                  <caption className="sr-only">{m.questionsCaption}</caption>
                   <thead>
                     <tr>
                       <th scope="col" className="text-left">
-                        Question
+                        {m.colQuestion}
                       </th>
-                      <th scope="col">First try correct</th>
-                      <th scope="col">Common wrong</th>
+                      <th scope="col">{m.colFirstTry}</th>
+                      <th scope="col">{m.colCommonWrong}</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -11,7 +11,9 @@ import { FillExercise } from './exercises/FillExercise';
 import { MatchExercise } from './exercises/MatchExercise';
 import { OrderExercise } from './exercises/OrderExercise';
 import { Hints } from './Hints';
-import { OPTIONAL_LABEL, TYPE_LABEL } from '../lib/labels';
+import { useI18n } from '../i18n/context';
+import type { Dict } from '../i18n';
+import { typeLabel } from '../lib/labels';
 import { Markdown } from './Markdown';
 import { PasteHint } from './PasteHint';
 import { StatusDot } from './StatusDot';
@@ -28,6 +30,7 @@ interface Props {
 }
 
 export function StepPane({ guide, step, index, email, row, progressError, onLocalResult, onNavigate }: Props) {
+  const { m } = useI18n();
   const key = (what: string) => stepKey(email, guide.id, step.id, what);
   const [hintsUsed, setHintsUsed] = useStoredState<number>(key('hints'), 0);
   const [attempts, setAttempts] = useStoredState<number>(key('attempts'), 0);
@@ -103,10 +106,10 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
     <article className="mx-auto flex max-w-3xl flex-col gap-6" aria-labelledby="step-title">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-mono">Step {number}</span>
+          <span className="font-mono">{m.stepNumber(number)}</span>
           <span aria-hidden>·</span>
-          <span>{TYPE_LABEL[step.type]}</span>
-          {step.optional && <Badge variant="outline">{OPTIONAL_LABEL}</Badge>}
+          <span>{typeLabel(step.type, m)}</span>
+          {step.optional && <Badge variant="outline">{m.optional}</Badge>}
         </div>
         <h2 id="step-title" className="text-2xl font-semibold tracking-tight text-foreground">
           {step.title}
@@ -119,7 +122,7 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
         <div className="wg-expected">
           <Target className="mt-0.5 size-4 shrink-0" aria-hidden />
           <div>
-            <span className="font-medium">Expected result: </span>
+            <span className="font-medium">{m.expectedResult}</span>
             <Markdown className="inline-md">{step.expected}</Markdown>
           </div>
         </div>
@@ -127,7 +130,7 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
 
       <section aria-labelledby="exercise-heading" className="space-y-3">
         <h3 id="exercise-heading" className="wg-section-title">
-          {TYPE_LABEL[step.type]}
+          {typeLabel(step.type, m)}
         </h3>
         {step.type === 'fill' && <FillExercise key={step.id} step={step} storageKey={key('fill')} pasteHint={pasteHint} />}
         {step.type === 'order' && (
@@ -166,7 +169,7 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
       {step.docs.length > 0 && (
         <section aria-labelledby="docs-heading" className="space-y-2">
           <h3 id="docs-heading" className="wg-section-title">
-            Documentation
+            {m.docsHeading}
           </h3>
           <ul className="flex flex-col gap-1.5">
             {step.docs.map((doc) => (
@@ -182,12 +185,12 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
         </section>
       )}
 
-      <nav className="flex items-center justify-between border-t pt-4" aria-label="Step navigation">
+      <nav className="flex items-center justify-between border-t pt-4" aria-label={m.stepNav}>
         <Button type="button" variant="ghost" disabled={!prev} onClick={() => prev && onNavigate(prev.id)}>
-          <ChevronLeft className="size-4" aria-hidden /> Previous
+          <ChevronLeft className="size-4" aria-hidden /> {m.prevStep}
         </Button>
         <Button type="button" variant="outline" disabled={!next} onClick={() => next && onNavigate(next.id)}>
-          Next step <ChevronRight className="size-4" aria-hidden />
+          {m.nextStep} <ChevronRight className="size-4" aria-hidden />
         </Button>
       </nav>
     </article>
@@ -214,12 +217,12 @@ interface LiveStatusProps {
 
 /** Latest result for this step from the progress table (or the app's own check). */
 function LiveStatus({ step, number, row, error, saveError, check }: LiveStatusProps) {
+  const { lang, m } = useI18n();
   const status = toStatus(row?.status);
   const when = parseTs(row?.ts);
-  const announcement = useStatusAnnouncement(step, status, row?.message ?? null);
+  const announcement = useStatusAnnouncement(step, status, row?.message ?? null, m);
 
-  const title =
-    status === 'pass' ? 'Passed' : status === 'fail' ? 'Not yet — see the message' : 'Not checked yet';
+  const title = status === 'pass' ? m.liveTitlePass : status === 'fail' ? m.liveTitleFail : m.liveTitleNone;
 
   return (
     <section aria-labelledby="status-heading" className={`wg-status wg-status-${status}`}>
@@ -229,59 +232,64 @@ function LiveStatus({ step, number, row, error, saveError, check }: LiveStatusPr
           <h3 id="status-heading" className="text-sm font-semibold">
             {title}
           </h3>
-          {row?.message && <p className="text-sm">{row.message}</p>}
+          {/* Check messages come from the server and the notebooks: English (SPEC section 9). */}
+          {row?.message && (
+            <p className="text-sm" lang="en">
+              {row.message}
+            </p>
+          )}
           {check && status !== 'pass' && (
             <p className="text-sm text-muted-foreground">
-              Run the Step {number} cell in the notebook to the end (its last line saves your result), then press{' '}
-              <strong className="font-medium text-foreground">Check</strong>.
+              {m.checkRunCell(number)} <strong className="font-medium text-foreground">{m.checkButton}</strong>.
             </p>
           )}
           {check && (
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <Button type="button" size="sm" onClick={check.onCheck} disabled={check.busy} aria-describedby="status-heading">
                 {check.busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <PlayCircle className="size-4" aria-hidden />}
-                {check.busy ? 'Checking…' : status === 'none' ? 'Check' : 'Check again'}
+                {check.busy ? m.checking : status === 'none' ? m.checkButton : m.checkAgain}
               </Button>
-              {check.busy && <span className="text-xs text-muted-foreground">Running the check on the SQL warehouse…</span>}
+              {check.busy && <span className="text-xs text-muted-foreground">{m.checkRunning}</span>}
             </div>
           )}
           {check?.error && (
             <p role="alert" className="text-sm text-[var(--destructive)]">
-              Check could not run: {check.error}
+              {m.checkFailed(check.error)}
             </p>
           )}
           {check?.notRecorded && (
-            <p className="text-xs text-[var(--destructive)]">The result is shown here but was not saved to your progress. Press Check again.</p>
+            <p className="text-xs text-[var(--destructive)]">{m.notRecorded}</p>
           )}
           <p className="text-xs text-muted-foreground">
-            {when ? `Last check ${formatAgo(when)} · ${row?.runs ?? 1} run${(row?.runs ?? 1) === 1 ? '' : 's'}` : 'No result recorded yet'}
-            {row?.source ? ` · from ${row.source}` : ''}
+            {when ? m.lastCheck(formatAgo(when, undefined, lang), row?.runs ?? 1) : m.noResultYet}
+            {row?.source ? m.fromSource(row.source) : ''}
           </p>
-          {error && <p className="text-xs text-[var(--destructive)]">Live status unavailable: {error}</p>}
+          {error && <p className="text-xs text-[var(--destructive)]">{m.liveUnavailable(error)}</p>}
           {/* Announces only a change of status or message on this step, not every poll. */}
           <p role="status" className="sr-only">
             {announcement}
           </p>
-          {saveError && <p className="text-xs text-[var(--destructive)]">Your result was not saved: {saveError}</p>}
+          {saveError && <p className="text-xs text-[var(--destructive)]">{m.saveFailed(saveError)}</p>}
         </div>
       </div>
     </section>
   );
 }
 
-const STATUS_WORD = { pass: 'Passed', fail: 'Failed', none: 'Not checked yet' } as const;
+const statusWord = (status: ReturnType<typeof toStatus>, m: Dict) =>
+  status === 'pass' ? m.announcePass : status === 'fail' ? m.announceFail : m.liveTitleNone;
 
 /**
  * Text for the screen-reader status region. Empty on mount and when the participant
  * moves to another step; set only when this step's status or message changes.
  */
-function useStatusAnnouncement(step: Step, status: ReturnType<typeof toStatus>, message: string | null): string {
+function useStatusAnnouncement(step: Step, status: ReturnType<typeof toStatus>, message: string | null, m: Dict): string {
   const [seen, setSeen] = useState({ stepId: step.id, status, message, text: '' });
   // Adjusting state while rendering (no effect): React re-renders before committing.
   if (seen.stepId !== step.id) {
     setSeen({ stepId: step.id, status, message, text: '' });
   } else if (seen.status !== status || seen.message !== message) {
-    setSeen({ stepId: step.id, status, message, text: `${step.title}: ${STATUS_WORD[status]}${message ? `. ${message}` : ''}` });
+    setSeen({ stepId: step.id, status, message, text: `${step.title}: ${statusWord(status, m)}${message ? `. ${message}` : ''}` });
   }
   return seen.text;
 }
