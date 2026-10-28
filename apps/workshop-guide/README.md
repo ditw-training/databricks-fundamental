@@ -92,9 +92,11 @@ parameter `:workshop` bound as a statement parameter):
 | `GET /api/progress/matrix?workshop=` | `TRAINER_EMAILS` only, else 403 | rows of all participants |
 
 Both routes read one shared, server-side result per workshop that lives 4 s (the
-in-flight request is shared too, and `POST /api/progress` invalidates it). With 5 s
-polling that is about one warehouse statement per 5 s per active workshop, whatever the
-number of participants. Unknown workshops return 404.
+in-flight request is shared too). `POST /api/progress` updates the cached rows in place
+(`applyProgressWrite`, same rules as `latest_progress.sql`) instead of dropping them; a read still
+in flight is dropped instead. Reset and Check drop the cache. With 5 s polling that is about one
+warehouse statement per 4-5 s per active workshop, whatever the number of participants and
+answers. Unknown workshops return 404.
 
 The `useAnalyticsQuery` hook is not used for polling. It cannot re-run a query with
 unchanged parameters (no refetch), so live status stopped after the first load.
@@ -198,7 +200,8 @@ The `_checks` notebooks stay for the static HTML guide and Databricks Free Editi
 The participant view has **Reset my progress** next to the workshop title. After confirmation,
 `DELETE /api/progress/me?workshop=ws_delta` deletes the caller's rows of that workshop only
 (`WHERE lower(user_email) = <caller> AND workshop = :workshop`, run by the app service principal),
-clears the browser's hint and attempt counters for that workshop and invalidates the server cache.
+clears the browser's hint and attempt counters and saved answers (typed blanks, block order,
+pairs) for that workshop and invalidates the server cache.
 Notebook code and tables stay. At most 3 resets per user per minute.
 
 ## Trainer unlock
@@ -224,8 +227,8 @@ SPEC section 10. Items: `ws_ingestion` (I), `ws_delta` (II), `quiz` (III).
   `user_email = <trainer>`, `source = 'trainer'`. The latest row per item wins; only rows with
   `source = 'trainer'` written by an e-mail in `TRAINER_EMAILS` count (defense in depth; only the
   app service principal can write to the table). No row = `GUIDE_DEFAULT_UNLOCKED`. The server
-  reads `server/sql/unlock_state.sql` at most once every 4 s (same cache as the progress reads) and
-  drops the cache after a POST. If a read fails it keeps the last known state for at most 60 s,
+  reads `server/sql/unlock_state.sql` at most once every 30 s (same cache class as the progress
+  reads) and drops the cache after a POST, so participants see a change at their next 5 s poll. If a read fails it keeps the last known state for at most 60 s,
   then answers 502, never "unlocked". If the re-read right after a POST fails, the POST answers
   502 ("Saved, but the new state could not be read yet") instead of stale rows.
 - **Pacing, not secrecy**: the lock keeps guide and quiz content out of the browser until the
@@ -396,6 +399,109 @@ principal has `READ VOLUME` on it.
 `DEV_USER_EMAIL` is ignored by `npm start` (production). To try the production build locally, send
 the identity header yourself: `curl -H 'X-Forwarded-Email: you@example.com' localhost:<port>/api/quiz`.
 
+## E2E tests
+
+`e2e/workshops.e2e.ts` (Playwright) runs a training day through the real UI in Polish against a
+running production build and the lab warehouse. Each identity is its own browser context with the
+`X-Forwarded-Email` header Databricks Apps would set. It covers: everything locked by default, the
+trainer unlocking items in the Access panel (participants see it without a reload), a fresh
+participant seeing no passed step and no pre-filled exercise, Workshop I completed in the SQL track
+and again in the PySpark track (wrong fill and order answers first, then right ones), Workshop II in
+SQL with the PySpark note on a shared step, three quiz questions, the trainer matrix with track
+badges, reload and PL/EN switch mid-exercise, Reset my progress, a mobile (390x844) smoke test and
+Lock all with a participant inside a workshop. Answers come from `config/guides/` and, for the quiz,
+from the local `utilization/en/quiz.md` when it exists.
+
+Start the server with a test trainer (only `@example.com` identities are used):
+
+```bash
+npm run build
+DATABRICKS_APP_PORT=8765 DATABRICKS_CONFIG_PROFILE=ditwlab-admin DATABRICKS_WAREHOUSE_ID=<id> \
+PROGRESS_TABLE=retailhub_trainer.default.workshop_progress \
+TRAINER_EMAILS=trainer.e2e@example.com TRAINER_ACCOUNTS=none GUIDE_DEFAULT_UNLOCKED=none npm start
+```
+
+Then, in a second terminal:
+
+```bash
+BASE_URL=http://localhost:8765 npm run test:e2e     # HEADED=1 to watch it
+```
+
+- Uses the installed Google Chrome (`channel: 'chrome'`, override with `E2E_CHANNEL`), no browser
+  download. One worker, tests in order (the unlock state is shared). About 3 minutes.
+- Setup and teardown delete the suite's rows with `databricks experimental aitools tools query`
+  (profile `E2E_DATABRICKS_PROFILE`, default `ditwlab-admin`): only `e2e-*@example.com` and
+  `trainer.e2e@example.com`, including that trainer's `__unlock` rows. Other rows are never touched.
+  `E2E_SKIP_CLEANUP=1` keeps them for inspection; `npm run test:e2e:cleanup` removes them later.
+- Screenshots, traces and the HTML report of failures go to `e2e/artifacts/` (gitignored).
+- Tests 11 and 11b cover the trainer's report "steps look passed although I did nothing": after
+  Reset, and after the rows were deleted on the server while the browser kept its saved answers,
+  no exercise may look solved (no green blank, no success line, no "Zapisz wynik ponownie").
+
+## Load test
+
+`loadtest/class-sim.mjs` simulates one class against a running server (plain `fetch`, no extra
+dependencies): 15 participants `load.NN@example.com` and a trainer `load.trainer@example.com`.
+Participants load the guides once, poll `GET /api/unlock` and `GET /api/progress/me` every 5 s
+like the UI, and answer every step of Workshop I through `POST /api/progress` (odd numbers in the
+SQL track, even numbers in PySpark, about 25% wrong first). Think time is 20-60 s divided by
+`--speed`. 30% of them then answer the quiz (random option until correct). The trainer unlocks all
+items at the start and polls the matrix and the unlock state every 5 s.
+`loadtest/count-statements.mjs` is an optional preload that counts the SQL statements the server
+sends to the warehouse, by kind and minute.
+
+```bash
+npm run build
+STATEMENT_COUNT_FILE=/tmp/statements.json NODE_ENV=production DATABRICKS_APP_PORT=8791 \
+DATABRICKS_CONFIG_PROFILE=ditwlab-admin DATABRICKS_WAREHOUSE_ID=<id> \
+PROGRESS_TABLE=retailhub_trainer.default.workshop_progress TRAINER_EMAILS=load.trainer@example.com \
+TRAINER_ACCOUNTS=none GUIDE_DEFAULT_UNLOCKED=none \
+node --env-file-if-exists=./.env --import ./loadtest/count-statements.mjs dist/server.js
+
+# second terminal
+node loadtest/class-sim.mjs --base http://localhost:8791 --participants 15 --duration 600 --speed 2 \
+  --out /tmp/load-report.json
+databricks experimental aitools tools query --profile ditwlab-admin --warehouse <id> \
+  --file loadtest/cleanup.sql
+```
+
+`loadtest/statements.sql` reads the same counts from `system.query.history` (it lags a few
+minutes). It filters by `executed_by`, so it cannot separate two local servers that run with the
+same CLI profile; the preload can. The trainer is `load.trainer@example.com`, not the E2E trainer,
+so `cleanup.sql` (`load.%@example.com`) removes all rows of the run, `__unlock` rows included.
+
+Result on the lab (2026-10-28, Small serverless warehouse, 10 min, speed x2, 15 + 1 users,
+4,516 requests, 0 errors; every participant passed 12/12, a fresh participant got 0 progress rows):
+
+| Endpoint | n | p50 ms | p95 ms | max ms |
+|---|---:|---:|---:|---:|
+| GET /api/unlock | 1,901 | 3 | 777 | 3,712 |
+| GET /api/progress/me | 1,795 | 70 | 1,473 | 4,730 |
+| GET /api/progress/matrix | 119 | 5 | 1,063 | 2,047 |
+| GET /api/quiz/me | 306 | 247 | 1,187 | 4,143 |
+| POST /api/progress | 220 | 2,252 | 5,035 | 9,231 |
+| POST /api/quiz/answer | 123 | 2,151 | 3,479 | 4,471 |
+
+Statements per minute while the class submitted answers (preload counter, second run): progress
+reads 26-38, unlock reads 11-14, progress INSERTs 34-48; about 1 statement per 4-5 HTTP requests.
+Polling alone is capped by the 4 s server cache (about 15 reads per minute per key, whatever the
+class size): 1,381 unlock polls cost 96 statements. Progress reads grow with the answers, because
+every `POST /api/progress` drops the cache. A saved answer takes 2-5 s, almost all of it the Delta
+INSERT (p50 about 1.8 s on the warehouse).
+
+What this means for a training day:
+
+- The warehouse never auto-stops while a browser has the app open: `/api/unlock` is polled every
+  5 s (30 s in a hidden tab), locked items included. Cost follows the time the app is open, not
+  the time people answer.
+- 2X-Small with max 1 cluster is enough for the app: peak about 1.5 statements per second, reads
+  take about 0.45 s. A bigger size does not shorten the 2-5 s save, which is Delta commit time.
+  Use 2 clusters only when participants run their SQL track on the same warehouse.
+- Polling every 5 s can stay: the server cache, not the interval, bounds the statements.
+- Done after this run: a 30 s cache for the unlock state (a trainer change drops it) and cached
+  progress rows updated in place after a POST instead of re-read (see the progress routes above).
+
+
 ## Deploy
 
 The training environment is built with Terraform (`infra/terraform`, local only). It is
@@ -469,7 +575,7 @@ The secret scope and both secrets must exist before `bundle deploy`: `app.yaml` 
 - Hints used are stored by the app (POST and Check). Rows from the `_checks` notebooks
   (self-study) have `hints_used = NULL`.
 - Check rate limit and quiz rate limit live in memory per app instance.
-- Polling keeps the SQL warehouse busy during the workshop (about one statement per 5 s
-  per active workshop). Browsers poll every 30 s while the tab is hidden. AppKit's own
+- Polling keeps the SQL warehouse busy while any browser has the app open: about one progress
+  read per 4-5 s per active workshop and one unlock read per 30 s. Browsers poll every 30 s while the tab is hidden. AppKit's own
   query cache is turned off (`cache.enabled=false`); the 4 s server cache replaces it.
 - The trainer matrix shows the highest `hints_used` and `attempts` recorded for a step.

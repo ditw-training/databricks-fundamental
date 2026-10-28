@@ -15,7 +15,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@databricks/appkit-ui/react';
 import { Check, RotateCcw, X } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { MatchVariant } from '../../../../shared/guide-schema';
 import { checkMatch, seededShuffle, type MatchResult } from '../../lib/exercise';
 import { useI18n } from '../../i18n/context';
@@ -29,6 +29,9 @@ interface Props {
   /** Seed of the shuffles (stable per step and track). */
   seed: string;
   storageKey: string;
+  /** Server state of the step (any track) and whether it has loaded (see FillExercise). */
+  passed: boolean;
+  progressReady: boolean;
   /** Called on every "Check pairs" with the assignment (slot -> term); the parent records the result. */
   onCheck: (result: MatchResult, assignment: (number | null)[]) => void;
   busy?: boolean;
@@ -41,7 +44,7 @@ const collision: CollisionDetection = (args) => {
   return hits.length > 0 ? hits : rectIntersection(args);
 };
 
-export function MatchExercise({ exercise, seed, storageKey, onCheck, busy, renderNotebook }: Props) {
+export function MatchExercise({ exercise, seed, storageKey, passed, progressReady, onCheck, busy, renderNotebook }: Props) {
   const step = exercise;
   const { m } = useI18n();
   const n = step.pairs.length;
@@ -60,6 +63,13 @@ export function MatchExercise({ exercise, seed, storageKey, onCheck, busy, rende
   }
   const placed = new Set(Object.values(assignment).filter((t): t is number => t !== null));
   const bank = termOrder.filter((t) => !placed.has(t));
+  // Solved pairs from an earlier session without a pass on the server start again (see OrderExercise).
+  // Only pairs restored from storage: pairs placed in this view are the participant's own work.
+  const [editedHere, setEditedHere] = useState(false);
+  const staleSolved = !passed && !editedHere && placed.size === n && checkMatch(step, assignment).pass;
+  useEffect(() => {
+    if (staleSolved && progressReady) setAssignment({});
+  }, [staleSolved, progressReady, setAssignment]);
 
   // Keyboard users select a term and then a description (buttons); a keyboard drag sensor
   // would swallow Enter/Space on those buttons.
@@ -70,6 +80,7 @@ export function MatchExercise({ exercise, seed, storageKey, onCheck, busy, rende
     for (const [s, t] of Object.entries(assignment)) if (t !== term) next[Number(s)] = t;
     if (slot !== 'bank') next[slot] = term; // a term already in the slot goes back to the bank
     setAssignment(next);
+    setEditedHere(true);
     setSelected(null);
     setResult(null);
   };

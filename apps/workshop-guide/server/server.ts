@@ -14,6 +14,7 @@ import {
   loadServerSql,
   participantRows,
   ProgressCache,
+  applyProgressWrite,
   rowsFromResult,
   trainerRows,
 } from './progress-reader';
@@ -63,6 +64,7 @@ const guides = markDataChecks(loadGuides());
 const overlays = loadOverlays(guides);
 const progressTable = resolveProgressTable();
 const insertStatement = buildProgressInsert(progressTable);
+const UNLOCK_CACHE_MS = 30_000;
 const trainerEmails = parseEmailList(process.env.TRAINER_EMAILS);
 // Same list as TRAINER_ACCOUNTS in 00_setup: these accounts use the catalog retailhub_trainer.
 // `none` is the placeholder for "no trainer accounts" (a secret cannot be empty).
@@ -123,8 +125,12 @@ createApp({
     const progressLimiter = new RateLimiter(30, 60_000);
     const answerLock = new KeyedLock();
     // ── Trainer unlock: one statement every few seconds, shared like the progress reads ──
-    const unlockCache = new ProgressCache<UnlockDbRow>(async () =>
-      unlockRowsFromResult(await appkit.analytics.query(unlockSql, { trainers: sql.string([...trainerEmails].join(',')) })),
+    // 30 s: every browser polls /api/unlock every 5 s, but the state only changes through
+    // POST /api/unlock on this server, which drops the cache (participants see it at the next poll).
+    const unlockCache = new ProgressCache<UnlockDbRow>(
+      async () =>
+        unlockRowsFromResult(await appkit.analytics.query(unlockSql, { trainers: sql.string([...trainerEmails].join(',')) })),
+      UNLOCK_CACHE_MS,
     );
     const unlockFallback = new UnlockFallback(60_000);
     /**
@@ -613,7 +619,8 @@ createApp({
               hints_used: sql.int(v.hints_used),
               attempts: sql.int(v.attempts),
             });
-            progressCache.invalidate(post.workshop);
+            // The cached rows get this row directly: no extra read for every answer (load test).
+            progressCache.patch(post.workshop, (rows) => applyProgressWrite(rows, v));
             const body: ProgressPostResponse = graded;
             res.status(201).json(body);
           })

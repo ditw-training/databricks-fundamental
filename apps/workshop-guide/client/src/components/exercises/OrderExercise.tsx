@@ -21,7 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Button, useIsMobile } from '@databricks/appkit-ui/react';
 import { ArrowDown, ArrowUp, GripVertical, Plus, RotateCcw, X } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { OrderVariant } from '../../../../shared/guide-schema';
 import { assembleOrder, checkOrder, seededShuffle, type OrderResult } from '../../lib/exercise';
 import { useI18n } from '../../i18n/context';
@@ -38,6 +38,9 @@ interface Props {
   /** Seed of the initial shuffle (stable per step and track). */
   seed: string;
   storageKey: string;
+  /** Server state of the step (any track) and whether it has loaded (see FillExercise). */
+  passed: boolean;
+  progressReady: boolean;
   /** Called on every "Check order" with the answer; the parent counts attempts and records the result. */
   onCheck: (result: OrderResult, answer: string[]) => void;
   busy?: boolean;
@@ -45,7 +48,7 @@ interface Props {
   renderNotebook?: (code: string, complete: boolean) => ReactNode;
 }
 
-export function OrderExercise({ exercise, seed, storageKey, onCheck, busy, renderNotebook }: Props) {
+export function OrderExercise({ exercise, seed, storageKey, passed, progressReady, onCheck, busy, renderNotebook }: Props) {
   const step = exercise;
   const { m } = useI18n();
   const isMobile = useIsMobile();
@@ -63,6 +66,14 @@ export function OrderExercise({ exercise, seed, storageKey, onCheck, busy, rende
     [...lists.pool, ...lists.answer].length === step.blocks.length &&
     [...lists.pool, ...lists.answer].every((id) => codeById.has(id));
   const current = valid ? lists : initial;
+  // A solved layout from an earlier session without a pass on the server (progress reset, rows
+  // deleted) starts again instead of showing a finished answer and its full notebook code.
+  // Only a layout restored from storage: one built in this view is the participant's own work.
+  const [editedHere, setEditedHere] = useState(false);
+  const staleSolved = !passed && !editedHere && checkOrder(step, current.answer).pass;
+  useEffect(() => {
+    if (staleSolved && progressReady) setLists(initial);
+  }, [staleSolved, progressReady, setLists, initial]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -71,6 +82,7 @@ export function OrderExercise({ exercise, seed, storageKey, onCheck, busy, rende
 
   const update = (next: Lists) => {
     setLists(next);
+    setEditedHere(true);
     setResult(null);
   };
 

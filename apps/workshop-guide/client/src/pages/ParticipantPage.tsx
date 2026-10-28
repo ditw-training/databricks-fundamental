@@ -243,19 +243,21 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
   const [track, setTrack, trackChosen] = useTrack(email, guide.id);
   const hasTracks = guide.steps.some((s) => s.type === 'tracks');
 
+  const stale = resetAt !== null && (progress.requestedAt === null || progress.requestedAt < resetAt);
+  const progressReady = progress.rows !== null && !progress.error && !stale;
   const rows = useMemo(() => {
     const byStep = new Map<string, ParticipantRow>();
-    const stale = resetAt !== null && (progress.requestedAt === null || progress.requestedAt < resetAt);
     for (const r of stale ? [] : (progress.rows ?? [])) byStep.set(r.step, r);
     for (const [step, r] of Object.entries(local)) byStep.set(step, newer(byStep.get(step), r) ?? r);
     return byStep;
-  }, [progress.rows, progress.requestedAt, resetAt, local]);
+  }, [progress.rows, stale, local]);
 
   const afterReset = () => {
     setLocal({});
     setResetAt(new Date());
-    // Hint and attempt counters of this workshop start again; typed code is kept.
-    clearStoredPrefix(stepKey(email, guide.id, '', '').replace(/::$/, ':'), [':hints', ':attempts']);
+    // The workshop starts again in this browser too: hints, attempts and saved answers (typed
+    // blanks, block order, pairs). Kept answers would show a fill step as solved with no pass.
+    clearStoredPrefix(stepKey(email, guide.id, '', '').replace(/::$/, ':'), [':hints', ':attempts', ':fill', ':order', ':match']);
     setResetGen((n) => n + 1);
   };
 
@@ -363,6 +365,7 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
               track={track}
               row={rows.get(step.id)}
               progressError={progress.error}
+              progressReady={progressReady}
               onLocalResult={(r) => setLocal((prev) => ({ ...prev, [r.step]: r }))}
               onNavigate={goTo}
             />

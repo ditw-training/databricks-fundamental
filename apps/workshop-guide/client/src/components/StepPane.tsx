@@ -31,6 +31,8 @@ interface Props {
   track: Track;
   row: ParticipantRow | undefined;
   progressError: string | null;
+  /** The participant's rows are loaded and newer than the last reset. */
+  progressReady: boolean;
   onLocalResult: (row: ParticipantRow) => void;
   onNavigate: (stepId: string) => void;
 }
@@ -38,7 +40,7 @@ interface Props {
 const addTrack = (tracks: string | null | undefined, track: Track) =>
   [...new Set([...parseTracks(tracks), track])].sort().join(',');
 
-export function StepPane({ guide, step, index, email, track, row, progressError, onLocalResult, onNavigate }: Props) {
+export function StepPane({ guide, step, index, email, track, row, progressError, progressReady, onLocalResult, onNavigate }: Props) {
   const { m } = useI18n();
   const resolved = resolveExercise(step, track);
   const { exercise } = resolved;
@@ -199,6 +201,7 @@ export function StepPane({ guide, step, index, email, track, row, progressError,
             exercise={exercise}
             storageKey={key(`${ns}fill`)}
             passed={passed}
+            progressReady={progressReady}
             busy={saving}
             onComplete={(values) => submit({ type: 'fill', values }, checkFill(exercise, values))}
             renderNotebook={notebook}
@@ -210,6 +213,8 @@ export function StepPane({ guide, step, index, email, track, row, progressError,
             exercise={exercise}
             seed={seed}
             storageKey={key(`${ns}order`)}
+            passed={passed}
+            progressReady={progressReady}
             busy={saving}
             onCheck={(r, order) => submit({ type: 'order', order }, r)}
             renderNotebook={notebook}
@@ -221,6 +226,8 @@ export function StepPane({ guide, step, index, email, track, row, progressError,
             exercise={exercise}
             seed={seed}
             storageKey={key(`${ns}match`)}
+            passed={passed}
+            progressReady={progressReady}
             busy={saving}
             onCheck={(r, assignment) => submit({ type: 'match', assignment }, r)}
             renderNotebook={dataCheck ? () => notebook(null, false) : undefined}
