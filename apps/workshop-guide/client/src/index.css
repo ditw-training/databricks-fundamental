@@ -167,6 +167,8 @@ body {
   padding: 0.1rem 0.35rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85em;
+  /* Long paths such as /Volumes/<catalog>/... wrap instead of widening the page on phones. */
+  overflow-wrap: anywhere;
 }
 
 /* ---------- code surfaces ---------- */
@@ -186,8 +188,10 @@ body {
 }
 .wg-fill-code {
   margin: 0;
-  /* Code keeps its line breaks; long lines scroll inside .wg-code-surface instead of wrapping. */
-  white-space: pre;
+  /* Code keeps its line breaks and indentation; long lines (e.g. a schema string) wrap, so every
+     blank stays visible without scrolling sideways, also at phone width. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font: inherit;
 }
 .wg-blank {

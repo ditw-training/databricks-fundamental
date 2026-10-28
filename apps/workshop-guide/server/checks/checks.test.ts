@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { roman, sortGuides, workshopLabel, type Guide } from '../../shared/guide-schema';
+import { gradedBy, roman, sortGuides, workshopLabel, type Guide } from '../../shared/guide-schema';
 import { loadGuides, parseGuide } from '../guides';
 import { catalogFor, userSlugFor } from '../slug';
-import { CHECKS, runCheck, validateCheckPost } from './index';
+import { CHECKS, markDataChecks, runCheck, validateCheckPost } from './index';
 import { CheckFail, type CheckContext, type Row, scratchTableName } from './framework';
 import { INGESTION_CHECKS } from './ws_ingestion';
 import { DELTA_CHECKS, isFullDelete } from './ws_delta';
@@ -66,13 +66,23 @@ describe('participant catalog (same rules as user_slug_for in 00_setup)', () => 
 describe('check registry', () => {
   const dirs = [path.resolve('config/guides'), path.resolve('../../notebooks/workshops/guide')].filter((d) => existsSync(d));
 
-  it.each(dirs)('has exactly one check per Check-graded step of %s', (dir) => {
+  it.each(dirs)('has a check for every Check-graded (code) step of %s and none for unknown steps', (dir) => {
     for (const guide of loadGuides(dir).values()) {
       const checks = CHECKS[guide.id];
       if (!checks) continue; // demo guide
-      const graded = guide.steps.filter((s) => s.check === 'notebook').map((s) => s.id).sort();
-      expect(Object.keys(checks).sort()).toEqual(graded);
+      const stepIds = new Set(guide.steps.map((s) => s.id));
+      // Section 11: checks of app-graded steps stay as the optional "Check on data".
+      expect(Object.keys(checks).filter((id) => !stepIds.has(id))).toEqual([]);
+      const required = guide.steps.filter((s) => gradedBy(s) === 'notebook').map((s) => s.id);
+      expect(required.filter((id) => !checks[id])).toEqual([]);
     }
+  });
+
+  it('marks the steps with a data check', () => {
+    const marked = markDataChecks(loadGuides(dirs[0]));
+    const ingestion = marked.get('ws_ingestion');
+    if (!ingestion) return;
+    for (const s of ingestion.steps) expect(s.data_check).toBe(Boolean(CHECKS.ws_ingestion[s.id]));
   });
 
   it('names scratch tables _ws_<workshop>_<step>', () => {
@@ -98,6 +108,21 @@ describe('POST /api/check validation', () => {
   it('accepts a Check-graded step and defaults hints_used to 0', () => {
     const r = validateCheckPost({ workshop: 'ws_ingestion', step: 't03' }, guides);
     expect(r.ok && r.post.hints_used).toBe(0);
+    expect(r.ok && r.bonus).toBe(false);
+  });
+
+  it('accepts an app-graded step with a check as the optional bonus (SPEC section 11)', () => {
+    const tracks: Guide = parseGuide({
+      ...guide,
+      steps: [
+        {
+          id: 't03', title: 'Schema', optional: false, explain: 'x',
+          variants: { sql: { type: 'fill', template: 'SELECT {{b1}}', blanks: { b1: { answers: ['1'] } } } },
+        },
+      ],
+    }, 'test');
+    const r = validateCheckPost({ workshop: 'ws_ingestion', step: 't03' }, new Map([[tracks.id, tracks]]));
+    expect(r.ok && r.bonus).toBe(true);
   });
 
   it.each([

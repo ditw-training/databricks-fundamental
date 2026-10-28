@@ -2,7 +2,7 @@
   "id": "ws_demo",
   "title": "Demo workshop — Delta Lake basics",
   "notebook": "notebooks/workshops/WORKSHOP_delta.ipynb",
-  "intro": "Demo content used when no guide files are synced yet. You build a small `customers_delta` table for RetailHub, update it with `MERGE`, look back in time and tidy the files. Code runs in your notebook; after each step run its `check(...)` cell and this guide marks the step.",
+  "intro": "Demo content used when no guide files are synced yet. You build a small `customers_delta` table for RetailHub, update it with `MERGE`, look back in time and tidy the files. Pick the SQL or the PySpark track; every exercise is checked here in the guide. Running the code in the notebook is optional.",
   "steps": [
     {
       "id": "t01",
@@ -14,8 +14,18 @@
       "language": "sql",
       "template": "CREATE TABLE IF NOT EXISTS silver.{{b1}} (\n  customer_id INT,\n  name        STRING,\n  city        STRING,\n  updated_at  TIMESTAMP\n) USING {{b2}}",
       "blanks": {
-        "b1": { "answers": ["customers_delta"], "width": 16 },
-        "b2": { "answers": ["DELTA"], "case_sensitive": false }
+        "b1": {
+          "answers": [
+            "customers_delta"
+          ],
+          "width": 16
+        },
+        "b2": {
+          "answers": [
+            "DELTA"
+          ],
+          "case_sensitive": false
+        }
       },
       "hints": [
         "The step title and the expected result both name the table.",
@@ -33,20 +43,11 @@
     {
       "id": "t02",
       "title": "Load the first customers",
-      "type": "fill",
       "optional": false,
-      "explain": "Append the customers from the Bronze table to the new Delta table with PySpark. `mode(\"append\")` adds rows; it never removes existing ones.",
+      "explain": "Append the customers from the Bronze table to the new Delta table.",
       "expected": "`customers_delta` has 500 rows.",
-      "language": "python",
-      "template": "(spark.table(\"bronze.customers\")\n   .select(\"customer_id\", \"name\", \"city\", \"updated_at\")\n   .write\n   .mode(\"{{b1}}\")\n   .{{b2}}(\"silver.customers_delta\"))",
-      "blanks": {
-        "b1": { "answers": ["append"], "width": 8 },
-        "b2": { "answers": ["saveAsTable"], "width": 12, "case_sensitive": true }
-      },
       "hints": [
-        "You add rows to a table that already exists.",
-        "The writer method that targets a Unity Catalog table name is `saveAsTable`.",
-        "```python\n(spark.table(\"bronze.customers\")\n   .select(\"customer_id\", \"name\", \"city\", \"updated_at\")\n   .write\n   .mode(\"append\")\n   .saveAsTable(\"silver.customers_delta\"))\n```"
+        "You add rows to a table that already exists."
       ],
       "docs": [
         {
@@ -54,7 +55,55 @@
           "url": "https://learn.microsoft.com/azure/databricks/delta/tutorial"
         }
       ],
-      "check": "notebook"
+      "variants": {
+        "sql": {
+          "type": "fill",
+          "template": "{{b1}} INTO silver.customers_delta\nSELECT customer_id, name, city, updated_at\n{{b2}} bronze.customers",
+          "blanks": {
+            "b1": {
+              "answers": [
+                "INSERT"
+              ]
+            },
+            "b2": {
+              "answers": [
+                "FROM"
+              ]
+            }
+          },
+          "hints": [
+            "You add rows to a table that already exists.",
+            "`INSERT INTO <table> SELECT ... FROM <source>` appends the rows of a query.",
+            "```sql\nINSERT INTO silver.customers_delta\nSELECT customer_id, name, city, updated_at\nFROM bronze.customers\n```"
+          ],
+          "explain_extra": "`INSERT INTO` adds rows; it never removes existing ones."
+        },
+        "pyspark": {
+          "type": "fill",
+          "template": "(spark.table(\"bronze.customers\")\n   .select(\"customer_id\", \"name\", \"city\", \"updated_at\")\n   .write\n   .mode(\"{{b1}}\")\n   .{{b2}}(\"silver.customers_delta\"))",
+          "blanks": {
+            "b1": {
+              "answers": [
+                "append"
+              ],
+              "width": 8
+            },
+            "b2": {
+              "answers": [
+                "saveAsTable"
+              ],
+              "width": 12,
+              "case_sensitive": true
+            }
+          },
+          "hints": [
+            "You add rows to a table that already exists.",
+            "The writer method that targets a Unity Catalog table name is `saveAsTable`.",
+            "```python\n(spark.table(\"bronze.customers\")\n   .select(\"customer_id\", \"name\", \"city\", \"updated_at\")\n   .write\n   .mode(\"append\")\n   .saveAsTable(\"silver.customers_delta\"))\n```"
+          ],
+          "explain_extra": "`mode(\"append\")` adds rows; it never removes existing ones."
+        }
+      }
     },
     {
       "id": "t03",
@@ -65,11 +114,26 @@
       "expected": "All five pairs matched.",
       "language": "text",
       "pairs": [
-        { "left": "_delta_log", "right": "Folder of JSON commits that records every change to the table" },
-        { "left": "MERGE INTO", "right": "Updates matching rows and inserts new ones in one statement" },
-        { "left": "VERSION AS OF", "right": "Reads the table as it was at an earlier commit" },
-        { "left": "OPTIMIZE", "right": "Compacts many small files into fewer large ones" },
-        { "left": "VACUUM", "right": "Deletes data files no longer referenced by the table" }
+        {
+          "left": "_delta_log",
+          "right": "Folder of JSON commits that records every change to the table"
+        },
+        {
+          "left": "MERGE INTO",
+          "right": "Updates matching rows and inserts new ones in one statement"
+        },
+        {
+          "left": "VERSION AS OF",
+          "right": "Reads the table as it was at an earlier commit"
+        },
+        {
+          "left": "OPTIMIZE",
+          "right": "Compacts many small files into fewer large ones"
+        },
+        {
+          "left": "VACUUM",
+          "right": "Deletes data files no longer referenced by the table"
+        }
       ],
       "hints": [
         "Two of the terms read old or unused data; two change how files are stored.",
@@ -90,19 +154,49 @@
       "type": "order",
       "optional": false,
       "explain": "New and changed customers arrive in `bronze.customers_updates`. Put the clauses of the `MERGE` in the right order. Two blocks do not belong in a `MERGE`.",
-      "expected": "After running it in the notebook: 520 rows, customer 17 lives in Gdańsk.",
+      "expected": "520 rows, customer 17 lives in Gdańsk.",
       "language": "sql",
       "blocks": [
-        { "id": "m1", "code": "MERGE INTO silver.customers_delta AS t" },
-        { "id": "m2", "code": "USING bronze.customers_updates AS s" },
-        { "id": "m3", "code": "ON t.customer_id = s.customer_id" },
-        { "id": "m4", "code": "WHEN MATCHED THEN UPDATE SET *" },
-        { "id": "m5", "code": "WHEN NOT MATCHED THEN INSERT *" },
-        { "id": "d1", "code": "GROUP BY t.customer_id" },
-        { "id": "d2", "code": "VALUES (s.customer_id, s.name)" }
+        {
+          "id": "m1",
+          "code": "MERGE INTO silver.customers_delta AS t"
+        },
+        {
+          "id": "m2",
+          "code": "USING bronze.customers_updates AS s"
+        },
+        {
+          "id": "m3",
+          "code": "ON t.customer_id = s.customer_id"
+        },
+        {
+          "id": "m4",
+          "code": "WHEN MATCHED THEN UPDATE SET *"
+        },
+        {
+          "id": "m5",
+          "code": "WHEN NOT MATCHED THEN INSERT *"
+        },
+        {
+          "id": "d1",
+          "code": "GROUP BY t.customer_id"
+        },
+        {
+          "id": "d2",
+          "code": "VALUES (s.customer_id, s.name)"
+        }
       ],
-      "solution": ["m1", "m2", "m3", "m4", "m5"],
-      "distractors": ["d1", "d2"],
+      "solution": [
+        "m1",
+        "m2",
+        "m3",
+        "m4",
+        "m5"
+      ],
+      "distractors": [
+        "d1",
+        "d2"
+      ],
       "hints": [
         "A MERGE reads like a sentence: target, source, join condition, then what to do.",
         "`ON` comes before any `WHEN`; `WHEN MATCHED` usually comes first.",
@@ -118,7 +212,57 @@
           "url": "https://learn.microsoft.com/azure/databricks/delta/merge"
         }
       ],
-      "check": "notebook"
+      "check": "notebook",
+      "variants": {
+        "sql": {
+          "type": "order",
+          "blocks": [
+            {
+              "id": "m1",
+              "code": "MERGE INTO silver.customers_delta AS t"
+            },
+            {
+              "id": "m2",
+              "code": "USING bronze.customers_updates AS s"
+            },
+            {
+              "id": "m3",
+              "code": "ON t.customer_id = s.customer_id"
+            },
+            {
+              "id": "m4",
+              "code": "WHEN MATCHED THEN UPDATE SET *"
+            },
+            {
+              "id": "m5",
+              "code": "WHEN NOT MATCHED THEN INSERT *"
+            },
+            {
+              "id": "d1",
+              "code": "GROUP BY t.customer_id"
+            },
+            {
+              "id": "d2",
+              "code": "VALUES (s.customer_id, s.name)"
+            }
+          ],
+          "solution": [
+            "m1",
+            "m2",
+            "m3",
+            "m4",
+            "m5"
+          ],
+          "distractors": [
+            "d1",
+            "d2"
+          ]
+        },
+        "pyspark": {
+          "same_as": "sql",
+          "note": "`MERGE` is SQL in both tracks: in PySpark you run it with `spark.sql(...)`."
+        }
+      }
     },
     {
       "id": "t05",
@@ -129,13 +273,31 @@
       "expected": "The query returns 500.",
       "language": "sql",
       "blocks": [
-        { "id": "q1", "code": "SELECT COUNT(*) AS rows_before_merge" },
-        { "id": "q2", "code": "FROM silver.customers_delta" },
-        { "id": "q3", "code": "VERSION AS OF 1" },
-        { "id": "d1", "code": "WHERE _version = 1" }
+        {
+          "id": "q1",
+          "code": "SELECT COUNT(*) AS rows_before_merge"
+        },
+        {
+          "id": "q2",
+          "code": "FROM silver.customers_delta"
+        },
+        {
+          "id": "q3",
+          "code": "VERSION AS OF 1"
+        },
+        {
+          "id": "d1",
+          "code": "WHERE _version = 1"
+        }
       ],
-      "solution": ["q1", "q2", "q3"],
-      "distractors": ["d1"],
+      "solution": [
+        "q1",
+        "q2",
+        "q3"
+      ],
+      "distractors": [
+        "d1"
+      ],
       "hints": [
         "The version goes right after the table name, not in a `WHERE` clause.",
         "```sql\nSELECT COUNT(*) AS rows_before_merge\nFROM silver.customers_delta\nVERSION AS OF 1\n```"
@@ -151,16 +313,12 @@
     {
       "id": "t06",
       "title": "Read the table history",
-      "type": "code",
+      "type": "tracks",
       "optional": false,
-      "explain": "`DESCRIBE HISTORY` lists every commit with its version, timestamp and operation. Save the history of `customers_delta` as a DataFrame named `history_df`, keeping only `version` and `operation`.",
-      "expected": "`history_df` has at least 3 rows; the newest operation is `MERGE`.",
-      "language": "python",
-      "starter": "# 1. Run DESCRIBE HISTORY on silver.customers_delta with spark.sql\n# 2. Keep the columns version and operation\nhistory_df = ...\ndisplay(history_df)",
+      "explain": "`DESCRIBE HISTORY` lists every commit with its version, timestamp and operation.",
+      "expected": "At least 3 versions; the newest operation is `MERGE`.",
       "hints": [
-        "`spark.sql(...)` returns a DataFrame; `DESCRIBE HISTORY <table>` is plain SQL.",
-        "Chain `.select(\"version\", \"operation\")` on the result.",
-        "```python\nhistory_df = (spark.sql(\"DESCRIBE HISTORY silver.customers_delta\")\n                .select(\"version\", \"operation\"))\ndisplay(history_df)\n```"
+        "The history is a table of commits, newest first."
       ],
       "docs": [
         {
@@ -168,7 +326,52 @@
           "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/delta-describe-history"
         }
       ],
-      "check": "notebook"
+      "variants": {
+        "sql": {
+          "type": "fill",
+          "template": "{{b1}} HISTORY silver.customers_delta",
+          "blanks": {
+            "b1": {
+              "answers": [
+                "DESCRIBE"
+              ]
+            }
+          },
+          "hints": [
+            "The command starts like the one that shows a table's columns.",
+            "```sql\nDESCRIBE HISTORY silver.customers_delta\n```"
+          ]
+        },
+        "pyspark": {
+          "type": "order",
+          "blocks": [
+            {
+              "id": "h1",
+              "code": "from delta.tables import DeltaTable"
+            },
+            {
+              "id": "h2",
+              "code": "history_df = DeltaTable.forName(spark, \"silver.customers_delta\").history()"
+            },
+            {
+              "id": "h3",
+              "code": "display(history_df.select(\"version\", \"operation\"))"
+            },
+            {
+              "id": "x1",
+              "code": "history_df.write.mode(\"overwrite\")"
+            }
+          ],
+          "solution": [
+            "h1",
+            "h2",
+            "h3"
+          ],
+          "distractors": [
+            "x1"
+          ]
+        }
+      }
     },
     {
       "id": "t07",
@@ -190,6 +393,55 @@
         }
       ],
       "check": "notebook"
+    },
+    {
+      "id": "t08",
+      "title": "Match write modes",
+      "optional": true,
+      "explain": "Each track has its own way to say what happens to the rows already in the table.",
+      "expected": "All pairs matched.",
+      "variants": {
+        "sql": {
+          "type": "match",
+          "pairs": [
+            {
+              "left": "INSERT INTO",
+              "right": "Adds the rows of a query to the table"
+            },
+            {
+              "left": "INSERT OVERWRITE",
+              "right": "Replaces the table's rows with the rows of a query"
+            },
+            {
+              "left": "MERGE INTO",
+              "right": "Updates matching rows and inserts new ones"
+            }
+          ]
+        },
+        "pyspark": {
+          "type": "match",
+          "pairs": [
+            {
+              "left": "mode(\"append\")",
+              "right": "Adds the DataFrame rows to the table"
+            },
+            {
+              "left": "mode(\"overwrite\")",
+              "right": "Replaces the table's rows with the DataFrame"
+            },
+            {
+              "left": "mode(\"error\")",
+              "right": "Fails when the table already exists"
+            }
+          ]
+        }
+      },
+      "docs": [
+        {
+          "label": "INSERT",
+          "url": "https://learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-syntax-dml-insert-into"
+        }
+      ]
     }
   ]
 }

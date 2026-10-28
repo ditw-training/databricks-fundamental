@@ -19,7 +19,7 @@ import {
   SheetTitle,
   useIsMobile,
 } from '@databricks/appkit-ui/react';
-import { ArrowLeft, ArrowRight, ListChecks, Lock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CodeXml, Database, ListChecks, Lock, Route } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
@@ -27,8 +27,10 @@ import {
   workshopLabel,
   workshopShortLabel,
   workshopTopic,
+  TRACKS,
   type Guide,
   type LockedGuide,
+  type Track,
 } from '../../../shared/guide-schema';
 import { Markdown } from '../components/Markdown';
 import { NotebookLocation } from '../components/NotebookLocation';
@@ -36,7 +38,8 @@ import { ResetProgress } from '../components/ResetProgress';
 import { StatusDot } from '../components/StatusDot';
 import { StepPane } from '../components/StepPane';
 import { useI18n } from '../i18n/context';
-import { typeLabel } from '../lib/labels';
+import { stepTypeLabel } from '../lib/labels';
+import { useTrack } from '../lib/track';
 import { useParticipantProgress, type ParticipantRow } from '../lib/progress';
 import { formatAgo, parseTs, toStatus } from '../lib/status';
 import { clearStoredPrefix, stepKey } from '../lib/storage';
@@ -176,6 +179,11 @@ function WorkshopPicker({
                     <ListChecks className="size-3.5" aria-hidden /> {m.stepCount(required, g.steps.length - required)}
                   </span>
                   <NotebookLocation guide={g} />
+                  {g.steps.some((s) => s.type === 'tracks') && (
+                    <span className="inline-flex items-center gap-1">
+                      <Route className="size-3.5" aria-hidden /> {m.pickerTrackHint}
+                    </span>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
@@ -211,9 +219,13 @@ function WorkshopPicker({
   );
 }
 
+/** The row to show: a pass wins (a step counts once, in any track), else the newer row. */
 function newer(a: ParticipantRow | undefined, b: ParticipantRow | undefined) {
   if (!a) return b;
   if (!b) return a;
+  const aPass = toStatus(a.status) === 'pass';
+  const bPass = toStatus(b.status) === 'pass';
+  if (aPass !== bPass) return aPass ? a : b;
   return (parseTs(a.ts)?.getTime() ?? 0) >= (parseTs(b.ts)?.getTime() ?? 0) ? a : b;
 }
 
@@ -228,6 +240,8 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
   const [resetAt, setResetAt] = useState<Date | null>(null);
   const [resetGen, setResetGen] = useState(0);
   const label = workshopLabel(guide, lang);
+  const [track, setTrack, trackChosen] = useTrack(email, guide.id);
+  const hasTracks = guide.steps.some((s) => s.type === 'tracks');
 
   const rows = useMemo(() => {
     const byStep = new Map<string, ParticipantRow>();
@@ -254,6 +268,7 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
   const required = guide.steps.filter((s) => !s.optional);
   const passedRequired = required.filter((s) => toStatus(rows.get(s.id)?.status) === 'pass').length;
   const pct = required.length ? Math.round((passedRequired / required.length) * 100) : 0;
+  const passedOptional = guide.steps.filter((s) => s.optional && toStatus(rows.get(s.id)?.status) === 'pass').length;
 
   const goTo = (id: string) => {
     setParams({ ws: guide.id, step: id });
@@ -265,7 +280,10 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
     <nav aria-label={m.workshopSteps} className="flex flex-col gap-4">
       <div className="space-y-2">
         <div className="flex items-baseline justify-between gap-2 text-sm">
-          <span className="font-medium">{m.stepsPassed(passedRequired, required.length)}</span>
+          <span className="font-medium">
+            {m.stepsPassed(passedRequired, required.length)}
+            {passedOptional > 0 && <span className="font-normal text-muted-foreground"> {m.optionalPassed(passedOptional)}</span>}
+          </span>
           <span className="text-xs text-muted-foreground">{pct}%</span>
         </div>
         <Progress value={pct} aria-label={m.requiredPassed} />
@@ -296,7 +314,7 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
                     {s.title}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    {typeLabel(s.type, m)}
+                    {stepTypeLabel(s, m, track)}
                     {s.optional ? ` · ${m.optional}` : ''}
                   </span>
                 </span>
@@ -315,7 +333,8 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
           <h2 className="text-lg font-semibold">{label}</h2>
           <NotebookLocation guide={guide} />
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {hasTracks && <TrackSwitch track={track} onChange={setTrack} />}
           <ResetProgress workshop={guide.id} label={label} onReset={afterReset} />
           {isMobile && (
             <Button type="button" variant="outline" size="sm" onClick={() => setStepsOpen(true)}>
@@ -332,13 +351,16 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
           </aside>
         )}
         <div className="min-w-0">
-          {step ? (
+          {hasTracks && !trackChosen ? (
+            <TrackChooser onPick={setTrack} />
+          ) : step ? (
             <StepPane
               key={`${guide.id}:${step.id}:${resetGen}`}
               guide={guide}
               step={step}
               index={stepIndex}
               email={email}
+              track={track}
               row={rows.get(step.id)}
               progressError={progress.error}
               onLocalResult={(r) => setLocal((prev) => ({ ...prev, [r.step]: r }))}
@@ -363,6 +385,72 @@ function WorkshopView({ guide, email }: { guide: Guide; email: string }) {
           {stepList}
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+/** First entry to a workshop without a stored track: ask once, with what each track means. */
+function TrackChooser({ onPick }: { onPick: (t: Track) => void }) {
+  const { m } = useI18n();
+  const options: { track: Track; icon: typeof Database; text: string }[] = [
+    { track: 'sql', icon: Database, text: m.trackSqlDesc },
+    { track: 'pyspark', icon: CodeXml, text: m.trackPysparkDesc },
+  ];
+  return (
+    <section aria-labelledby="track-choose-title" className="mx-auto flex max-w-3xl flex-col gap-4">
+      <div className="space-y-1">
+        <h2 id="track-choose-title" className="text-2xl font-semibold tracking-tight">
+          {m.trackChooseTitle}
+        </h2>
+        <p className="text-muted-foreground">{m.trackChooseIntro}</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {options.map(({ track, icon: Icon, text }) => (
+          <Card key={track} className="flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Icon className="size-5 text-muted-foreground" aria-hidden /> {m.trackName(track)}
+              </CardTitle>
+              <CardDescription>{text}</CardDescription>
+            </CardHeader>
+            <CardFooter className="mt-auto">
+              <Button type="button" onClick={() => onPick(track)}>
+                {m.trackChooseButton(m.trackName(track))} <ArrowRight className="size-4" aria-hidden />
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** SQL | PySpark (SPEC section 11): remembered per workshop, can be changed at any time. */
+function TrackSwitch({ track, onChange }: { track: Track; onChange: (t: Track) => void }) {
+  const { m } = useI18n();
+  return (
+    <div className="flex items-center gap-2" title={m.trackHelp}>
+      <span className="text-xs text-muted-foreground" id="track-label">
+        {m.track}
+      </span>
+      <div role="group" aria-labelledby="track-label" aria-describedby="track-help" className="inline-flex rounded-md border p-0.5">
+        {TRACKS.map((t) => (
+          <Button
+            key={t}
+            type="button"
+            size="sm"
+            variant={t === track ? 'default' : 'ghost'}
+            className="h-7 px-3"
+            aria-pressed={t === track}
+            onClick={() => onChange(t)}
+          >
+            {m.trackName(t)}
+          </Button>
+        ))}
+      </div>
+      <span id="track-help" className="sr-only">
+        {m.trackHelp}
+      </span>
     </div>
   );
 }

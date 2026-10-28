@@ -1,4 +1,4 @@
-import type { Guide, Step } from '../../shared/guide-schema';
+import { gradedBy, type Guide, type Step } from '../../shared/guide-schema';
 import { type CheckPost, checkPostSchema } from '../../shared/check-schema';
 import { type CheckContext, CheckFail, firstLine, type StepCheck } from './framework';
 import { DELTA_CHECKS } from './ws_delta';
@@ -11,10 +11,21 @@ export const CHECKS: Record<string, Record<string, StepCheck>> = {
 };
 
 export type CheckValidation =
-  | { ok: true; post: CheckPost; step: Step; check: StepCheck }
+  | {
+      ok: true;
+      post: CheckPost;
+      step: Step;
+      check: StepCheck;
+      /**
+       * True for the optional "Check on data" of an app-graded step (SPEC section 11): the result is
+       * shown and stored as step_type 'data_check', which never changes the step's status. False
+       * only for legacy free `code` steps, where Check is how the step is completed.
+       */
+      bonus: boolean;
+    }
   | { ok: false; status: number; error: string };
 
-/** Body of POST /api/check: known workshop, known step, graded by a check (not by the app). */
+/** Body of POST /api/check: known workshop and step that has a data check. */
 export function validateCheckPost(body: unknown, guides: Map<string, Guide>): CheckValidation {
   const parsed = checkPostSchema.safeParse(body);
   if (!parsed.success) return { ok: false, status: 400, error: 'Invalid body (fields: workshop, step)' };
@@ -24,12 +35,24 @@ export function validateCheckPost(body: unknown, guides: Map<string, Guide>): Ch
   if (!guide) return { ok: false, status: 404, error: `Unknown workshop "${workshop}"` };
   const step = guide.steps.find((s) => s.id === stepId);
   if (!step) return { ok: false, status: 404, error: `Unknown step "${stepId}" in ${workshop}` };
-  if (step.check !== 'notebook') {
-    return { ok: false, status: 409, error: `Step "${stepId}" is graded in the app, not with Check` };
-  }
   const check = CHECKS[workshop]?.[stepId];
-  if (!check) return { ok: false, status: 501, error: `No check is defined for ${workshop}/${stepId}` };
-  return { ok: true, post, step, check };
+  if (!check) {
+    return gradedBy(step) === 'notebook'
+      ? { ok: false, status: 501, error: `No check is defined for ${workshop}/${stepId}` }
+      : { ok: false, status: 409, error: `Step "${stepId}" has no data check; it is graded in the app` };
+  }
+  return { ok: true, post, step, check, bonus: gradedBy(step) === 'app' };
+}
+
+/**
+ * Marks the steps that have a data check (`data_check`), so the app shows "Check on data" only
+ * there. The flag in the guide file is ignored: CHECKS is the only source.
+ */
+export function markDataChecks(guides: Map<string, Guide>): Map<string, Guide> {
+  for (const guide of guides.values()) {
+    for (const step of guide.steps) step.data_check = Boolean(CHECKS[guide.id]?.[step.id]);
+  }
+  return guides;
 }
 
 export type CheckOutcome =

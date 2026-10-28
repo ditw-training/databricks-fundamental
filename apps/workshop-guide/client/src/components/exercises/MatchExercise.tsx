@@ -16,7 +16,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@databricks/appkit-ui/react';
 import { Check, RotateCcw, X } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
-import type { MatchStep } from '../../../../shared/guide-schema';
+import type { MatchVariant } from '../../../../shared/guide-schema';
 import { checkMatch, seededShuffle, type MatchResult } from '../../lib/exercise';
 import { useI18n } from '../../i18n/context';
 import { useStoredState } from '../../lib/storage';
@@ -25,10 +25,15 @@ import { useStoredState } from '../../lib/storage';
 type Assignment = Record<number, number | null>;
 
 interface Props {
-  step: MatchStep;
+  exercise: Pick<MatchVariant, 'pairs'>;
+  /** Seed of the shuffles (stable per step and track). */
+  seed: string;
   storageKey: string;
-  onCheck: (result: MatchResult) => void;
+  /** Called on every "Check pairs" with the assignment (slot -> term); the parent records the result. */
+  onCheck: (result: MatchResult, assignment: (number | null)[]) => void;
   busy?: boolean;
+  /** The collapsed "Notebook (optional)" section (match exercises have no code). */
+  renderNotebook?: () => ReactNode;
 }
 
 const collision: CollisionDetection = (args) => {
@@ -36,11 +41,12 @@ const collision: CollisionDetection = (args) => {
   return hits.length > 0 ? hits : rectIntersection(args);
 };
 
-export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
+export function MatchExercise({ exercise, seed, storageKey, onCheck, busy, renderNotebook }: Props) {
+  const step = exercise;
   const { m } = useI18n();
   const n = step.pairs.length;
-  const termOrder = useMemo(() => seededShuffle([...Array(n).keys()], `${step.id}:terms`), [n, step.id]);
-  const slotOrder = useMemo(() => seededShuffle([...Array(n).keys()], `${step.id}:slots`), [n, step.id]);
+  const termOrder = useMemo(() => seededShuffle([...Array(n).keys()], `${seed}:terms`), [n, seed]);
+  const slotOrder = useMemo(() => seededShuffle([...Array(n).keys()], `${seed}:slots`), [n, seed]);
   const [stored, setAssignment] = useStoredState<Assignment>(storageKey, {});
   const [selected, setSelected] = useState<number | null>(null);
   const [activeTerm, setActiveTerm] = useState<number | null>(null);
@@ -80,7 +86,7 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
   const runCheck = () => {
     const r = checkMatch(step, assignment);
     setResult(r);
-    onCheck(r);
+    onCheck(r, Array.from({ length: n }, (_, slot) => assignment[slot] ?? null));
   };
 
   const allPlaced = placed.size === n;
@@ -168,6 +174,7 @@ export function MatchExercise({ step, storageKey, onCheck, busy }: Props) {
           {m.checkPairs}
         </Button>
       </div>
+      {renderNotebook?.()}
     </div>
   );
 }

@@ -168,11 +168,20 @@ input.blank[data-state="wrong"]{border:1.5px solid var(--bad);background:var(--b
 .confirm[hidden],[hidden]{display:none!important}
 .docs ul{margin:0;padding-left:18px}
 .docs li{margin:2px 0}
-.finish{border-top:1px solid var(--border);margin-top:18px;padding-top:2px}
-.finish p{margin:0 0 8px;font-size:14px}
-.done-toggle{display:inline-flex;gap:8px;align-items:center;font-size:14px;cursor:pointer;padding:6px 10px;border:1px solid var(--border);border-radius:8px}
-.done-toggle input{width:16px;height:16px;accent-color:var(--ok)}
-.step[data-status-v="done"] .done-toggle{border-color:var(--ok);background:var(--ok-soft)}
+.track-switch{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}
+.track-title{font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.track-btn[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.track-intro{font-size:14.5px;margin:0 0 22px;padding:10px 14px;border-radius:8px;background:var(--surface)}
+.track-intro p{margin:0 0 6px}.track-intro p:last-child{margin:0}
+.track-note{display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;padding:8px 12px;border-radius:8px;
+  background:var(--accent-soft);font-size:14px}
+.explain-extra p{margin:0 0 10px}
+.explain-extra code,.track-note code,.track-intro code,.nb code{font-size:.88em;background:var(--surface-2);border-radius:4px;
+  padding:1px 5px;overflow-wrap:anywhere}
+.nb .codeblock code{background:none;padding:0;font-size:inherit}
+details.nb{border-top:1px solid var(--border);margin-top:18px;padding-top:10px}
+details.nb summary{cursor:pointer;font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+details.nb p{font-size:14px;margin:8px 0}
 footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
 @media (max-width:900px){
   .layout{grid-template-columns:1fr;gap:12px}
@@ -187,7 +196,7 @@ footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
   .bar{width:90px}
 }
 @media print{
-  .accent-bar,nav.steps-nav,.ex-actions,.hint-controls,.btn-copy,.notice{display:none}
+  .accent-bar,nav.steps-nav,.ex-actions,.hint-controls,.btn-copy,.notice,.track-switch{display:none}
   .layout{display:block}.hint[hidden]{display:block!important}
 }
 
@@ -203,7 +212,7 @@ footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
 <div class="accent-bar"></div>
 <main class="index">
 <h1>Workshop Guide</h1>
-<section lang="pl" aria-labelledby="idx-pl"><h2 id="idx-pl">Polski</h2><p>Wersja statyczna do samodzielnej nauki. Otwórz warsztat, rozwiązuj kolejne kroki na stronie i uruchamiaj kod w notebooku. Żeby sprawdzić krok, raz załaduj funkcje sprawdzające przez <code>%run ./_checks/&lt;workshop&gt;</code> po komórkach konfiguracyjnych, a potem uruchom <code>check("&lt;workshop&gt;", "tNN")</code> w nowej komórce.</p><ul><li><a href="ws_ingestion.pl.html"><strong>Warsztat I — Ingestion</strong></a><span>8 kroków + 4 opcjonalne · notebook <code>WORKSHOP_ingestion</code></span></li><li><a href="ws_delta.pl.html"><strong>Warsztat II — Delta Lake</strong></a><span>7 kroków + 5 opcjonalnych · notebook <code>WORKSHOP_delta</code></span></li></ul></section><section lang="en" aria-labelledby="idx-en"><h2 id="idx-en">English</h2><p>Static edition for self-study. Open a workshop, solve each step on the page and run the code in your notebook. To check a step, load the checks once with <code>%run ./_checks/&lt;workshop&gt;</code> after the setup cells, then run <code>check("&lt;workshop&gt;", "tNN")</code> in a new cell.</p><ul><li><a href="ws_ingestion.en.html"><strong>Workshop I — Ingestion</strong></a><span>8 steps + 4 optional · notebook <code>WORKSHOP_ingestion</code></span></li><li><a href="ws_delta.en.html"><strong>Workshop II — Delta Lake</strong></a><span>7 steps + 5 optional · notebook <code>WORKSHOP_delta</code></span></li></ul></section>
+<section lang="pl" aria-labelledby="idx-pl"><h2 id="idx-pl">Polski</h2><p>Wersja statyczna do samodzielnej nauki. Otwórz warsztat, wybierz ścieżkę SQL albo PySpark i rozwiązuj kolejne kroki na stronie: to ona ocenia odpowiedzi. Uruchamianie kodu w notebooku jest opcjonalne; żeby go sprawdzić, raz załaduj funkcje sprawdzające przez <code>%run ./_checks/&lt;workshop&gt;</code> po komórkach konfiguracyjnych, a potem uruchom <code>check("&lt;workshop&gt;", "tNN")</code> w nowej komórce.</p><ul><li><a href="ws_ingestion.pl.html"><strong>Warsztat I — Ingestion</strong></a><span>8 kroków + 4 opcjonalne · notebook <code>WORKSHOP_ingestion</code></span></li><li><a href="ws_delta.pl.html"><strong>Warsztat II — Delta Lake</strong></a><span>7 kroków + 5 opcjonalnych · notebook <code>WORKSHOP_delta</code></span></li></ul></section><section lang="en" aria-labelledby="idx-en"><h2 id="idx-en">English</h2><p>Static edition for self-study. Open a workshop, pick the SQL or PySpark track and solve each step on the page: it grades your answers. Running the code in the notebook is optional; to check it, load the checks once with <code>%run ./_checks/&lt;workshop&gt;</code> after the setup cells, then run <code>check("&lt;workshop&gt;", "tNN")</code> in a new cell.</p><ul><li><a href="ws_ingestion.en.html"><strong>Workshop I — Ingestion</strong></a><span>8 steps + 4 optional · notebook <code>WORKSHOP_ingestion</code></span></li><li><a href="ws_delta.en.html"><strong>Workshop II — Delta Lake</strong></a><span>7 steps + 5 optional · notebook <code>WORKSHOP_delta</code></span></li></ul></section>
 </main>
 </body>
 </html>

@@ -1,10 +1,23 @@
-import type { Guide, Step } from '../../../shared/guide-schema';
+import { exerciseTypes, resolveExercise, type Guide, type Step, type Track } from '../../../shared/guide-schema';
 import type { Dict } from '../i18n';
 import type { StepStatus } from './status';
 
+type ExerciseType = 'fill' | 'order' | 'match' | 'code';
+
 /** "Fill in the blanks" / "Uzupełnij luki". */
-export function typeLabel(type: Step['type'], m: Dict): string {
+export function typeLabel(type: ExerciseType, m: Dict): string {
   return { fill: m.typeFill, order: m.typeOrder, match: m.typeMatch, code: m.typeCode }[type];
+}
+
+/** Exercise type of a step in a track; without a track every type the step can show ("A / B"). */
+export function stepTypeLabel(step: Step, m: Dict, track?: Track): string {
+  if (track) {
+    const ex = resolveExercise(step, track).exercise;
+    return typeLabel(ex ? ex.type : 'code', m);
+  }
+  return exerciseTypes(step)
+    .map((t) => typeLabel(t, m))
+    .join(' / ');
 }
 
 export function statusLabel(status: StepStatus, m: Dict): string {

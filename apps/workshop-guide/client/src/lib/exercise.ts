@@ -1,6 +1,6 @@
 /** Pure grading and assembly logic for the interactive exercises (unit-tested). */
-import type { Blank, FillStep, MatchStep, OrderStep } from '../../../shared/guide-schema';
-import { en } from '../i18n/en';
+import type { Blank, FillVariant, OrderVariant } from '../../../shared/guide-schema';
+import { isBlankCorrect } from '../../../shared/grading';
 
 export type TemplateSegment = { kind: 'text'; value: string } | { kind: 'blank'; id: string };
 
@@ -29,17 +29,8 @@ export function keyedSegments(template: string): (TemplateSegment & { key: strin
   });
 }
 
-const normalize = (value: string, caseSensitive: boolean) => {
-  const collapsed = value.trim().replace(/\s+/g, ' ');
-  return caseSensitive ? collapsed : collapsed.toLowerCase();
-};
-
-/** True when the typed value matches one of the accepted answers. */
-export function isBlankCorrect(value: string, blank: Blank): boolean {
-  if (!value.trim()) return false;
-  const typed = normalize(value, blank.case_sensitive);
-  return blank.answers.some((a) => normalize(a, blank.case_sensitive) === typed);
-}
+export { checkFill, checkMatch, checkOrder, fillProgress, isBlankCorrect } from '../../../shared/grading';
+export type { FillResult, MatchResult, OrderResult } from '../../../shared/grading';
 
 export type BlankState = 'empty' | 'correct' | 'wrong';
 
@@ -61,73 +52,15 @@ export function blankInputWidth(value: string): number {
 }
 
 /** Final code for the notebook; empty blanks stay as ____ so the gap is visible. */
-export function assembleFill(step: FillStep, values: Record<string, string>): string {
-  return parseTemplate(step.template)
+export function assembleFill(ex: Pick<FillVariant, 'template'>, values: Record<string, string>): string {
+  return parseTemplate(ex.template)
     .map((seg) => (seg.kind === 'text' ? seg.value : values[seg.id]?.trim() || '____'))
     .join('');
 }
 
-export function fillProgress(step: FillStep, values: Record<string, string>) {
-  const ids = Object.keys(step.blanks);
-  const correct = ids.filter((id) => isBlankCorrect(values[id] ?? '', step.blanks[id])).length;
-  return { correct, total: ids.length };
-}
-
-export interface OrderResult {
-  pass: boolean;
-  correctPositions: number;
-  total: number;
-  distractorsUsed: number;
-  missing: number;
-  message: string;
-}
-
-/** Grades an order exercise and builds a short message (max 200 chars). */
-export function checkOrder(step: OrderStep, answer: string[]): OrderResult {
-  const total = step.solution.length;
-  const pass = answer.length === total && answer.every((id, i) => id === step.solution[i]);
-  const correctPositions = answer.filter((id, i) => step.solution[i] === id).length;
-  const distractorsUsed = answer.filter((id) => step.distractors.includes(id)).length;
-  const missing = step.solution.filter((id) => !answer.includes(id)).length;
-
-  // Stored in the progress table and shown to the trainer: always English (SPEC section 9).
-  const message = en.orderResult({ pass, total, correctPositions, distractorsUsed, missing });
-  return { pass, correctPositions, total, distractorsUsed, missing, message };
-}
-
-export function assembleOrder(step: OrderStep, answer: string[]): string {
-  const byId = new Map(step.blocks.map((b) => [b.id, b.code]));
+export function assembleOrder(ex: Pick<OrderVariant, 'blocks'>, answer: string[]): string {
+  const byId = new Map(ex.blocks.map((b) => [b.id, b.code]));
   return answer.map((id) => byId.get(id) ?? '').join('\n');
-}
-
-export interface MatchResult {
-  pass: boolean;
-  correct: number;
-  total: number;
-  message: string;
-  /** slot index -> correct? (only for filled slots) */
-  slotCorrect: Record<number, boolean>;
-}
-
-/**
- * Grades a match exercise. `assignment` maps a description slot (index into
- * step.pairs, i.e. the pair whose `right` text the slot shows) to the index of
- * the pair whose `left` term was dropped there.
- */
-export function checkMatch(step: MatchStep, assignment: Record<number, number | null>): MatchResult {
-  const total = step.pairs.length;
-  const slotCorrect: Record<number, boolean> = {};
-  let correct = 0;
-  step.pairs.forEach((pair, slot) => {
-    const term = assignment[slot];
-    if (term === null || term === undefined) return;
-    const ok = step.pairs[term].left === pair.left || step.pairs[term].right === pair.right;
-    slotCorrect[slot] = ok;
-    if (ok) correct += 1;
-  });
-  const pass = correct === total;
-  const message = en.matchResult(pass, correct, total);
-  return { pass, correct, total, message, slotCorrect };
 }
 
 /** Deterministic shuffle (stable per seed) so the layout does not jump between renders. */

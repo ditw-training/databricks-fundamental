@@ -8,7 +8,7 @@
  * has the same length as the English one.
  */
 import { z } from 'zod';
-import { workshopLabel, type Guide, type Step } from './guide-schema';
+import { TRACKS, workshopLabel, type Guide, type Step } from './guide-schema';
 import { quizLangSchema, type QuizLang } from './quiz-schema';
 
 /** UI and guide languages. Same set as the quiz. */
@@ -21,6 +21,16 @@ export type OverlayLang = (typeof OVERLAY_LANGS)[number];
 
 const idPattern = /^[a-z0-9_]+$/;
 
+const overlayPairsSchema = z.array(z.object({ left: z.string().optional(), right: z.string().optional() }));
+
+/** Prose of one track's exercise (SPEC section 11). Code (template, blocks) is never translated. */
+const overlayVariantSchema = z.object({
+  explain_extra: z.string().optional(),
+  note: z.string().optional(),
+  hints: z.array(z.string()).optional(),
+  pairs: overlayPairsSchema.optional(),
+});
+
 const overlayStepSchema = z.object({
   id: z.string().regex(idPattern),
   title: z.string().optional(),
@@ -28,7 +38,9 @@ const overlayStepSchema = z.object({
   expected: z.string().optional(),
   hints: z.array(z.string()).optional(),
   /** Match steps: prose of a pair; leave a side out to keep the English (e.g. code). */
-  pairs: z.array(z.object({ left: z.string().optional(), right: z.string().optional() })).optional(),
+  pairs: overlayPairsSchema.optional(),
+  /** Track steps: prose of each track's exercise. */
+  variants: z.object({ sql: overlayVariantSchema.optional(), pyspark: overlayVariantSchema.optional() }).optional(),
   /** Doc links: only the label is translated; a url here is ignored. */
   docs: z.array(z.object({ label: z.string().optional(), url: z.string().optional() })).optional(),
 });
@@ -87,6 +99,29 @@ function localizeStep<S extends Step>(step: S, o: OverlayStep | undefined): S {
       ...merged,
       pairs: pickList(step.pairs, o.pairs, (e, t) => ({ left: pick(t.left, e.left), right: pick(t.right, e.right) })),
     } as S;
+  }
+  if (step.type === 'tracks') {
+    const variants = { ...step.variants };
+    for (const track of TRACKS) {
+      const v = step.variants[track];
+      const ov = o.variants?.[track];
+      if (!v || !ov) continue;
+      if (!('type' in v)) {
+        variants[track] = { ...v, note: v.note === undefined ? undefined : pick(ov.note, v.note) };
+        continue;
+      }
+      const optional = (en: string | undefined, tr: string | undefined) => (en === undefined ? undefined : pick(tr, en));
+      const prose = {
+        explain_extra: optional(v.explain_extra, ov.explain_extra),
+        note: optional(v.note, ov.note),
+        hints: v.hints ? pickList(v.hints, ov.hints, (e, t) => pick(t, e)) : undefined,
+      };
+      variants[track] =
+        v.type === 'match'
+          ? { ...v, ...prose, pairs: pickList(v.pairs, ov.pairs, (e, t) => ({ left: pick(t.left, e.left), right: pick(t.right, e.right) })) }
+          : { ...v, ...prose };
+    }
+    return { ...merged, variants } as S;
   }
   return merged;
 }
@@ -153,7 +188,38 @@ export function overlayProblems(guide: Guide, overlay: GuideOverlay): string[] {
     if (o.docs && o.docs.length !== step.docs.length) {
       problems.push(`${where}: ${o.docs.length} docs, English has ${step.docs.length}`);
     }
-    if (o.pairs) {
+    if (o.variants) {
+      if (step.type !== 'tracks') problems.push(`${where}: variants on a step without variants`);
+      else {
+        for (const track of TRACKS) {
+          const ov = o.variants[track];
+          if (!ov) continue;
+          const v = step.variants[track];
+          const vwhere = `${where}/${track}`;
+          if (!v) {
+            problems.push(`${vwhere}: no ${track} variant in English`);
+            continue;
+          }
+          const ex = 'type' in v ? v : null;
+          if (ov.hints && ov.hints.length !== (ex?.hints?.length ?? -1)) {
+            problems.push(`${vwhere}: ${ov.hints.length} hints, English has ${ex?.hints?.length ?? 0}`);
+          }
+          if (ov.pairs && (ex?.type !== 'match' || ov.pairs.length !== ex.pairs.length)) {
+            problems.push(`${vwhere}: pairs do not fit the English exercise`);
+          }
+          compare(`${vwhere}/explain_extra`, ov.explain_extra, ex?.explain_extra ?? '');
+          compare(`${vwhere}/note`, ov.note, ex ? (ex.note ?? '') : ('note' in v ? (v.note ?? '') : ''));
+          ov.hints?.forEach((hint, i) => {
+            const english = ex?.hints?.[i];
+            if (english === undefined) return;
+            if (!sameList(codeFences(hint), codeFences(english))) problems.push(`${vwhere}: code in hint ${i + 1} differs from English`);
+            if (!sameList(inlineCode(hint), inlineCode(english))) problems.push(`${vwhere}: inline code in hint ${i + 1} differs from English`);
+          });
+        }
+      }
+    }
+    // Track steps take pairs from `variants.*.pairs`; legacy top-level pairs next to them are ignored.
+    if (o.pairs && step.type !== 'tracks') {
       if (step.type !== 'match') problems.push(`${where}: pairs on a ${step.type} step`);
       else if (o.pairs.length !== step.pairs.length) {
         problems.push(`${where}: ${o.pairs.length} pairs, English has ${step.pairs.length}`);

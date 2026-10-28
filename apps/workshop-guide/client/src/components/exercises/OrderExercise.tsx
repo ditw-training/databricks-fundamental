@@ -22,11 +22,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button, useIsMobile } from '@databricks/appkit-ui/react';
 import { ArrowDown, ArrowUp, GripVertical, Plus, RotateCcw, X } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
-import type { OrderStep } from '../../../../shared/guide-schema';
+import type { OrderVariant } from '../../../../shared/guide-schema';
 import { assembleOrder, checkOrder, seededShuffle, type OrderResult } from '../../lib/exercise';
 import { useI18n } from '../../i18n/context';
 import { useStoredState } from '../../lib/storage';
-import { CopyButton } from '../CopyButton';
 
 type ContainerId = 'pool' | 'answer';
 interface Lists {
@@ -35,21 +34,24 @@ interface Lists {
 }
 
 interface Props {
-  step: OrderStep;
+  exercise: Pick<OrderVariant, 'blocks' | 'solution' | 'distractors'>;
+  /** Seed of the initial shuffle (stable per step and track). */
+  seed: string;
   storageKey: string;
-  /** Called on every "Check order"; the parent counts attempts and records app-graded results. */
-  onCheck: (result: OrderResult) => void;
+  /** Called on every "Check order" with the answer; the parent counts attempts and records the result. */
+  onCheck: (result: OrderResult, answer: string[]) => void;
   busy?: boolean;
-  /** Where to paste the code in the notebook (shown next to Copy, notebook-checked steps only). */
-  pasteHint?: ReactNode;
+  /** The collapsed "Notebook (optional)" section, given the assembled code. */
+  renderNotebook?: (code: string, complete: boolean) => ReactNode;
 }
 
-export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Props) {
+export function OrderExercise({ exercise, seed, storageKey, onCheck, busy, renderNotebook }: Props) {
+  const step = exercise;
   const { m } = useI18n();
   const isMobile = useIsMobile();
   const initial = useMemo<Lists>(
-    () => ({ pool: seededShuffle(step.blocks.map((b) => b.id), step.id), answer: [] }),
-    [step],
+    () => ({ pool: seededShuffle(step.blocks.map((b) => b.id), seed), answer: [] }),
+    [step, seed],
   );
   const [lists, setLists] = useStoredState<Lists>(storageKey, initial);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -128,7 +130,7 @@ export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Pr
   const runCheck = () => {
     const r = checkOrder(step, current.answer);
     setResult(r);
-    onCheck(r);
+    onCheck(r, current.answer);
   };
 
   const firstLine = (id: string) => (codeById.get(id) ?? '').split('\n')[0].trim();
@@ -200,7 +202,7 @@ export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Pr
       {result && (
         <div role="status" className={`wg-feedback ${result.pass ? 'wg-feedback-pass' : 'wg-feedback-fail'}`}>
           {m.orderResult(result)}
-          {result.pass && step.check === 'notebook' && ` ${m.orderCopyNext}`}
+          {result.pass && renderNotebook && ` ${m.orderCopyNext}`}
         </div>
       )}
 
@@ -208,20 +210,11 @@ export function OrderExercise({ step, storageKey, onCheck, busy, pasteHint }: Pr
         <Button type="button" variant="ghost" size="sm" onClick={() => update(initial)}>
           <RotateCcw className="size-4" aria-hidden /> {m.reset}
         </Button>
-        {step.check === 'notebook' && (
-          <CopyButton
-            text={assembleOrder(step, current.answer)}
-            label={m.copyToNotebook}
-            variant={result?.pass ? 'default' : 'outline'}
-            disabled={current.answer.length === 0}
-            title={current.answer.length === 0 ? m.addBlocksFirst : undefined}
-          />
-        )}
         <Button type="button" onClick={runCheck} disabled={busy || current.answer.length === 0}>
           {m.checkOrder}
         </Button>
       </div>
-      {pasteHint}
+      {renderNotebook?.(assembleOrder(step, current.answer), checkOrder(step, current.answer).pass)}
     </div>
   );
 }

@@ -1,12 +1,20 @@
 {
   "id": "ws_delta",
   "title": "Warsztat II — Delta Lake",
-  "intro": "Zarządzasz tabelą klientów RetailHub. Utworzysz ją jako tabelę Delta, zmienisz jej schemat i dane (INSERT, UPDATE, MERGE), a potem użyjesz historii tabeli, żeby odczytać stare wersje i cofnąć przypadkowe usunięcie. Pisz kod w notebooku `WORKSHOP_delta`, uruchom komórkę, potem kliknij tutaj **Sprawdź**: krok zmieni kolor na zielony, gdy wynik jest poprawny. Kroki opcjonalne to dodatkowe ćwiczenia; kolejne kroki ich nie wymagają.",
+  "intro": "Zarządzasz tabelą klientów RetailHub. Utworzysz ją jako tabelę Delta, zmienisz jej schemat i dane (INSERT, UPDATE, MERGE), a potem użyjesz historii tabeli, żeby odczytać stare wersje i cofnąć przypadkowe usunięcie. Na górze wybierz ścieżkę: **SQL** albo **PySpark**; możesz ją zmienić w każdej chwili. Każdy krok wykonujesz tutaj, a krok zmienia kolor na zielony, gdy odpowiedź jest poprawna. Uruchamianie kodu jest opcjonalne: sekcja **Notebook (opcjonalnie)** w kroku zawiera gotowy kod do notebooka `WORKSHOP_delta`, a przez kliknięcie **Sprawdź na danych** możesz sprawdzić swoją tabelę. Jeśli uruchamiasz kod, rób to po kolei: każdy krok zmienia tabelę, z której czyta następny. Kroki opcjonalne to dodatkowe ćwiczenia; kolejne kroki ich nie wymagają.",
+  "tracks": {
+    "sql": {
+      "intro": "Ścieżka SQL: uruchamiaj kod w komórkach `%sql` notebooka `WORKSHOP_delta`, po komórkach konfiguracyjnych. Tabela to `lab_delta_cust_ws` w twoim schemacie `bronze`. Kroki 01 i 08 czytają widoki tymczasowe `customers_csv` i `updates_view` z gotowych komórek notebooka."
+    },
+    "pyspark": {
+      "intro": "Ścieżka PySpark: uruchamiaj kod w komórkach Pythona notebooka `WORKSHOP_delta`; `TABLE` zawiera pełną nazwę tabeli, a `F` to `pyspark.sql.functions`. Większość poleceń Delta Lake to SQL, więc kroki bez naturalnej formy PySpark (ALTER, INSERT, UPDATE, DELETE, MERGE) pokazują ćwiczenie SQL; w Pythonie uruchamiasz je przez `spark.sql(...)`."
+    }
+  },
   "steps": {
     "t01": {
       "title": "Utwórz tabelę Delta",
-      "explain": "`CREATE TABLE ... AS SELECT` (CTAS) tworzy tabelę i ładuje do niej wiersze zapytania w jednej instrukcji. Na Databricks każda nowa tabela jest domyślnie tabelą Delta, więc nie potrzebujesz `USING DELTA`. Bez `LOCATION` tabela jest *zarządzana* (managed): pliki przechowuje za ciebie Unity Catalog. `OR REPLACE` pozwala uruchomić komórkę ponownie bez błędu.",
-      "expected": "Tabela `lab_delta_cust_ws` istnieje, ma format `delta` i tyle samo wierszy co `customers_csv` (10 000).",
+      "explain": "Tabelę Delta tworzysz z wierszy zapytania albo DataFrame w jednym kroku. Na Databricks każda nowa tabela jest domyślnie tabelą Delta, więc nie musisz podawać formatu. Bez lokalizacji danych tabela jest *zarządzana* (managed): pliki przechowuje za ciebie Unity Catalog. Zastąpienie istniejącej tabeli pozwala uruchomić kod ponownie bez błędu.",
+      "expected": "Tabela `lab_delta_cust_ws` istnieje, ma format `delta` i 10 000 wierszy, tyle samo co CSV.",
       "hints": [
         "Tworzysz tabelę z wyniku zapytania: instrukcja to `CREATE OR REPLACE TABLE <name> AS <query>`.",
         "Zapytanie czyta wszystkie kolumny widoku tymczasowego: `SELECT * FROM customers_csv`.",
@@ -18,13 +26,34 @@
         },
         {
           "label": "CREATE TABLE [USING]"
+        },
+        {
+          "label": "saveAsTable"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "hints": [
+            "Tworzysz tabelę z wyniku zapytania: instrukcja to `CREATE OR REPLACE TABLE <name> AS <query>`.",
+            "Zapytanie czyta wszystkie kolumny widoku tymczasowego: `SELECT * FROM customers_csv`.",
+            "Pełne rozwiązanie:\n```sql\nCREATE OR REPLACE TABLE lab_delta_cust_ws AS\nSELECT * FROM customers_csv\n```"
+          ],
+          "explain_extra": "`CREATE TABLE ... AS SELECT` (CTAS) tworzy tabelę i ładuje do niej wiersze zapytania w jednej instrukcji, a `OR REPLACE` pozwala uruchomić ją ponownie. Nie potrzebujesz `USING DELTA`. Źródłem jest widok tymczasowy `customers_csv` z gotowej komórki notebooka."
+        },
+        "pyspark": {
+          "explain_extra": "`customers_df` z gotowej komórki zawiera wiersze CSV. `df.write.mode(\"overwrite\").saveAsTable(TABLE)` zapisuje go jako zarządzaną tabelę Delta i zastępuje tabelę przy ponownym uruchomieniu. `TABLE` zawiera pełną nazwę `lab_delta_cust_ws`.",
+          "hints": [
+            "Zapis DataFrame zaczyna się od `.write`; tryb, który zastępuje istniejące dane, to `overwrite`.",
+            "Metoda zapisu do tabeli Unity Catalog kończy się na `AsTable`.",
+            "Pełne rozwiązanie:\n```python\n(\n    customers_df.write\n    .mode(\"overwrite\")\n    .saveAsTable(TABLE)\n)\nprint(f\"{TABLE}: {spark.table(TABLE).count():,} rows\")\n```"
+          ]
+        }
+      }
     },
     "t02": {
       "title": "Wymuszanie schematu",
-      "explain": "Delta sprawdza każdy zapis względem schematu tabeli (*schema enforcement*). DataFrame z kolumną, której tabela nie ma, zostaje odrzucony i nic nie jest zapisywane: zapis kończy się błędem w całości. Tutaj dopisujesz `bad_df` w gotowym bloku `try`. `try` / `except` to sposób Pythona na przechwycenie błędu: jeśli linia pod `try:` się nie powiedzie, Python przechodzi do `except`, a błąd trafia do `enforcement_error` i nie zatrzymuje notebooka. Zamieniasz tylko `pass` na jedną linię. Odpowiednik w SQL: `INSERT INTO lab_delta_cust_ws (customer_id, mood) VALUES ('BAD001', 'happy')` kończy się takim samym błędem.",
-      "expected": "`enforcement_error` zawiera komunikat błędu, a tabela nie ma kolumny `mood` ani wiersza `BAD001`.",
+      "explain": "Delta sprawdza każdy zapis względem schematu tabeli (*schema enforcement*). Zapis z kolumną, której tabela nie ma, zostaje odrzucony i nic nie jest zapisywane: zapis kończy się błędem w całości. Tutaj próbujesz dodać klienta `BAD001` z dodatkową kolumną `mood`.",
+      "expected": "Zapis kończy się błędem; tabela nie ma kolumny `mood` ani wiersza `BAD001`.",
       "hints": [
         "Użyj zapisu DataFrame: `bad_df.write`, potem tryb zapisu, a na końcu tabela docelowa.",
         "Łańcuch zapisu to `bad_df.write.mode(\"append\").saveAsTable(TABLE)`. Wstaw go w miejsce `pass`.",
@@ -34,11 +63,29 @@
         {
           "label": "Wymuszanie schematu"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "explain_extra": "Uruchom instrukcję i przeczytaj błąd: Delta podaje kolumnę, której nie może znaleźć. Instrukcja zakończona błędem niczego nie zmienia, więc tabela nie dostaje nowej wersji. **Sprawdź na danych** w tym kroku wymaga komórki PySpark, która zapisuje komunikat błędu.",
+          "hints": [
+            "Wpisz dodatkową kolumnę po `customer_id`, jak każdą inną kolumnę w `INSERT`.",
+            "Słowo kluczowe przed listą wierszy jest takie samo jak w każdym `INSERT INTO ... (columns)`.",
+            "Pełne rozwiązanie:\n```sql\n-- This statement must fail: the table has no column mood\nINSERT INTO lab_delta_cust_ws (customer_id, mood)\nVALUES ('BAD001', 'happy');\n```"
+          ]
+        },
+        "pyspark": {
+          "explain_extra": "`bad_df` z gotowej komórki ma dodatkową kolumnę. Dopisujesz go w gotowym bloku `try`. `try` / `except` to sposób Pythona na przechwycenie błędu: jeśli linia pod `try:` się nie powiedzie, Python przechodzi do `except`, a błąd trafia do `enforcement_error` i nie zatrzymuje notebooka.",
+          "hints": [
+            "Użyj zapisu DataFrame: `bad_df.write`, potem tryb zapisu, a na końcu tabela docelowa.",
+            "Łańcuch zapisu to `bad_df.write.mode(\"append\").saveAsTable(TABLE)`.",
+            "Pełne rozwiązanie:\n```python\nenforcement_error = None\ntry:\n    bad_df.write.mode(\"append\").saveAsTable(TABLE)\nexcept Exception as e:\n    enforcement_error = str(e)\nprint(f\"Error caught: {enforcement_error[:150] if enforcement_error else 'None'}\")\n```"
+          ]
+        }
+      }
     },
     "t03": {
       "title": "Ewolucja schematu: dodaj kolumnę",
-      "explain": "Czasem schemat trzeba zmienić celowo: to *schema evolution* (ewolucja schematu). `ALTER TABLE ... ADD COLUMN` dodaje kolumnę, zmieniając tylko metadane tabeli w dzienniku transakcji; pliki danych nie są przepisywane. Istniejące wiersze mają w nowej kolumnie `NULL`, dopóki ich nie zaktualizujesz. W pierwszej luce wpisz dwuwyrazową klauzulę `ADD COLUMN`, a w drugiej nazwę kolumny.",
+      "explain": "Czasem schemat trzeba zmienić celowo: to *schema evolution* (ewolucja schematu). Dodanie kolumny zmienia tylko metadane tabeli w dzienniku transakcji; pliki danych nie są przepisywane. Istniejące wiersze mają w nowej kolumnie `NULL`, dopóki ich nie zaktualizujesz.",
       "expected": "Tabela ma kolumnę `loyalty_tier` typu `STRING`; istniejące wiersze mają w niej `NULL`.",
       "hints": [
         "Instrukcja, która zmienia strukturę tabeli, to `ALTER TABLE`; potrzebujesz klauzuli, która dodaje kolumnę.",
@@ -52,12 +99,25 @@
         {
           "label": "Ewolucja schematu"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "hints": [
+            "Instrukcja, która zmienia strukturę tabeli, to `ALTER TABLE`; potrzebujesz klauzuli, która dodaje kolumnę.",
+            "Wzorzec: `ALTER TABLE <table> ADD COLUMN <name> <type>`.",
+            "Pełne rozwiązanie:\n```sql\nALTER TABLE lab_delta_cust_ws ADD COLUMN loyalty_tier STRING\n```"
+          ],
+          "explain_extra": "`ALTER TABLE ... ADD COLUMN` dodaje kolumnę. W pierwszej luce wpisz dwuwyrazową klauzulę `ADD COLUMN`, a w drugiej nazwę kolumny."
+        },
+        "pyspark": {
+          "note": "Zmiana schematu to instrukcja SQL w obu ścieżkach. W komórce Pythona uruchamiasz ją przez `spark.sql(f\"ALTER TABLE {TABLE} ADD COLUMN loyalty_tier STRING\")`."
+        }
+      }
     },
     "t04": {
       "title": "Ograniczenie CHECK",
-      "explain": "Ograniczenie `CHECK` to reguła, którą Delta sprawdza przy każdym zapisie. `ALTER TABLE ... ADD CONSTRAINT` najpierw weryfikuje istniejące wiersze, a potem odrzuca każdy zapis, który łamie regułę. Dodajesz `valid_country` z warunkiem `country IS NOT NULL`, a potem w gotowym bloku `try` wstawiasz klienta `BAD_C` z krajem `NULL` (jeśli `INSERT` się nie powiedzie, `except` zapisze błąd w `constraint_error`, a notebook będzie działał dalej). SQL uruchamiasz z Pythona przez `spark.sql(f\"...\")`, a nazwę tabeli wstawiasz jako `{TABLE}`. Pierwsza linia jest gotowa: usuwa ograniczenie, jeśli istnieje, więc możesz uruchomić komórkę ponownie.",
-      "expected": "`SHOW TBLPROPERTIES` pokazuje `delta.constraints.valid_country`, `constraint_error` zawiera błąd, a `BAD_C` nie ma w tabeli.",
+      "explain": "Ograniczenie `CHECK` to reguła, którą Delta sprawdza przy każdym zapisie. Jego dodanie najpierw weryfikuje istniejące wiersze, a potem każdy zapis, który łamie regułę, jest odrzucany. Dodajesz `valid_country` z warunkiem `country IS NOT NULL`, a potem próbujesz wstawić klienta `BAD_C` z krajem `NULL`: to wstawienie musi się nie udać.",
+      "expected": "`SHOW TBLPROPERTIES` pokazuje `delta.constraints.valid_country`, wstawienie `BAD_C` kończy się błędem, a `BAD_C` nie ma w tabeli.",
       "hints": [
         "Dwie instrukcje: `ALTER TABLE ... ADD CONSTRAINT <name> CHECK (<condition>)`, potem `INSERT` z `NULL` w `country`.",
         "SQL to `ALTER TABLE ... ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)`, a potem `INSERT INTO ... (customer_id, country) VALUES ('BAD_C', NULL)`. W Pythonie `spark.sql(f\"...\")` uruchamia jedną instrukcję SQL, a `{TABLE}` wstawia nazwę tabeli.",
@@ -70,11 +130,29 @@
         {
           "label": "Klauzula ADD CONSTRAINT"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "explain_extra": "`ALTER TABLE ... ADD CONSTRAINT <name> CHECK (<condition>)` dodaje regułę. Pierwsza linia usuwa ograniczenie, jeśli istnieje, więc możesz uruchomić kod ponownie. Ostatnia instrukcja musi zakończyć się błędem. **Sprawdź na danych** w tym kroku wymaga komórki PySpark, która zapisuje komunikat błędu.",
+          "hints": [
+            "Dwa słowa kluczowe nazywają regułę i jej typ: reguła to ograniczenie (constraint), a jej typ to sprawdzenie (check).",
+            "Wzorzec: `ALTER TABLE ... ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)`; brakująca wartość w `VALUES` to `NULL`.",
+            "Pełne rozwiązanie:\n```sql\nALTER TABLE lab_delta_cust_ws DROP CONSTRAINT IF EXISTS valid_country;  -- lets you re-run\nALTER TABLE lab_delta_cust_ws ADD CONSTRAINT valid_country CHECK (country IS NOT NULL);\n\n-- This INSERT must fail: country is NULL\nINSERT INTO lab_delta_cust_ws (customer_id, country) VALUES ('BAD_C', NULL);\n```"
+          ]
+        },
+        "pyspark": {
+          "explain_extra": "SQL uruchamiasz z Pythona przez `spark.sql(f\"...\")`, a nazwę tabeli wstawiasz jako `{TABLE}`. `INSERT` działa w bloku `try`: gdy się nie powiedzie, `except` zapisuje błąd w `constraint_error`, a notebook działa dalej.",
+          "hints": [
+            "SQL wewnątrz `spark.sql(...)` to `ALTER TABLE ... ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)`.",
+            "`except` łapie ogólną klasę błędów Pythona `Exception`.",
+            "Pełne rozwiązanie:\n```python\nconstraint_error = None\nspark.sql(f\"ALTER TABLE {TABLE} DROP CONSTRAINT IF EXISTS valid_country\")  # lets you re-run this cell\nspark.sql(f\"ALTER TABLE {TABLE} ADD CONSTRAINT valid_country CHECK (country IS NOT NULL)\")\ntry:\n    spark.sql(f\"INSERT INTO {TABLE} (customer_id, country) VALUES ('BAD_C', NULL)\")\nexcept Exception as e:\n    constraint_error = str(e)\nprint(f\"Insert rejected: {constraint_error is not None}\")\n```"
+          ]
+        }
+      }
     },
     "t05": {
       "title": "Wstaw klientów testowych (INSERT)",
-      "explain": "`INSERT INTO ... VALUES` dodaje wiersze do tabeli. Kolumny wymień po nazwie tabeli; pominięte kolumny (tu `loyalty_tier`, `phone`, ...) dostają `NULL`. Jedna instrukcja z kilkoma wierszami w `VALUES` to jeden atomowy zapis i jedna nowa wersja tabeli. Uruchom komórkę tylko raz: drugie uruchomienie wstawi te wiersze ponownie.",
+      "explain": "`INSERT INTO ... VALUES` dodaje wiersze do tabeli. Kolumny wypisz po nazwie tabeli; kolumny, które pominiesz (tutaj `loyalty_tier`, `phone`, ...), dostaną `NULL`. Jedna instrukcja z kilkoma wierszami w `VALUES` to jeden atomowy zapis i jedna nowa wersja tabeli. Jeśli uruchamiasz kod, zrób to raz: drugie uruchomienie wstawi wiersze ponownie.",
       "expected": "Tabela zawiera `TEST001`, `TEST002` i `TEST003`, każdy dokładnie raz, wszystkie z krajem `TestLand`.",
       "hints": [
         "Słowo kluczowe przed listą wierszy jest takie samo jak w standardowym `INSERT` w SQL.",
@@ -85,7 +163,19 @@
         {
           "label": "INSERT"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "hints": [
+            "Słowo kluczowe przed listą wierszy jest takie samo jak w standardowym `INSERT` w SQL.",
+            "Napisy w SQL wymagają apostrofów: kraj `TEST001` to `'TestLand'`, tak jak w dwóch wierszach poniżej.",
+            "Pełne rozwiązanie:\n```sql\nINSERT INTO lab_delta_cust_ws (customer_id, first_name, last_name, email, country)\nVALUES ('TEST001', 'Alice', 'Test', 'alice@test.com', 'TestLand'),\n       ('TEST002', 'Bob',   'Test', 'bob@test.com',   'TestLand'),\n       ('TEST003', 'Carol', 'Test', 'carol@test.com', 'TestLand')\n```"
+          ]
+        },
+        "pyspark": {
+          "note": "`INSERT INTO ... VALUES` to najkrótszy sposób na dodanie kilku wierszy, więc obie ścieżki go używają. W komórce Pythona uruchamiasz go przez `spark.sql(...)`."
+        }
+      }
     },
     "t06": {
       "title": "Zaktualizuj jednego klienta (UPDATE)",
@@ -100,7 +190,19 @@
         {
           "label": "UPDATE"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "hints": [
+            "Druga kolumna do zmiany to kolumna dodana w kroku 03.",
+            "Ostatnia linia ogranicza zmianę do jednego klienta: zaczyna się od słowa kluczowego, które filtruje wiersze.",
+            "Pełne rozwiązanie:\n```sql\nUPDATE lab_delta_cust_ws\nSET country = 'Poland', loyalty_tier = 'Gold'\nWHERE customer_id = 'TEST001'\n```"
+          ]
+        },
+        "pyspark": {
+          "note": "Obie ścieżki używają `UPDATE` z SQL; w komórce Pythona uruchamiasz go przez `spark.sql(...)`."
+        }
+      }
     },
     "t07": {
       "title": "Usuń wiersze (DELETE)",
@@ -115,11 +217,23 @@
         {
           "label": "DELETE FROM"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "hints": [
+            "Wzorzec: `DELETE FROM <table> WHERE <condition>`.",
+            "Warunek używa `IN`: `customer_id IN ('TEST002', 'TEST003')`.",
+            "Pełne rozwiązanie:\n```sql\nDELETE FROM lab_delta_cust_ws\nWHERE customer_id IN ('TEST002', 'TEST003')\n```"
+          ]
+        },
+        "pyspark": {
+          "note": "Obie ścieżki używają `DELETE` z SQL; w komórce Pythona uruchamiasz go przez `spark.sql(...)`."
+        }
+      }
     },
     "t08": {
       "title": "MERGE INTO (upsert)",
-      "explain": "`MERGE INTO` łączy aktualizację i wstawianie w jednej atomowej instrukcji (*upsert*). `ON` mówi, jak wiersz źródłowy znajduje swój wiersz docelowy: tu po `customer_id`. `WHEN MATCHED` aktualizuje klientów, którzy już istnieją, a `WHEN NOT MATCHED` wstawia nowych. Ułóż bloki w aplikacji, potem wklej instrukcję do notebooka. Dwa bloki to pułapki.",
+      "explain": "`MERGE INTO` łączy aktualizację i wstawianie w jednej atomowej instrukcji (*upsert*). `ON` mówi, jak wiersz źródła znajduje swój wiersz docelowy: tutaj po `customer_id`. `WHEN MATCHED` aktualizuje istniejących klientów, a `WHEN NOT MATCHED` wstawia nowych. Źródłem jest widok tymczasowy `updates_view` z gotowej komórki. Dwa bloki to pułapki.",
       "expected": "Zaktualizowano 2 klientów (`TEST001` staje się `MergedAlice`, poziom `Platinum`), wstawiono 1 (`MERGE_NEW`), pozostali klienci bez zmian.",
       "hints": [
         "Instrukcję czyta się jak zdanie: tabela docelowa, źródło, warunek złączenia, a potem co zrobić z wierszami dopasowanymi i niedopasowanymi.",
@@ -133,12 +247,24 @@
         {
           "label": "MERGE INTO"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "hints": [
+            "Instrukcję czyta się jak zdanie: tabela docelowa, źródło, warunek złączenia, a potem co zrobić z wierszami dopasowanymi i niedopasowanymi.",
+            "Klientów identyfikuje `customer_id`, a nie `email` (w tej partii adresy e-mail się zmieniają). `WHEN NOT MATCHED BY SOURCE THEN DELETE` usunąłby każdego klienta, którego nie ma w partii.",
+            "Pełne rozwiązanie:\n```sql\nMERGE INTO lab_delta_cust_ws AS t\nUSING updates_view AS s\nON t.customer_id = s.customer_id\nWHEN MATCHED THEN UPDATE SET\n  first_name = s.first_name, last_name = s.last_name, email = s.email,\n  country = s.country, loyalty_tier = s.loyalty_tier\nWHEN NOT MATCHED THEN INSERT (customer_id, first_name, last_name, email, country, loyalty_tier)\n  VALUES (s.customer_id, s.first_name, s.last_name, s.email, s.country, s.loyalty_tier)\n```"
+          ]
+        },
+        "pyspark": {
+          "note": "W PySpark ten sam upsert to `DeltaTable.forName(spark, TABLE).merge(...)` z mapą dla każdej kolumny, więc obie ścieżki używają krótszej instrukcji SQL. W komórce Pythona uruchamiasz ją przez `spark.sql(...)`."
+        }
+      }
     },
     "t09": {
       "title": "Historia wersji",
-      "explain": "Każda zatwierdzona zmiana to nowa *wersja* w dzienniku transakcji Delta. `DESCRIBE HISTORY` zwraca jeden wiersz na wersję z kolumnami `version`, `timestamp`, `operation` i `operationParameters`. Możesz też zobaczyć wersje `OPTIMIZE` uruchomione bez twojego udziału: Databricks automatycznie scala małe pliki tabel zarządzanych. Odpowiednik w SQL: `DESCRIBE HISTORY lab_delta_cust_ws` w komórce `%sql`. `spark.sql(...)` uruchamia tę samą instrukcję z Pythona i zwraca DataFrame (tabelę, którą możesz trzymać w zmiennej).",
-      "expected": "`full_history` ma kolumnę `operation` i zawiera co najmniej wersje `UPDATE` i `MERGE`.",
+      "explain": "Każda zatwierdzona zmiana to nowa *wersja* w dzienniku transakcji Delta. Historia tabeli zwraca jeden wiersz na wersję z kolumnami `version`, `timestamp`, `operation` i `operationParameters`. Możesz też zobaczyć wersje `OPTIMIZE`, których nie uruchamiałeś: Databricks automatycznie łączy małe pliki tabel zarządzanych.",
+      "expected": "Jeden wiersz na wersję z kolumną `operation`, w tym co najmniej wersje `UPDATE` i `MERGE`.",
       "hints": [
         "Instrukcję SQL uruchamiasz z Pythona przez `spark.sql(...)`; zwraca ona DataFrame.",
         "Instrukcja to `DESCRIBE HISTORY <table>`; użyj f-stringa `f\"DESCRIBE HISTORY {TABLE}\"`.",
@@ -151,11 +277,29 @@
         {
           "label": "DESCRIBE HISTORY"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "explain_extra": "`DESCRIBE HISTORY` zwraca historię jako wynik, który możesz sortować i filtrować w wyniku komórki. **Sprawdź na danych** w tym kroku wymaga komórki PySpark, która zapisuje historię.",
+          "hints": [
+            "Instrukcja, która pokazuje szczegóły tabeli, zaczyna się od `DESCRIBE`.",
+            "Drugie słowo mówi, jakie szczegóły chcesz zobaczyć: wersje w czasie.",
+            "Pełne rozwiązanie:\n```sql\nDESCRIBE HISTORY lab_delta_cust_ws\n```"
+          ]
+        },
+        "pyspark": {
+          "explain_extra": "`DeltaTable.forName(spark, TABLE)` daje dostęp do API Delta dla tabeli, a `.history()` zwraca ten sam DataFrame co `spark.sql(f\"DESCRIBE HISTORY {TABLE}\")`: `full_history`.",
+          "hints": [
+            "`DeltaTable` znajduje tabelę po nazwie; metoda, która zwraca wersje, nazywa się tak jak to, co zwraca.",
+            "`DeltaTable.forName(spark, TABLE).history()`; sortuj po numerze wersji, od najnowszej.",
+            "Pełne rozwiązanie:\n```python\nfrom delta.tables import DeltaTable\n\nfull_history = DeltaTable.forName(spark, TABLE).history()\ndisplay(full_history.select(\"version\", \"timestamp\", \"operation\").orderBy(F.desc(\"version\")))\n```"
+          ]
+        }
+      }
     },
     "t10": {
       "title": "Time travel według wersji",
-      "explain": "*Time travel* odczytuje starszą wersję tabeli Delta. Dodaj `VERSION AS OF <n>` zaraz po nazwie tabeli w klauzuli `FROM`. Wersja 0 to `CREATE TABLE ... AS SELECT` z kroku 01: przed dodaniem nowej kolumny i przed wszystkimi zmianami. Wynik zapisujesz jako widok tymczasowy. Zakończ instrukcję znakiem `;`: komórka w notebooku uruchamia po twojej instrukcji jeszcze jedną, która kopiuje `customers_v0` do tabeli, żeby aplikacja mogła go sprawdzić. Odpowiednik w Pythonie: `spark.read.option(\"versionAsOf\", 0).table(TABLE)`.",
+      "explain": "*Time travel* odczytuje starszą wersję tabeli Delta. Wersja 0 to tabela utworzona w kroku 01: przed nową kolumną i przed jakąkolwiek zmianą. Time travel nie filtruje wierszy: wybiera wersję całej tabeli. Dwa bloki to pułapki.",
       "expected": "`customers_v0` ma 10 000 oryginalnych wierszy, nie ma kolumny `loyalty_tier` ani klienta `TEST001`.",
       "hints": [
         "Time travel to nie filtr w `WHERE`: to klauzula dołączona do nazwy tabeli.",
@@ -169,12 +313,30 @@
         {
           "label": "Odwołanie do tabeli: składnia AS OF"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "hints": [
+            "Time travel to nie filtr w `WHERE`: to klauzula dołączona do nazwy tabeli.",
+            "`TIMESTAMP AS OF` wymaga daty lub czasu, a nie numeru wersji. Użyj `VERSION AS OF 0` zaraz po `FROM lab_delta_cust_ws`.",
+            "Pełne rozwiązanie:\n```sql\nCREATE OR REPLACE TEMP VIEW customers_v0 AS\nSELECT *\nFROM lab_delta_cust_ws\nVERSION AS OF 0;\n```"
+          ],
+          "explain_extra": "Dopisz `VERSION AS OF <n>` zaraz po nazwie tabeli w `FROM`. Wynik zapisujesz jako widok tymczasowy `customers_v0`."
+        },
+        "pyspark": {
+          "explain_extra": "Time travel to opcja czytnika ustawiana między `spark.read` a `.table(TABLE)`: `.option(\"<option>\", <number>)`. Wynik trafia do DataFrame `customers_v0`.",
+          "hints": [
+            "Time travel to nie filtr: to opcja czytnika ustawiana przed `.table(...)`.",
+            "`timestampAsOf` wymaga daty lub czasu, a nie numeru wersji. Użyj `.option(\"versionAsOf\", 0)`.",
+            "Pełne rozwiązanie:\n```python\ncustomers_v0 = (\n    spark.read\n    .option(\"versionAsOf\", 0)\n    .table(TABLE)\n)\ndisplay(customers_v0.limit(5))\n```"
+          ]
+        }
+      }
     },
     "t11": {
       "title": "Time travel według znacznika czasu",
-      "explain": "Time travel działa też z punktem w czasie: `TIMESTAMP AS OF '<timestamp>'`. `INSERT` z kroku 05 to najnowszy wiersz historii z `operation = 'WRITE'` i `operationParameters.mode = 'Append'`. Weź jego `timestamp` i odczytaj tabelę dokładnie z tej chwili: `TEST001` ma wtedy jeszcze kraj `TestLand`, sprzed `UPDATE` z kroku 06. Użyj znacznika czasu z mikrosekundami (`%Y-%m-%d %H:%M:%S.%f`), inaczej wynik może objąć późniejszą zmianę z tej samej sekundy. Odpowiednik w SQL: `SELECT * FROM lab_delta_cust_ws TIMESTAMP AS OF '<ts>'`. Czytaj kod Pythona jak SQL: `DESCRIBE HISTORY` nie da się użyć wewnątrz `SELECT ... FROM (...)`, więc uruchamiasz je przez `spark.sql(...)` i pracujesz na DataFrame. `.filter(...)` to `WHERE`; `F.col(\"operationParameters\")[\"mode\"]` odczytuje jeden klucz z kolumny typu map (SQL: `operationParameters['mode']`); `.orderBy(F.desc(\"version\")).first()[\"timestamp\"]` to `ORDER BY version DESC LIMIT 1` i pobiera wartość jednej kolumny. `strftime(...)` zamienia tę datę z godziną na tekst.",
-      "expected": "`ts_insert` to `datetime` Pythona; `df_ts` zawiera `TEST001` z krajem `TestLand`.",
+      "explain": "Time travel działa też z punktem w czasie. `INSERT` z kroku 05 to najnowszy wiersz historii z `operation = 'WRITE'` i `operationParameters.mode = 'Append'`. Odczytaj tabelę w jego dokładnym `timestamp`: `TEST001` ma wtedy jeszcze kraj `TestLand`, sprzed `UPDATE` z kroku 06. Użyj pełnego znacznika czasu z ułamkiem sekundy, inaczej dostaniesz starszą wersję.",
+      "expected": "Tabela z tamtej chwili zawiera `TEST001` z krajem `TestLand`.",
       "hints": [
         "Przefiltruj `history_df` tak: `history_df.filter(F.col(\"operation\") == \"WRITE\")`. Dodaj `& (F.col(\"operationParameters\")[\"mode\"] == \"Append\")` w nawiasie, posortuj przez `.orderBy(F.desc(\"version\"))` i weź `.first()[\"timestamp\"]`.",
         "Sformatuj go przez `ts_insert.strftime(\"%Y-%m-%d %H:%M:%S.%f\")` i odczytaj tabelę przez `spark.sql(f\"SELECT * FROM {TABLE} TIMESTAMP AS OF '{ts_str}'\")`.",
@@ -184,11 +346,29 @@
         {
           "label": "Praca z historią tabeli: time travel"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "explain_extra": "`DESCRIBE HISTORY` nie da się użyć wewnątrz zapytania, więc odczytujesz znacznik czasu z jego wyniku i wklejasz go w miejsce `<timestamp of the INSERT>`, na przykład `'2026-10-28 09:15:42.137'`.",
+          "hints": [
+            "Pierwsza instrukcja wypisuje wersje tabeli; druga odczytuje jedną z nich według czasu.",
+            "`DESCRIBE HISTORY` oraz `TIMESTAMP AS OF '<timestamp>'` zaraz po nazwie tabeli.",
+            "Pełne rozwiązanie:\n```sql\n-- 1. Find the timestamp of the INSERT from step 05 (operation WRITE, mode Append)\nDESCRIBE HISTORY lab_delta_cust_ws;\n\n-- 2. Read the table at that moment: paste the timestamp with its milliseconds\nSELECT * FROM lab_delta_cust_ws\nTIMESTAMP AS OF '<timestamp of the INSERT>'\nWHERE customer_id = 'TEST001';\n```"
+          ]
+        },
+        "pyspark": {
+          "explain_extra": "Czytaj Pythona jak SQL: `.filter(...)` to `WHERE`; `F.col(\"operationParameters\")[\"mode\"]` odczytuje jeden klucz kolumny typu map (SQL: `operationParameters['mode']`); `.orderBy(F.desc(\"version\")).first()[\"timestamp\"]` to `ORDER BY version DESC LIMIT 1` i pobiera jedną wartość. `strftime(...)` zamienia datę i czas na tekst z mikrosekundami, a opcja czytnika `timestampAsOf` wczytuje tabelę z tamtej chwili do `df_ts`.",
+          "hints": [
+            "`INSERT` występuje w historii jako operacja `WRITE`. Metoda, która pobiera pierwszy wiersz DataFrame, to `.first()`.",
+            "Opcja czytnika dla punktu w czasie to `timestampAsOf`, bliźniak `versionAsOf` z kroku 10.",
+            "Pełne rozwiązanie:\n```python\nhistory_df = spark.sql(f\"DESCRIBE HISTORY {TABLE}\")\nts_insert = (\n    history_df\n    .filter((F.col(\"operation\") == \"WRITE\") & (F.col(\"operationParameters\")[\"mode\"] == \"Append\"))\n    .orderBy(F.desc(\"version\"))\n    .first()[\"timestamp\"]\n)\nts_str = ts_insert.strftime(\"%Y-%m-%d %H:%M:%S.%f\")\ndf_ts = spark.read.option(\"timestampAsOf\", ts_str).table(TABLE)\ndisplay(df_ts.filter(F.col(\"customer_id\") == \"TEST001\"))\n```"
+          ]
+        }
+      }
     },
     "t12": {
       "title": "RESTORE po przypadkowym usunięciu",
-      "explain": "`DELETE FROM <table>` bez `WHERE` usuwa wszystkie wiersze, ale stara wersja nadal jest w historii. `RESTORE TABLE ... TO VERSION AS OF <n>` przywraca tabelę do wersji `n` i zapisuje przywrócenie jako nową wersję. `safe_version` (z gotowej komórki) to wersja sprzed pomyłki. Time travel to nie kopia zapasowa: gdy `VACUUM` usunie stare pliki danych, tych wersji już nie odzyskasz. Odpowiednik kluczowej linii w SQL: `RESTORE TABLE lab_delta_cust_ws TO VERSION AS OF 12` (z twoim numerem wersji).",
+      "explain": "`DELETE FROM <table>` bez `WHERE` usuwa wszystkie wiersze, ale stara wersja nadal jest w historii. `RESTORE TABLE ... TO VERSION AS OF <n>` przywraca tabelę do wersji `n` i zapisuje przywrócenie jako nową wersję. Time travel to nie kopia zapasowa: po tym, jak `VACUUM` usunie stare pliki danych, tych wersji już nie ma. Najpierw wypadek i jego skutek, potem naprawa i jej skutek; dwa bloki to pułapki.",
       "expected": "Po uruchomieniu komórki tabela ma tyle samo wierszy co przed pomyłką; historia pokazuje `DELETE`, a potem `RESTORE`.",
       "hints": [
         "Najpierw pomyłka i jej skutek, potem naprawa i jej skutek.",
@@ -205,7 +385,25 @@
         {
           "label": "VACUUM"
         }
-      ]
+      ],
+      "variants": {
+        "sql": {
+          "explain_extra": "Uruchom pierwszą linię osobno, przed wypadkiem, i zanotuj wersję, którą pokaże: to twoja bezpieczna wersja. Wpisz ten numer w miejsce `<safe version>`.",
+          "hints": [
+            "Najpierw zanotuj bezpieczną wersję, potem wypadek i jego skutek, a na końcu naprawę i jej skutek.",
+            "Potrzebujesz `DESCRIBE HISTORY`, `DELETE` i `RESTORE`. `VACUUM` sprawiłby, że po okresie retencji starych wersji nie da się odzyskać, a `DROP TABLE` usuwa samą tabelę.",
+            "Pełne rozwiązanie:\n```sql\nDESCRIBE HISTORY lab_delta_cust_ws LIMIT 1;  -- note this version: your safe version\nDELETE FROM lab_delta_cust_ws;\nSELECT count(*) AS rows_after_accident FROM lab_delta_cust_ws;\nRESTORE TABLE lab_delta_cust_ws TO VERSION AS OF <safe version>;\nSELECT count(*) AS rows_after_restore FROM lab_delta_cust_ws;\n```"
+          ]
+        },
+        "pyspark": {
+          "hints": [
+            "Najpierw pomyłka i jej skutek, potem naprawa i jej skutek.",
+            "Potrzebujesz `DELETE` i `RESTORE`. Po `VACUUM` starych wersji nie da się odzyskać po upływie okresu retencji, a `DROP TABLE` usuwa całą tabelę.",
+            "Pełne rozwiązanie:\n```python\nspark.sql(f\"DELETE FROM {TABLE}\")\nprint(f\"Rows after the accident: {spark.table(TABLE).count():,}\")\nspark.sql(f\"RESTORE TABLE {TABLE} TO VERSION AS OF {safe_version}\")\nprint(f\"Rows after RESTORE: {spark.table(TABLE).count():,}\")\n```"
+          ],
+          "explain_extra": "`safe_version` (z gotowej komórki) to wersja sprzed wypadku. W Pythonie każdą instrukcję uruchamiasz przez `spark.sql(...)`, a `spark.table(TABLE).count()` liczy wiersze."
+        }
+      }
     }
   }
 }

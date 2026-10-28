@@ -9,15 +9,16 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
   **Warsztat II — Delta Lake** / **Workshop II — Delta Lake** (`ws_delta`).
 - The header has a **PL | EN** switch (default PL, remembered in the browser). It changes the
   whole app, the quiz included. See [Languages](#languages).
-- Participants write and run code in their notebook. The last line of a step cell saves the
-  result to their catalog; the **Check** button in the app then runs the step's check as SQL
-  on the SQL warehouse **as the participant** (on-behalf-of-user) and appends a row to the
-  progress table. See [Check button](#check-button).
+- Each workshop has two **tracks**, **SQL** and **PySpark**, picked in the workshop header. Every
+  step is an exercise (fill / order / match) done and graded **in the app**; the server grades the
+  answer again and records the result. The notebook is optional. See [Two tracks](#two-tracks).
 - The app shows the step (explanation, blanks, drag and drop, hints, doc links) and polls
   `GET /api/progress/me` every 5 s for the live status. The server reads the progress
   table at most once per workshop every 4 s and shares the result between all users.
-- Steps the app can grade itself (`order` / `match` with `"check": "app"`) are recorded with
-  `POST /api/progress` (INSERT as the app service principal).
+- Under each exercise a collapsed **Notebook (optional)** section shows the participant's
+  completed code and, where a check exists, **Check on data** / **Sprawdź na danych**: the step's
+  check runs as SQL on the SQL warehouse **as the participant** (on-behalf-of-user). It is an
+  optional bonus and never changes the step's result. See [Check button](#check-button).
 - `/trainer` shows the participant × step matrix for emails listed in `TRAINER_EMAILS`
   (`GET /api/progress/matrix`, which returns 403 for everyone else).
 - `/quiz` is the course quiz (40 questions, PL/EN) in learning mode: feedback, explanation and the
@@ -41,7 +42,10 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 | `server/sql/unlock_state.sql`, `server/unlock.ts`, `shared/unlock-schema.ts` | trainer unlock: latest row per item, reducer, 423 gate helpers, POST validation; server only SQL |
 | `server/sql/quiz_progress.sql` | quiz state per participant and question (first answer, solved, attempts); server only |
 | `server/quiz.ts`, `shared/quiz-schema.ts` | key loading and caching, grading, attempt numbering, rate limit; zod schemas |
-| `shared/guide-schema.ts` | zod schema of the guide files and the POST body; workshop labels (Roman numerals) and order |
+| `shared/guide-schema.ts` | zod schema of the guide files (variants per track) and the POST body; `resolveExercise()`; workshop labels (Roman numerals) and order |
+| `shared/grading.ts` | fill / order / match grading and the `track=…` message prefix, shared by the client and the server |
+| `client/src/lib/track.ts` | track per workshop in `localStorage` (`wg:<email>:<workshop>:track`, default SQL) |
+| `client/src/components/NotebookSection.tsx` | collapsed "Notebook (optional)": completed code and the optional Check on data |
 | `shared/guide-i18n.ts` | zod schema of the translation overlays, merge with English, overlay checks |
 | `config/guides/i18n/pl/*.json` | Polish overlays used at runtime (synced, committed) |
 | `client/src/i18n/` | UI dictionary (`en.ts` defines the keys, `pl.ts` must match), language context and provider |
@@ -95,11 +99,52 @@ number of participants. Unknown workshops return 404.
 The `useAnalyticsQuery` hook is not used for polling. It cannot re-run a query with
 unchanged parameters (no refetch), so live status stopped after the first load.
 
+## Two tracks
+
+SPEC section 11. In the guide JSON a step keeps its shared prose (`title`, `explain`, `expected`,
+`hints`, `docs`) and gets one exercise per track:
+
+```json
+"variants": {
+  "sql":     { "type": "fill", "template": "SELECT {{b1}} FROM t", "blanks": { "b1": { "answers": ["*"] } },
+               "explain_extra": "optional Markdown", "hints": ["optional, replaces the shared hints"] },
+  "pyspark": { "type": "order", "blocks": [{ "id": "a", "code": "..." }], "solution": ["a"], "distractors": [] }
+}
+```
+
+- `type` is `fill` (`template`, `blanks`), `order` (`blocks`, `solution`, `distractors`) or `match`
+  (`pairs`). Optional per variant: `language` (default `sql` / `python`), `explain_extra`, `hints`,
+  `note` (one line above the exercise). Other keys are ignored.
+- No exercise for a track: leave the track out, or write `{ "same_as": "sql", "note": "..." }`. Both
+  tracks then show the other exercise with the note (or a default one-liner).
+- A step with `variants` is a track step whatever its legacy `type` / `check` say; optional track
+  steps are allowed. **Transition**: a step without `variants` still works with its legacy fields;
+  legacy `fill` / `order` / `match` are graded in the app in both tracks, a legacy `code` step keeps
+  the Check button as its (required) grading until it is converted.
+- **Track switch**: in the workshop header, remembered per user and workshop in `localStorage`
+  (SQL by default). Typed answers and revealed hints are kept per track.
+- **Grading**: the browser grades at once (a fill step passes when its last blank turns correct;
+  order / match on "Check"). It sends the *answer*, not a status:
+  `POST /api/progress {workshop, step, track, answer: {type: fill, values} | {type: order, order} |
+  {type: match, assignment}, hints_used, attempts}`. The server resolves the exercise of that track,
+  grades the answer with the same code (`shared/grading.ts`) and writes the row itself: `status`,
+  `step_type` (the exercise type) and `message` = `track=sql · All 3 blanks correct.`. A body with
+  only `status: "pass"` is a 400. Response 201 `{status, message, step_type, track}`; 409 for a
+  legacy `code` step; 429 above 30 answers per step and minute.
+- **A step counts once**: `server/sql/latest_progress.sql` takes the latest *pass* row of a step (else
+  the latest row), so a later failed try in the other track does not turn it red, and returns
+  `tracks`, the tracks with a pass (`pyspark,sql`), from the message prefix.
+- **Trainer matrix**: a cell is green when the step passed in any track; each participant row shows
+  badges of the tracks used; the cell tooltip lists the passed tracks.
+
 ## Check button
 
-Every step with `"check": "notebook"` in the guide (the name is historical: the result is
-still produced in the notebook) has a **Check** button. The classroom notebooks have no
-`check()` cells any more.
+**Since section 11 (two tracks)**: Check is the optional **Check on data** in the collapsed
+"Notebook (optional)" section of every step that has a check in `server/checks/` (the server marks
+these steps with `data_check` at startup). The result is shown under the button and stored with
+`step_type = 'data_check'`, which `latest_progress.sql` leaves out, so it never changes the step.
+Only legacy `code` steps (no `variants`) still use Check as their grading; the text below describes
+that flow, which is the same for the bonus apart from the row's `step_type`.
 
 1. The participant runs the step cell. Its last line saves the result: steps that change a
    real table (Bronze table, `lab_delta_cust_ws`) need nothing more; steps whose result is
@@ -122,7 +167,7 @@ still produced in the notebook) has a **Check** button. The classroom notebooks 
 |---|---|
 | 200 `{status: pass\|fail, message}` | the check ran; a SQL error in the participant's tables is a FAIL with its first line |
 | 401 | no user identity, or no user token (local development without `DEV_CHECK_AS_CLI=1`, or the app has no `sql` user scope), or no `X-Forwarded-User` (AppKit `asUser()` needs it; set by the Apps proxy, send it yourself when testing `npm start` locally) |
-| 404 / 409 / 501 | unknown workshop or step / step graded in the app / no check defined |
+| 404 / 409 / 501 | unknown workshop or step / app-graded step without a check / code step without a check |
 | 429 | more than one Check per user every 3 s (in memory, per app instance) |
 | 502 | the app could not run SQL as the user (no `CAN_USE` on the warehouse, token or scope problem); nothing is recorded |
 
@@ -235,7 +280,7 @@ Commit `config/guides/` after syncing: `databricks apps deploy` uploads only thi
   lives in overlays `notebooks/workshops/guide/i18n/pl/ws_*.json`, copied by `sync-guides` to
   `config/guides/i18n/pl/`. An overlay has the guide `id` and, per step id, only `title`,
   `explain`, `expected`, `hints`, match `pairs` (`left` / `right`, leave out a side that is
-  code) and doc `label`s; `steps` can be a list with `id` or an object keyed by step id. Code
+  code), doc `label`s and, for track steps, `variants.{sql,pyspark}.{explain_extra, note, hints, pairs}`; `steps` can be a list with `id` or an object keyed by step id. Code
   (`template`, `blocks`, `starter`, blanks) always comes from English. An empty or missing field
   falls back to English; a list of another length than the English one is ignored. A numbered
   guide keeps its label from the number (`Warsztat I — Ingestion`), not from the overlay title.
@@ -248,8 +293,7 @@ Commit `config/guides/` after syncing: `databricks apps deploy` uploads only thi
   overlays in the source folder and in `config/guides/` (code fences in hints must be identical).
 - **Stays English**: check messages from the server (they mirror the notebooks) and the result
   messages of order / match exercises that are stored in the progress table (the app shows its
-  own Polish feedback next to the exercise). The paste hint names the notebook heading by its
-  English number (`Step 03`), because the notebooks are English.
+  own Polish feedback next to the exercise).
 
 ## Quiz
 
@@ -417,6 +461,10 @@ The secret scope and both secrets must exist before `bundle deploy`: `app.yaml` 
    notebook: it must fail with a permission error.
 
 ## Known limits
+
+- Server-side grading stops a forged `status`, not a participant who sends the right answer with
+  curl: blank answers and order solutions ship to the browser in `GET /api/guides` (needed for
+  instant feedback and the static HTML). Progress is a learning aid, not an assessment.
 
 - Hints used are stored by the app (POST and Check). Rows from the `_checks` notebooks
   (self-study) have `hints_used = NULL`.

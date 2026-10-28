@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import { analytics, createApp, createWorkspaceClient, server, sql } from '@databricks/appkit';
-import { sortGuides, type GuidesResponse, type MeResponse } from '../shared/guide-schema';
+import { sortGuides, type GuidesResponse, type MeResponse, type ProgressPostResponse } from '../shared/guide-schema';
 import { resetQuerySchema, type CheckResponse, type ResetResponse } from '../shared/check-schema';
 import type { Row } from './checks/framework';
-import { runCheck, validateCheckPost } from './checks';
+import { markDataChecks, runCheck, validateCheckPost } from './checks';
 import { catalogFor } from './slug';
 import type { ParticipantRow, ProgressResponse, TrainerRow } from '../shared/progress-schema';
 import { loadGuides, loadOverlays } from './guides';
@@ -21,7 +21,9 @@ import {
   buildCheckInsert,
   buildProgressInsert,
   buildProgressReset,
+  DATA_CHECK_STEP_TYPE,
   parseEmailList,
+  progressRowValues,
   resolveProgressTable,
   resolveUserEmail,
   validateProgressPost,
@@ -57,7 +59,7 @@ import {
 } from './unlock';
 
 // Fail fast on broken configuration or guide files.
-const guides = loadGuides();
+const guides = markDataChecks(loadGuides());
 const overlays = loadOverlays(guides);
 const progressTable = resolveProgressTable();
 const insertStatement = buildProgressInsert(progressTable);
@@ -117,6 +119,8 @@ createApp({
     // Check: at most one run per user every 3 s (each run is a few warehouse statements).
     const checkLimiter = new RateLimiter(1, 3_000);
     const resetLimiter = new RateLimiter(3, 60_000);
+    // App-graded answers: 30 per step and minute is plenty for dragging blocks and retrying.
+    const progressLimiter = new RateLimiter(30, 60_000);
     const answerLock = new KeyedLock();
     // ── Trainer unlock: one statement every few seconds, shared like the progress reads ──
     const unlockCache = new ProgressCache<UnlockDbRow>(async () =>
@@ -485,7 +489,7 @@ createApp({
             res.status(result.status).json({ error: result.error });
             return;
           }
-          const { post, step, check } = result;
+          const { post, step, check, bonus } = result;
           const hasToken = Boolean(req.header('x-forwarded-access-token')?.trim());
           if (!hasToken && !devCheckAsCli) {
             res.status(401).json({
@@ -518,7 +522,8 @@ createApp({
               user_email: sql.string(email),
               workshop: sql.string(post.workshop),
               step: sql.string(post.step),
-              step_type: sql.string(step.type),
+              // The optional "Check on data" never changes the step's status (latest_progress.sql skips it).
+              step_type: sql.string(bonus ? DATA_CHECK_STEP_TYPE : step.type),
               status: sql.string(outcome.status),
               message: sql.string(outcome.message),
               hints_used: sql.int(post.hints_used),
@@ -528,7 +533,7 @@ createApp({
             recorded = false;
             console.error('[workshop-guide] check result insert failed', err);
           }
-          const body: CheckResponse = { status: outcome.status, message: outcome.message, recorded };
+          const body: CheckResponse = { status: outcome.status, message: outcome.message, recorded, bonus };
           res.json(body);
         })().catch((err: unknown) => {
           console.error('[workshop-guide] check failed', err);
@@ -588,22 +593,29 @@ createApp({
           res.status(result.status).json({ error: result.error });
           return;
         }
-        const { post, step } = result;
+        const { post, result: graded } = result;
         gateWorkshop(res, email, post.workshop)
           .then(async (open) => {
             if (!open) return;
+            if (!progressLimiter.allow(`${email}:${post.workshop}:${post.step}`)) {
+              res.status(429).json({ error: 'Too many answers for this step. Wait a minute and try again.' });
+              return;
+            }
+            // Status, step type and message come from the server's grade of the answer.
+            const v = progressRowValues(email, post, graded);
             await appkit.analytics.query(insertStatement, {
-            user_email: sql.string(email),
-            workshop: sql.string(post.workshop),
-            step: sql.string(post.step),
-            step_type: sql.string(step.type),
-            status: sql.string(post.status),
-            message: sql.string(post.message),
-            hints_used: sql.int(post.hints_used),
-              attempts: sql.int(post.attempts),
+              user_email: sql.string(v.user_email),
+              workshop: sql.string(v.workshop),
+              step: sql.string(v.step),
+              step_type: sql.string(v.step_type),
+              status: sql.string(v.status),
+              message: sql.string(v.message),
+              hints_used: sql.int(v.hints_used),
+              attempts: sql.int(v.attempts),
             });
             progressCache.invalidate(post.workshop);
-            res.status(201).json({ ok: true });
+            const body: ProgressPostResponse = graded;
+            res.status(201).json(body);
           })
           .catch((err: unknown) => {
             console.error('[workshop-guide] progress insert failed', err);

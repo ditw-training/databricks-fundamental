@@ -1,27 +1,38 @@
 import { Button } from '@databricks/appkit-ui/react';
-import { CheckCircle2, RotateCcw } from 'lucide-react';
+import { CheckCircle2, Loader2, RotateCcw, Save } from 'lucide-react';
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
-import type { FillStep } from '../../../../shared/guide-schema';
+import type { FillVariant } from '../../../../shared/guide-schema';
 import { assembleFill, blankInputWidth, blankState, fillProgress, keyedSegments } from '../../lib/exercise';
 import { useI18n } from '../../i18n/context';
 import { useStoredState } from '../../lib/storage';
-import { CopyButton } from '../CopyButton';
 
 interface Props {
-  step: FillStep;
+  exercise: Pick<FillVariant, 'template' | 'blanks'>;
   storageKey: string;
-  /** Where to paste the code in the notebook (shown next to Copy). */
-  pasteHint?: ReactNode;
+  /** Called when the last blank becomes correct (and on "save again"); the parent records the result. */
+  onComplete: (values: Record<string, string>) => void;
+  /** The step is already passed (no "save again" button). */
+  passed: boolean;
+  busy?: boolean;
+  /** The collapsed "Notebook (optional)" section, given the assembled code. */
+  renderNotebook?: (code: string, complete: boolean) => ReactNode;
 }
 
-/** Code with inline inputs; each blank is checked as you type. */
-export function FillExercise({ step, storageKey, pasteHint }: Props) {
+/** Code with inline inputs; each blank is checked as you type and the step passes when all are right. */
+export function FillExercise({ exercise, storageKey, onComplete, passed, busy, renderNotebook }: Props) {
+  const step = exercise;
   const { m } = useI18n();
   const [values, setValues] = useStoredState<Record<string, string>>(storageKey, {});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const segments = useMemo(() => keyedSegments(step.template), [step.template]);
   const { correct, total } = fillProgress(step, values);
   const allCorrect = correct === total;
+  const change = (id: string, value: string) => {
+    const next = { ...values, [id]: value };
+    setValues(next);
+    // Record once, when the last blank turns correct (typing on in a correct blank does not resend).
+    if (!allCorrect && fillProgress(step, next).correct === total) onComplete(next);
+  };
   // Show "wrong" once the participant left the field or typed at least the answer length.
   const visualOf = (id: string): 'correct' | 'wrong' | 'neutral' => {
     const blank = step.blanks[id];
@@ -60,7 +71,7 @@ export function FillExercise({ step, storageKey, pasteHint }: Props) {
                 style={{ width: `calc(${blankInputWidth(value)}ch + 0.8rem)` }}
                 value={value}
                 placeholder="____"
-                onChange={(e) => setValues((prev) => ({ ...prev, [seg.id]: e.target.value }))}
+                onChange={(e) => change(seg.id, e.target.value)}
                 onBlur={() => setTouched((prev) => ({ ...prev, [seg.id]: true }))}
               />
             );
@@ -94,17 +105,16 @@ export function FillExercise({ step, storageKey, pasteHint }: Props) {
           >
             <RotateCcw className="size-4" aria-hidden /> {m.reset}
           </Button>
-          <CopyButton
-            text={assembleFill(step, values)}
-            label={m.copyToNotebook}
-            variant={allCorrect ? 'default' : 'outline'}
-          />
+          {allCorrect && !passed && (
+            // The automatic save failed or happened before a reset: send the answer again.
+            <Button type="button" size="sm" onClick={() => onComplete(values)} disabled={busy}>
+              {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Save className="size-4" aria-hidden />}
+              {busy ? m.saving : m.saveRetry}
+            </Button>
+          )}
         </div>
       </div>
-      {pasteHint}
-      {!allCorrect && correct > 0 && (
-        <p className="text-xs text-muted-foreground">{m.fillEmptyCopied}</p>
-      )}
+      {renderNotebook?.(assembleFill(step, values), allCorrect)}
     </div>
   );
 }

@@ -121,7 +121,7 @@ describe('enforcement', () => {
 
   it('unlock rows never reach the matrix, quiz stats or reset (not a guide id)', () => {
     const r = validateProgressPost(
-      { workshop: UNLOCK_WORKSHOP, step: 'quiz', status: 'pass', message: '', hints_used: 0, attempts: 1 },
+      { workshop: UNLOCK_WORKSHOP, step: 'quiz', answer: { type: 'match', assignment: [] }, hints_used: 0, attempts: 1 },
       guides,
     );
     expect(r).toMatchObject({ ok: false, status: 404 });

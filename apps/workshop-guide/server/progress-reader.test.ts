@@ -16,6 +16,7 @@ const row = (over: Partial<ProgressRow> = {}): ProgressRow => ({
   source: 'notebook',
   ts: '2026-10-27 10:00:00',
   runs: 1,
+  tracks: null,
   ...over,
 });
 

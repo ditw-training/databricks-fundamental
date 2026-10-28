@@ -41,10 +41,26 @@ export const pl: Dict = {
   statusFail: 'Niezaliczony, spróbuj jeszcze raz',
   statusNone: 'Nierozpoczęty',
 
+  // ── tracks (SPEC section 11) ──
+  track: 'Ścieżka',
+  trackName: (track) => ({ sql: 'SQL', pyspark: 'PySpark' })[track],
+  trackSwitchLabel: 'Wybierz ścieżkę: SQL albo PySpark',
+  trackHelp: 'Możesz ją zmienić w każdej chwili; krok liczy się raz, w tej ścieżce, w której go zaliczysz.',
+  trackFallback: (track, shown) => `Ten krok nie ma wersji ${track}: obie ścieżki mają tu ćwiczenie ${shown}.`,
+  passedIn: (tracks) => `zaliczone w: ${tracks}`,
+  trackShared: (shown) => `${shown} (obie ścieżki)`,
+  trackChooseTitle: 'Wybierz ścieżkę',
+  trackChooseIntro:
+    'Każdy krok ma wersję SQL i PySpark. Wybierz tę, która ci odpowiada; później możesz ją zmienić przełącznikiem SQL | PySpark u góry.',
+  trackSqlDesc: 'Znasz SQL: SELECT, WHERE, GROUP BY. Pracujesz na zapytaniach i widokach.',
+  trackPysparkDesc: 'Chcesz poznać Pythona: DataFrame i API PySpark.',
+  trackChooseButton: (track) => `Zaczynam w ${track}`,
+  pickerTrackHint: 'Dwie ścieżki: SQL albo PySpark. Wybierasz po otwarciu warsztatu.',
+
   // ── workshop picker ──
   pickerTitle: 'Warsztaty i quiz',
   pickerIntro:
-    'Obok przewodnika otwórz odpowiedni notebook. Tam piszesz i uruchamiasz kod, a przewodnik objaśnia każdy krok i pokazuje twoje postępy.',
+    'Wybierz warsztat i ścieżkę (SQL albo PySpark). Każde ćwiczenie robisz tutaj, a przewodnik od razu je sprawdza. Uruchomienie kodu w notebooku jest opcjonalne.',
   unknownWorkshop: (id) => `Warsztat „${id}” nie istnieje. Wybierz jeden z poniższych.`,
   stepCount: (required, optional) =>
     `${required} ${plPlural(required, 'krok', 'kroki', 'kroków')}${
@@ -61,7 +77,7 @@ export const pl: Dict = {
   lockedText: 'Trener odblokuje to w odpowiednim momencie.',
   lockedNowTitle: 'Zablokowane przez trenera',
   lockedNowText:
-    'Trener na razie zablokował tę część. Nic nie ginie: kod zostaje w notebooku, a wyniki są zapisane. Strona otworzy się tu znowu, gdy trener ją odblokuje.',
+    'Trener na razie zablokował tę część. Nic nie ginie: twoje odpowiedzi i wyniki są zapisane. Strona otworzy się tu znowu, gdy trener ją odblokuje.',
   lockedQuizText: 'Ta strona odświeży się sama.',
   lockedQuizNowText:
     'Trener na razie zablokował quiz. Nic nie ginie: twoje dotychczasowe odpowiedzi są zapisane. Quiz otworzy się tu znowu, gdy trener go odblokuje.',
@@ -84,12 +100,13 @@ export const pl: Dict = {
   lockAllConfirm: 'Zablokuj wszystko',
   accessSaveFailed: (error) => `Nie udało się zapisać zmiany: ${error}`,
   accessLoadFailed: (error) => `Nie udało się odczytać dostępu: ${error}. Ponawiam.`,
-  notebookLocation: 'Lokalizacja notebooka: ',
+  notebookLocation: 'Notebook (opcjonalnie): ',
   yourGitFolder: 'twój folder Git',
 
   // ── workshop view ──
   workshopSteps: 'Kroki warsztatu',
   stepsPassed: (passed, total) => `Zaliczone kroki: ${passed} / ${total}`,
+  optionalPassed: (n) => `+${n} ${plPlural(n, 'opcjonalny', 'opcjonalne', 'opcjonalnych')}`,
   requiredPassed: 'Zaliczone kroki obowiązkowe',
   progressLoading: 'Wczytuję twoje postępy…',
   progressPaused: 'Podgląd na żywo wstrzymany, ponawiam…',
@@ -109,7 +126,7 @@ export const pl: Dict = {
 
   // ── step pane ──
   stepNumber: (n) => `Krok ${n}`,
-  expectedResult: 'Oczekiwany wynik: ',
+  expectedResult: 'Oczekiwany wynik w notebooku: ',
   docsHeading: 'Dokumentacja',
   stepNav: 'Nawigacja między krokami',
   prevStep: 'Poprzedni krok',
@@ -133,15 +150,24 @@ export const pl: Dict = {
   fromSource: (source) => ` · źródło: ${source}`,
   liveUnavailable: (error) => `Podgląd na żywo niedostępny: ${error}`,
   saveFailed: (error) => `Twój wynik nie został zapisany: ${error}`,
+  saving: 'Zapisuję wynik…',
+  saveRetry: 'Zapisz wynik ponownie',
 
-  // ── paste hint ──
-  pasteInto: 'Wklej do komórki z kodem pod nagłówkiem',
-  pasteIn: 'w notebooku',
-  pasteSql: '(zastąp kod, zostaw pierwszą linię',
-  pasteReplace: '(zastąp kod, który tam jest',
-  pasteKeepSaveLine: '; jeśli komórka kończy się linią zapisującą twój wynik, zostaw ją na końcu)',
-  pasteRun: 'Uruchom komórkę do końca',
-  pasteRunThenCheck: ', a potem kliknij Sprawdź poniżej',
+  // ── notebook (optional) ──
+  notebookOptional: 'Notebook (opcjonalnie)',
+  notebookOptionalIntro: 'Chcesz zobaczyć wynik na prawdziwych danych? Uruchom gotowy kod w notebooku. To opcjonalne i nie zmienia twojego wyniku tutaj.',
+  notebookSqlCell:
+    'Wklej go do nowej komórki notebooka warsztatu (pierwsza linia %sql robi z niej komórkę SQL). Widoki z poprzednich kroków istnieją tylko w tej sesji notebooka, więc uruchamiaj kroki po kolei w tym samym notebooku. W edytorze SQL usuń linię %sql i najpierw wykonaj USE CATALOG ze swoim katalogiem.',
+  notebookPlaceholders: (list) => `Przed uruchomieniem zamień ${list} na własne wartości.`,
+  notebookSaveNote: 'Ostatnie linie (komentarz „optional: saves your result…”) zapisują twój wynik dla przycisku Sprawdź na danych.',
+  notebookPythonCell: 'Wklej go do nowej komórki Python w notebooku.',
+  notebookIncomplete: 'Najpierw dokończ ćwiczenie powyżej; do tego czasu kod ma jeszcze luki albo bloki w złej kolejności.',
+  notebookNoCode: 'To ćwiczenie nie ma kodu do uruchomienia.',
+  dataCheckButton: 'Sprawdź na danych',
+  dataCheckBonus: 'opcjonalny bonus',
+  dataCheckIntro: 'Po uruchomieniu kodu sprawdź tabele w swoim katalogu. Wynik jest tylko dla ciebie: nie zmienia kroku.',
+  dataCheckPass: 'Twoje dane wyglądają dobrze.',
+  dataCheckFail: 'Twoich danych jeszcze tam nie ma.',
 
   // ── hints ──
   hintsHeading: 'Podpowiedzi',
@@ -161,7 +187,6 @@ export const pl: Dict = {
   copied: 'Skopiowano',
   copyFailed: 'Nie udało się skopiować',
   copiedToClipboard: 'Skopiowano do schowka',
-  copyToNotebook: 'Kopiuj do notebooka',
   reset: 'Wyczyść',
 
   // ── exercises ──
@@ -174,9 +199,8 @@ export const pl: Dict = {
   fillAnyWrong:
     'Czerwona luka to jeszcze nie ta odpowiedź. Sprawdź pisownię, dokładne słowo kluczowe i cudzysłowy. Pomogą ci podpowiedzi poniżej.',
   fillAllCorrect: (total) =>
-    `${total === 1 ? 'Luka poprawna' : `Wszystkie luki poprawne (${total})`}. Skopiuj kod do notebooka.`,
+    `${total === 1 ? 'Luka poprawna' : `Wszystkie luki poprawne (${total})`}.`,
   fillProgress: (correct, total) => `Poprawne luki: ${correct} z ${total}`,
-  fillEmptyCopied: 'Puste luki kopiują się jako ____, żeby łatwo było je znaleźć w notebooku.',
 
   matchHowBefore: 'Przeciągnij każde pojęcie na jego opis albo kliknij pojęcie, a potem',
   matchHowAfter: 'obok opisu.',
@@ -212,9 +236,8 @@ export const pl: Dict = {
   moveDown: (line) => `Przesuń w dół: ${line}`,
   removeFromSolution: (line) => `Usuń z rozwiązania: ${line}`,
   dragBlock: (line) => `Przeciągnij blok: ${line}`,
-  addBlocksFirst: 'Najpierw dodaj bloki do rozwiązania',
   checkOrder: 'Sprawdź kolejność',
-  orderCopyNext: 'Skopiuj kod do notebooka i uruchom komórkę.',
+  orderCopyNext: 'Gotowy kod jest w sekcji „Notebook (opcjonalnie)”.',
   orderResult: (r) => {
     if (r.pass) return `Dobra kolejność: wszystkie bloki na miejscu (${r.total}).`;
     const parts = [`Bloki na właściwym miejscu: ${r.correctPositions} z ${r.total}.`];
@@ -249,7 +272,7 @@ export const pl: Dict = {
   refreshFailed: (error) => `Nie udało się odświeżyć: ${error}. Pokazuję ostatnie dane, ponawiam.`,
   noResultsTitle: 'Brak wyników',
   noResultsText:
-    'Uczestnicy pojawią się tutaj po pierwszym kliknięciu Sprawdź albo po pierwszym sprawdzonym ćwiczeniu.',
+    'Uczestnicy pojawią się tutaj po pierwszym sprawdzonym ćwiczeniu w przewodniku.',
   matrixCaption: (label) => `${label}: wynik każdego uczestnika w każdym kroku`,
   colParticipant: 'Uczestnik',
   colDone: 'Zaliczone',
@@ -266,9 +289,9 @@ export const pl: Dict = {
   hintsCount: (n) => `${n} ${plPlural(n, 'podpowiedź', 'podpowiedzi', 'podpowiedzi')}`,
   legend: 'Legenda',
   legendPass: 'zaliczony',
-  legendFail: 'ostatnie sprawdzenie niezaliczone',
+  legendFail: 'próbował, jeszcze niezaliczony',
   legendNone: 'nierozpoczęty',
-  legendHints: 'użyte podpowiedzi (kroki sprawdzane w aplikacji)',
+  legendHints: 'użyte podpowiedzi',
 
   // ── trainer quiz tab ──
   quizUnavailable: 'Quiz niedostępny',

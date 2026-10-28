@@ -68,7 +68,7 @@ describe('order', () => {
   });
 
   it('assembles code in answer order', () => {
-    expect(assembleOrder(order, order.solution).split('\n')[0]).toMatch(/^MERGE INTO/);
+    expect(assembleOrder(order, order.solution).split('\n')).toEqual(order.solution.map((id) => order.blocks.find((b) => b.id === id)?.code));
   });
 });
 
@@ -95,14 +95,16 @@ describe('helpers', () => {
 
   it('builds the trainer matrix and pass rates', () => {
     const rows = [
-      { user_email: 'a@x.com', step: 't01', status: 'pass', message: null, hints_used: null, attempts: null, ts: '2026-10-27 10:00:00', runs: 1 },
-      { user_email: 'a@x.com', step: 't03', status: 'fail', message: '3 of 5', hints_used: 2, attempts: 1, ts: '2026-10-27 10:05:00', runs: 1 },
-      { user_email: 'b@x.com', step: 't01', status: 'fail', message: null, hints_used: null, attempts: null, ts: '2026-10-27 10:01:00', runs: 2 },
-      { user_email: 'b@x.com', step: 'gone', status: 'pass', message: null, hints_used: null, attempts: null, ts: '2026-10-27 10:09:00', runs: 1 },
+      { user_email: 'a@x.com', step: 't01', status: 'pass', message: 'track=sql · ok', hints_used: null, attempts: null, ts: '2026-10-27 10:00:00', runs: 1, tracks: 'sql' },
+      { user_email: 'a@x.com', step: 't03', status: 'fail', message: 'track=pyspark · 3 of 5', hints_used: 2, attempts: 1, ts: '2026-10-27 10:05:00', runs: 1, tracks: null },
+      { user_email: 'b@x.com', step: 't01', status: 'fail', message: null, hints_used: null, attempts: null, ts: '2026-10-27 10:01:00', runs: 2, tracks: null },
+      { user_email: 'b@x.com', step: 'gone', status: 'pass', message: null, hints_used: null, attempts: null, ts: '2026-10-27 10:09:00', runs: 1, tracks: 'pyspark' },
     ];
     const m = buildMatrix(demo, rows);
     expect(m.participants.map((p) => p.email)).toEqual(['a@x.com', 'b@x.com']);
-    expect(m.participants[0]).toMatchObject({ passedRequired: 1, failing: 1, hintsTotal: 2 });
+    expect(m.participants[0]).toMatchObject({ passedRequired: 1, failing: 1, hintsTotal: 2, tracks: ['sql', 'pyspark'] });
+    // Rows of steps no longer in the guide do not give a track badge.
+    expect(m.participants[1].tracks).toEqual([]);
     expect(m.steps.find((s) => s.stepId === 't01')).toMatchObject({ passed: 1, attempted: 2, passRate: 0.5 });
     expect(m.lastActivity?.toISOString()).toBe('2026-10-27T10:05:00.000Z');
   });

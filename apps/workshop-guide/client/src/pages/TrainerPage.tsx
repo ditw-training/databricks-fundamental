@@ -38,10 +38,11 @@ import { workshopLabel, type Guide } from '../../../shared/guide-schema';
 import { Kpi } from '../components/Kpi';
 import { StatusDot } from '../components/StatusDot';
 import { useI18n } from '../i18n/context';
-import { statusLabel, typeLabel } from '../lib/labels';
+import { statusLabel, stepTypeLabel } from '../lib/labels';
 import { useTrainerMatrix, type TrainerRow } from '../lib/progress';
 import { formatAgo, locale, parseTs, toStatus } from '../lib/status';
-import { buildMatrix } from '../lib/trainer';
+import { buildMatrix, cellTracks } from '../lib/trainer';
+import { stripTrack } from '../../../shared/grading';
 import { postUnlock, UNLOCK_ITEMS, type UnlockItem, type UnlockRow, type UnlockView } from '../lib/unlock';
 import { QuizStatsView } from './QuizStatsView';
 
@@ -171,7 +172,7 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
                       {m.colParticipant}
                     </th>
                     {guide.steps.map((s, i) => (
-                      <th key={s.id} scope="col" title={`${s.title} — ${typeLabel(s.type, m)}${s.optional ? m.optionalSuffix : ''}`}>
+                      <th key={s.id} scope="col" title={`${s.title} — ${stepTypeLabel(s, m)}${s.optional ? m.optionalSuffix : ''}`}>
                         <span className={s.optional ? 'text-muted-foreground' : undefined}>{String(i + 1).padStart(2, '0')}</span>
                         {s.optional && <span className="block text-[10px] font-normal text-muted-foreground">{m.optionalShort}</span>}
                       </th>
@@ -186,8 +187,15 @@ function TrainerMatrix({ guide }: { guide: Guide }) {
                 <tbody>
                   {matrix.participants.map((p) => (
                     <tr key={p.email}>
-                      <th scope="row" className="wg-matrix-sticky max-w-56 truncate text-left font-normal" title={p.email}>
-                        {p.email}
+                      <th scope="row" className="wg-matrix-sticky max-w-64 text-left font-normal" title={p.email}>
+                        <span className="flex items-center gap-1.5">
+                          <span className="min-w-0 truncate">{p.email}</span>
+                          {p.tracks.map((t) => (
+                            <Badge key={t} variant="outline" className="shrink-0 px-1.5 py-0 text-[10px] font-normal">
+                              {m.trackName(t)}
+                            </Badge>
+                          ))}
+                        </span>
                       </th>
                       {guide.steps.map((s) => (
                         <td key={s.id} className="text-center">
@@ -237,7 +245,8 @@ function Cell({ row, stepTitle }: { row: TrainerRow | undefined; stepTitle: stri
   const details = row
     ? [
         `${stepTitle}: ${statusLabel(status, m)}`,
-        row.message ?? '',
+        stripTrack(row.message ?? ''),
+        cellTracks(row).length ? m.passedIn(cellTracks(row).map((t) => m.trackName(t)).join(', ')) : '',
         m.cellRuns(row.runs),
         row.hints_used !== null ? m.cellHints(row.hints_used) : '',
         row.attempts !== null ? m.cellAttempts(row.attempts) : '',

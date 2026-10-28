@@ -17,6 +17,11 @@ export interface CheckResponse {
   message: string;
   /** False when the progress row could not be written (the result is still shown). */
   recorded: boolean;
+  /**
+   * True for the optional "Check on data" of an app-graded step (SPEC section 11): stored for the
+   * record, but it never changes the step's status.
+   */
+  bonus: boolean;
 }
 
 /** Query of DELETE /api/progress/me?workshop= (reset my progress in one workshop). */

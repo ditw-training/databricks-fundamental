@@ -20,6 +20,31 @@ const demoPl: GuideOverlay = guideOverlaySchema.parse(
 );
 
 describe('guide overlays', () => {
+  it('translates per-track prose and keeps the code of every track (SPEC section 11)', () => {
+    const pl = localizeGuide(demo, demoPl);
+    const t02 = pl.steps.find((s) => s.id === 't02');
+    const en02 = demo.steps.find((s) => s.id === 't02');
+    if (t02?.type !== 'tracks' || en02?.type !== 'tracks') throw new Error('t02 is a track step');
+    const [sql, enSql] = [t02.variants.sql, en02.variants.sql];
+    if (!sql || !('type' in sql) || sql.type !== 'fill' || !enSql || !('type' in enSql) || enSql.type !== 'fill') throw new Error('fill');
+    expect(sql.explain_extra).toContain('dodaje wiersze');
+    expect(sql.template).toBe(enSql.template);
+    expect(sql.hints?.[2]).toBe(enSql.hints?.[2]);
+    const t04 = pl.steps.find((s) => s.id === 't04');
+    expect(t04?.type === 'tracks' && t04.variants.pyspark && 'same_as' in t04.variants.pyspark && t04.variants.pyspark.note).toContain('obu ścieżkach');
+    const t08 = pl.steps.find((s) => s.id === 't08');
+    const pairs = t08?.type === 'tracks' && t08.variants.sql && 'type' in t08.variants.sql && t08.variants.sql.type === 'match' ? t08.variants.sql.pairs : [];
+    expect(pairs[0]).toEqual({ left: 'INSERT INTO', right: 'Dodaje do tabeli wiersze zapytania' });
+  });
+
+  it('reports variant overlays that do not fit', () => {
+    const bad = guideOverlaySchema.parse({ id: 'ws_demo', steps: [{ id: 't01', variants: { sql: { note: 'x' } } }, { id: 't02', variants: { pyspark: { hints: ['a'] } } }] });
+    expect(overlayProblems(demo, bad)).toEqual([
+      'ws_demo/t01: variants on a step without variants',
+      'ws_demo/t02/pyspark: 1 hints, English has 3',
+    ]);
+  });
+
   it('demo overlay fits the demo guide', () => {
     expect(overlayProblems(demo, demoPl)).toEqual([]);
   });
@@ -34,7 +59,7 @@ describe('guide overlays', () => {
     expect(pl.steps.map((s) => s.id)).toEqual(demo.steps.map((s) => s.id));
     expect(pl.steps.map((s) => s.check)).toEqual(demo.steps.map((s) => s.check));
     // Untranslated step and fields fall back to English.
-    expect(pl.steps[1]).toEqual(demo.steps[1]);
+    expect(pl.steps.find((s) => s.id === 't05')).toEqual(demo.steps.find((s) => s.id === 't05'));
     const match = pl.steps.find((s) => s.id === 't03');
     const english = demo.steps.find((s) => s.id === 't03');
     if (match?.type !== 'match' || english?.type !== 'match') throw new Error('t03 is a match step');
@@ -88,7 +113,7 @@ describe('guide overlays', () => {
     const overlays = loadOverlays(new Map(), fixtures, (m) => warnings.push(m));
     expect(overlays).toEqual({});
     expect(warnings.join('\n')).toMatch(/no guide "ws_demo"/);
-    expect(loadOverlays(new Map([[demo.id, demo]]), fixtures).pl?.ws_demo?.steps).toHaveLength(2);
+    expect(loadOverlays(new Map([[demo.id, demo]]), fixtures).pl?.ws_demo?.steps).toHaveLength(5);
   });
 });
 

@@ -2,9 +2,13 @@
 """Build the static Workshop Guide: one self-contained HTML page per guide file.
 
 For environments without the Databricks App (self-study, Free Edition). Reads
-notebooks/workshops/guide/*.json (contract: apps/SPEC_workshop_guide.md, section 3),
-validates each guide like the app does, writes html/<id>.html with inline CSS and
+notebooks/workshops/guide/*.json (contract: apps/SPEC_workshop_guide.md, sections 3 and 11),
+validates each guide like the app does, writes html/<id>.<lang>.html with inline CSS and
 JS (no CDN, works from file://), then re-reads the output and checks its structure.
+
+Every step has two tracks (SQL / PySpark, `variants` in the guide file); the page has a
+track switch and grades every exercise (fill / order / match) in the browser. Running the
+code in a notebook is optional (collapsed "Notebook (optional)" section of each step).
 
 Usage (from the repo root or any directory, Python 3.9+, standard library only):
     python3 -I notebooks/workshops/guide/build_static.py
@@ -29,7 +33,11 @@ DEFAULT_OUT = HERE / "html"
 
 ID_PATTERN = re.compile(r"^[a-z0-9_]+$")
 BLANK_PATTERN = re.compile(r"\{\{(b\d+)\}\}")
-STEP_TYPES = ("fill", "order", "match", "code")
+STEP_TYPES = ("fill", "order", "match", "code")  # top-level (legacy) step types, still valid for the app
+VARIANT_TYPES = ("fill", "order", "match")  # every track exercise is graded on the page (SPEC section 11)
+TRACKS = ("sql", "pyspark")
+DEFAULT_TRACK = "sql"
+TRACK_LABELS = {"sql": "SQL", "pyspark": "PySpark"}
 TYPE_LABELS = {"fill": "Fill in", "order": "Order", "match": "Match", "code": "Code"}
 LANGS = ("pl", "en")  # pages per guide: <id>.pl.html, <id>.en.html; PL is the default (app default)
 I18N_DIR = HERE / "i18n"
@@ -42,7 +50,7 @@ STRINGS: dict[str, dict] = {
         "types": TYPE_LABELS,
         "copy": "Copy", "copy_code": "Copy code", "clear": "Clear", "start_over": "Start over",
         "blank_aria": "Blank {n} of {total}",
-        "fill_instr": "Type the missing parts. Each blank turns green when it is right.",
+        "fill_instr": "Type the missing parts. Each blank turns green when it is right; the step is done when all are.",
         "add": "Add", "add_aria": "Add to your answer", "up_aria": "Move up", "down_aria": "Move down",
         "remove_aria": "Remove from your answer",
         "order_instr": "Drag blocks into <em>Your answer</em> in the right order, or use the Add, ↑, ↓ and ✕ buttons.",
@@ -51,9 +59,6 @@ STRINGS: dict[str, dict] = {
         "check_order": "Check order",
         "choose": "Choose…", "terms": "Terms", "check_answers": "Check answers",
         "match_instr": "Drag each term onto its description, or pick it from the list next to the description.",
-        "code_instr_starter": "Write the code in the notebook cell. The cell starts like this:",
-        "code_instr_empty": "Write the code in the notebook cell from scratch.",
-        "code_stuck": "Stuck? Open the hints one at a time below; the last one is the full solution.",
         "optional_badge": "Optional", "optional_title": "Optional", "optional_short": "opt.",
         "optional_note": "This step is optional: you can skip it; the next steps do not depend on it.",
         "solution": "Solution", "hint_n": "Hint {n}", "hints": "Hints", "hints_available": "{n} available",
@@ -61,35 +66,38 @@ STRINGS: dict[str, dict] = {
         "confirm_text": "Show the full solution? You learn more by trying once more with the hints you have.",
         "show_solution": "Show solution", "keep_trying": "Keep trying",
         "docs": "Docs", "expected": "Expected result",
-        "check_nb_title": "Check it in the notebook",
-        "check_nb_text": "Run the step cell in <code>{notebook}</code> (keep its last line: it saves your result), "
-                         "then add a cell <code>{call}</code> under it and run it. "
-                         "When it prints <strong>PASS</strong>, tick the box.",
-        "check_nb_done": "<code>{call}</code> passed in my notebook",
-        "graded_title": "Graded here",
-        "graded_text": "This step is checked on this page: it is done when all answers are right.",
+        "track_aria": "Track", "track_title": "Track",
+        "notebook_title": "Notebook (optional)",
+        "notebook_text": {
+            "sql": "Running the code is optional. Paste it into a <code>%sql</code> cell of <code>{notebook}</code> "
+                   "after the setup cells (or into the SQL editor) and run it.",
+            "pyspark": "Running the code is optional. Paste it into a Python cell of <code>{notebook}</code> "
+                       "after the setup cells and run it.",
+        },
+        "notebook_check": "To check the result on your data, run <code>%run ./_checks/{id}</code> once after the setup "
+                          "cells, then <code>{call}</code> in a new cell.",
         "step": "Step", "not_started": "Not started", "nav_not_started": ", not started",
         "skip": "Skip to the steps", "nav_aria": "Steps", "steps": "Steps",
         "sub": "Workshop Guide · static edition · notebook <code>{notebook}</code>",
         "overall": "0 of {n} steps done", "overall_aria": "Required steps done",
         "reset": "Reset my progress", "lang_aria": "Language", "all_workshops": "All workshops",
         "notice": [
-            "<strong>Static edition.</strong> This page works offline and saves your answers only in this browser. "
-            "It is not connected to Databricks, so it cannot see your notebook and steps do not turn green on their own.",
-            "Checks run in your notebook. Once per session, add a cell <code>%run ./_checks/{id}</code> after the setup "
-            "cells of <code>{notebook}</code> and run it: it defines <code>check()</code>.",
-            "For each step: solve the exercise here, copy the code into <code>{notebook}</code> and run the cell, then "
-            "add a cell <code>check(\"{id}\", \"tNN\")</code> under it. When it prints <strong>PASS</strong>, tick the "
-            "box at the bottom of the step. Match steps are graded on this page.",
+            "<strong>Static edition.</strong> This page works offline and saves your answers only in this browser.",
+            "Pick your track above the steps: <strong>SQL</strong> or <strong>PySpark</strong>. Every step is graded on "
+            "this page: it turns green when your answer is right, in either track.",
+            "Running the code is optional: each step has a <strong>Notebook (optional)</strong> section with the completed "
+            "code for <code>{notebook}</code>. To check it on your data, run <code>%run ./_checks/{id}</code> once after "
+            "the setup cells, then <code>check(\"{id}\", \"tNN\")</code> in a new cell.",
         ],
         "storage_warning": "<strong>Note:</strong> this browser blocks local storage, so progress is lost when you close the page.",
-        "legend": {"none": "Not started", "progress": "In progress", "ready": "Ready for check()", "done": "Done"},
+        "legend": {"none": "Not started", "progress": "In progress", "done": "Done"},
         "footer": "Generated from <code>{source}</code> by <code>build_static.py</code>. "
-                  "The Databricks App version of this guide shows live check results from the notebook.",
+                  "The Databricks App version of this guide also checks your results on your data.",
         "index_title": "Workshop Guide · static edition",
-        "index_text": "Static edition for self-study. Open a workshop, solve each step on the page and run the code in "
-                      "your notebook. To check a step, load the checks once with <code>%run ./_checks/&lt;workshop&gt;</code> "
-                      "after the setup cells, then run <code>check(\"&lt;workshop&gt;\", \"tNN\")</code> in a new cell.",
+        "index_text": "Static edition for self-study. Open a workshop, pick the SQL or PySpark track and solve each step "
+                      "on the page: it grades your answers. Running the code in the notebook is optional; to check it, "
+                      "load the checks once with <code>%run ./_checks/&lt;workshop&gt;</code> after the setup cells, then "
+                      "run <code>check(\"&lt;workshop&gt;\", \"tNN\")</code> in a new cell.",
         "index_item": "{count} · notebook <code>{notebook}</code>",
         "step_count": ["{n} step", "{n} steps"],
         "optional_count": ["{n} optional", "{n} optional"],
@@ -98,23 +106,22 @@ STRINGS: dict[str, dict] = {
             "copied": "Copied", "copy_failed": "Copy failed",
             "copied_announce": "Code copied to the clipboard.",
             "copy_failed_announce": "Copy failed. Select the code and copy it by hand.",
-            "states": {"none": "Not started", "progress": "In progress",
-                       "ready": "Ready: run check() in the notebook", "done": "Done"},
+            "states": {"none": "Not started", "progress": "In progress", "done": "Done"},
             "overall": "{n} of {total} steps done", "overall_optional": " · {n} of {total} optional",
             "show_solution": "Show the solution", "show_hint": "Show a hint", "show_next_hint": "Show the next hint",
             "hints_shown": "{n} of {total} shown",
-            "fill_all": "All {total} blanks are right.", "fill_some": "{n} of {total} blanks are right.",
-            "fill_all_announce": "All blanks are right.",
-            "run_check_tail": " Copy the code into the notebook, run the cell, then run check() for this step.",
+            "fill_all": "All {total} blanks are right. Step done.", "fill_some": "{n} of {total} blanks are right.",
+            "fill_all_announce": "All blanks are right. Step done.",
             "block_added": "Added “{b}” at position {n}.", "block_removed": "Removed “{b}” from your answer.",
             "block_moved": "Moved to position {n}.", "answer_empty": "Your answer is empty: add blocks first.",
             "blocks_reset": "All blocks are back in the list.",
-            "order_pass": "Correct order: all {total} blocks in place.",
+            "order_pass": "Correct order: all {total} blocks in place. Step done.",
             "order_positions": "{n} of {total} blocks in the right place.",
             "order_extra": ["{n} block does not belong here.", "{n} blocks do not belong here."],
             "order_missing": ["{n} block is missing.", "{n} blocks are missing."],
-            "match_pass": "All {total} pairs matched.", "match_some": "{n} of {total} pairs matched.",
-            "term_placed": "Placed the term on: ", "step_done": "Step marked as done.",
+            "match_pass": "All {total} pairs matched. Step done.", "match_some": "{n} of {total} pairs matched.",
+            "term_placed": "Placed the term on: ",
+            "track_set": "Track: {track}.",
             "reset_confirm": "Clear all progress, answers and hints for this workshop in this browser?",
         },
     },
@@ -123,7 +130,8 @@ STRINGS: dict[str, dict] = {
         "types": {"fill": "Uzupełnij luki", "order": "Ułóż w kolejności", "match": "Połącz w pary", "code": "Napisz kod"},
         "copy": "Kopiuj", "copy_code": "Kopiuj kod", "clear": "Wyczyść", "start_over": "Wyczyść",
         "blank_aria": "Luka {n} z {total}",
-        "fill_instr": "Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny.",
+        "fill_instr": "Wpisz brakujące fragmenty. Luka zmienia kolor na zielony, gdy wpis jest poprawny; krok jest "
+                      "zaliczony, gdy poprawne są wszystkie.",
         "add": "Dodaj", "add_aria": "Dodaj do odpowiedzi", "up_aria": "Przesuń wyżej", "down_aria": "Przesuń niżej",
         "remove_aria": "Usuń z odpowiedzi",
         "order_instr": "Przeciągnij bloki do sekcji <em>Twoja odpowiedź</em> we właściwej kolejności "
@@ -135,9 +143,6 @@ STRINGS: dict[str, dict] = {
         "check_order": "Sprawdź kolejność",
         "choose": "Wybierz…", "terms": "Pojęcia", "check_answers": "Sprawdź pary",
         "match_instr": "Przeciągnij każde pojęcie na jego opis albo wybierz je z listy obok opisu.",
-        "code_instr_starter": "Napisz kod w komórce notebooka. Komórka zaczyna się tak:",
-        "code_instr_empty": "Napisz kod w komórce notebooka od zera.",
-        "code_stuck": "Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.",
         "optional_badge": "Opcjonalny", "optional_title": "Opcjonalny", "optional_short": "opc.",
         "optional_note": "Ten krok jest opcjonalny: możesz go pominąć, kolejne kroki go nie wymagają.",
         "solution": "Rozwiązanie", "hint_n": "Podpowiedź {n}", "hints": "Podpowiedzi", "hints_available": "dostępne: {n}",
@@ -146,13 +151,16 @@ STRINGS: dict[str, dict] = {
                         "z podpowiedziami, które już masz.",
         "show_solution": "Pokaż rozwiązanie", "keep_trying": "Spróbuję jeszcze",
         "docs": "Dokumentacja", "expected": "Oczekiwany wynik",
-        "check_nb_title": "Sprawdź w notebooku",
-        "check_nb_text": "Uruchom komórkę kroku w <code>{notebook}</code> (zostaw jej ostatnią linię: zapisuje twój wynik), "
-                         "potem dodaj pod nią komórkę <code>{call}</code> i ją uruchom. "
-                         "Gdy wypisze <strong>PASS</strong>, zaznacz pole.",
-        "check_nb_done": "<code>{call}</code> zwraca PASS w moim notebooku",
-        "graded_title": "Ocena na tej stronie",
-        "graded_text": "Ten krok jest sprawdzany na tej stronie: jest zaliczony, gdy wszystkie odpowiedzi są poprawne.",
+        "track_aria": "Ścieżka", "track_title": "Ścieżka",
+        "notebook_title": "Notebook (opcjonalnie)",
+        "notebook_text": {
+            "sql": "Uruchamianie kodu jest opcjonalne. Wklej go do komórki <code>%sql</code> w <code>{notebook}</code> "
+                   "po komórkach konfiguracyjnych (albo do edytora SQL) i uruchom.",
+            "pyspark": "Uruchamianie kodu jest opcjonalne. Wklej go do komórki Pythona w <code>{notebook}</code> "
+                       "po komórkach konfiguracyjnych i uruchom.",
+        },
+        "notebook_check": "Żeby sprawdzić wynik na swoich danych, raz uruchom <code>%run ./_checks/{id}</code> po "
+                          "komórkach konfiguracyjnych, a potem <code>{call}</code> w nowej komórce.",
         "step": "Krok", "not_started": "Nierozpoczęty", "nav_not_started": ", nierozpoczęty",
         "skip": "Przejdź do kroków", "nav_aria": "Kroki", "steps": "Kroki",
         "sub": "Workshop Guide · wersja statyczna · notebook <code>{notebook}</code>",
@@ -160,22 +168,23 @@ STRINGS: dict[str, dict] = {
         "reset": "Wyczyść moje postępy", "lang_aria": "Język", "all_workshops": "Wszystkie warsztaty",
         "notice": [
             "<strong>Wersja statyczna.</strong> Ta strona działa offline i zapisuje twoje odpowiedzi tylko w tej "
-            "przeglądarce. Nie jest połączona z Databricks, więc nie widzi twojego notebooka, a kroki nie zmieniają "
-            "koloru na zielony same.",
-            "Sprawdzanie działa w notebooku. Raz na sesję dodaj komórkę <code>%run ./_checks/{id}</code> po komórkach "
-            "konfiguracyjnych <code>{notebook}</code> i ją uruchom: definiuje funkcję <code>check()</code>.",
-            "W każdym kroku: rozwiąż ćwiczenie tutaj, skopiuj kod do <code>{notebook}</code> i uruchom komórkę, potem "
-            "dodaj pod nią komórkę <code>check(\"{id}\", \"tNN\")</code>. Gdy wypisze <strong>PASS</strong>, zaznacz "
-            "pole na dole kroku. Kroki typu „Połącz w pary” są oceniane na tej stronie.",
+            "przeglądarce.",
+            "Nad krokami wybierz ścieżkę: <strong>SQL</strong> albo <strong>PySpark</strong>. Każdy krok jest oceniany "
+            "na tej stronie: zmienia kolor na zielony, gdy odpowiedź jest poprawna, w dowolnej ścieżce.",
+            "Uruchamianie kodu jest opcjonalne: każdy krok ma sekcję <strong>Notebook (opcjonalnie)</strong> z gotowym "
+            "kodem do <code>{notebook}</code>. Żeby sprawdzić go na swoich danych, raz uruchom "
+            "<code>%run ./_checks/{id}</code> po komórkach konfiguracyjnych, a potem <code>check(\"{id}\", \"tNN\")</code> "
+            "w nowej komórce.",
         ],
         "storage_warning": "<strong>Uwaga:</strong> ta przeglądarka blokuje pamięć lokalną, więc postęp zniknie "
                            "po zamknięciu strony.",
-        "legend": {"none": "Nierozpoczęty", "progress": "W toku", "ready": "Gotowe do check()", "done": "Zaliczony"},
+        "legend": {"none": "Nierozpoczęty", "progress": "W toku", "done": "Zaliczony"},
         "footer": "Wygenerowano z <code>{source}</code> przez <code>build_static.py</code>. "
-                  "Wersja tego przewodnika w aplikacji Databricks pokazuje wyniki sprawdzania na bieżąco.",
+                  "Wersja tego przewodnika w aplikacji Databricks sprawdza też wyniki na twoich danych.",
         "index_title": "Workshop Guide · wersja statyczna",
-        "index_text": "Wersja statyczna do samodzielnej nauki. Otwórz warsztat, rozwiązuj kolejne kroki na stronie "
-                      "i uruchamiaj kod w notebooku. Żeby sprawdzić krok, raz załaduj funkcje sprawdzające przez "
+        "index_text": "Wersja statyczna do samodzielnej nauki. Otwórz warsztat, wybierz ścieżkę SQL albo PySpark "
+                      "i rozwiązuj kolejne kroki na stronie: to ona ocenia odpowiedzi. Uruchamianie kodu w notebooku "
+                      "jest opcjonalne; żeby go sprawdzić, raz załaduj funkcje sprawdzające przez "
                       "<code>%run ./_checks/&lt;workshop&gt;</code> po komórkach konfiguracyjnych, a potem uruchom "
                       "<code>check(\"&lt;workshop&gt;\", \"tNN\")</code> w nowej komórce.",
         "index_item": "{count} · notebook <code>{notebook}</code>",
@@ -186,25 +195,26 @@ STRINGS: dict[str, dict] = {
             "copied": "Skopiowano", "copy_failed": "Nie skopiowano",
             "copied_announce": "Kod skopiowany do schowka.",
             "copy_failed_announce": "Nie udało się skopiować. Zaznacz kod i skopiuj go ręcznie.",
-            "states": {"none": "Nierozpoczęty", "progress": "W toku",
-                       "ready": "Gotowe: uruchom check() w notebooku", "done": "Zaliczony"},
+            "states": {"none": "Nierozpoczęty", "progress": "W toku", "done": "Zaliczony"},
             "overall": "Zaliczone kroki: {n} / {total}", "overall_optional": " · opcjonalne: {n} / {total}",
             "show_solution": "Pokaż rozwiązanie", "show_hint": "Pokaż podpowiedź",
             "show_next_hint": "Pokaż następną podpowiedź",
             "hints_shown": "pokazane: {n} z {total}",
-            "fill_all": "Wszystkie luki są poprawne ({total}).", "fill_some": "Poprawne luki: {n} z {total}.",
-            "fill_all_announce": "Wszystkie luki są poprawne.",
-            "run_check_tail": " Skopiuj kod do notebooka, uruchom komórkę, a potem uruchom check() dla tego kroku.",
+            "fill_all": "Wszystkie luki są poprawne ({total}). Krok zaliczony.",
+            "fill_some": "Poprawne luki: {n} z {total}.",
+            "fill_all_announce": "Wszystkie luki są poprawne. Krok zaliczony.",
             "block_added": "Dodano „{b}” na pozycji {n}.", "block_removed": "Usunięto „{b}” z odpowiedzi.",
             "block_moved": "Przesunięto na pozycję {n}.",
             "answer_empty": "Twoja odpowiedź jest pusta: najpierw dodaj bloki.",
             "blocks_reset": "Wszystkie bloki wróciły na listę.",
-            "order_pass": "Poprawna kolejność: wszystkie bloki ({total}) są na miejscu.",
+            "order_pass": "Poprawna kolejność: wszystkie bloki ({total}) są na miejscu. Krok zaliczony.",
             "order_positions": "Bloki na właściwym miejscu: {n} z {total}.",
             "order_extra": ["{n} blok tu nie pasuje.", "{n} bloki tu nie pasują.", "{n} bloków tu nie pasuje."],
             "order_missing": ["Brakuje {n} bloku.", "Brakuje {n} bloków.", "Brakuje {n} bloków."],
-            "match_pass": "Wszystkie pary dopasowane ({total}).", "match_some": "Dopasowane pary: {n} z {total}.",
-            "term_placed": "Umieszczono pojęcie przy opisie: ", "step_done": "Krok oznaczony jako zaliczony.",
+            "match_pass": "Wszystkie pary dopasowane ({total}). Krok zaliczony.",
+            "match_some": "Dopasowane pary: {n} z {total}.",
+            "term_placed": "Umieszczono pojęcie przy opisie: ",
+            "track_set": "Ścieżka: {track}.",
             "reset_confirm": "Wyczyścić cały postęp, odpowiedzi i podpowiedzi tego warsztatu w tej przeglądarce?",
         },
     },
@@ -272,6 +282,8 @@ def validate_guide(guide: dict, name: str) -> list[str]:
         for doc in step.get("docs", []):
             if not doc.get("label") or not str(doc.get("url", "")).startswith(("https://", "http://")):
                 err(where, f"bad doc link {doc!r}")
+            if "track" in doc and doc["track"] not in TRACKS:
+                err(where, f"doc link track must be one of {TRACKS}: {doc!r}")
         check = step.get("check", "app" if stype in ("order", "match") else "notebook")
         allowed = {"fill": {"notebook"}, "code": {"notebook"}, "match": {"app"}, "order": {"notebook", "app"}}
         if check not in allowed[stype]:
@@ -307,7 +319,100 @@ def validate_guide(guide: dict, name: str) -> list[str]:
             pairs = step.get("pairs", [])
             if len(pairs) < 2 or not all(p.get("left") and p.get("right") for p in pairs):
                 err(where, "match needs at least 2 pairs with left and right")
+        validate_variants(step, where, err)
+    tracks = guide.get("tracks", {})
+    if not isinstance(tracks, dict) or set(tracks) - set(TRACKS):
+        err("tracks", f"must be an object with the keys {', '.join(TRACKS)}")
+    else:
+        for t, spec in tracks.items():
+            if not isinstance(spec, dict) or set(spec) - {"label", "intro"}:
+                err(f"tracks.{t}", "only label and intro")
     return errors
+
+
+def validate_exercise(v: dict, where: str, err) -> None:
+    """One track exercise: fill / order / match with a full solution (SPEC section 11)."""
+    vtype = v.get("type")
+    if vtype not in VARIANT_TYPES:
+        err(where, f"type must be one of {', '.join(VARIANT_TYPES)}, got '{vtype}'")
+        return
+    allowed = {"type", "language", "solution", "hints", "explain_extra"} | {
+        "fill": {"template", "blanks"}, "order": {"blocks", "order", "distractors"}, "match": {"pairs"}}[vtype]
+    for key in sorted(set(v) - allowed):
+        err(where, f"unknown key '{key}' for a {vtype} exercise")
+    if not isinstance(v.get("solution"), str) or not v["solution"].strip():
+        err(where, "needs a full 'solution' (the completed code)")
+    hints = v.get("hints", [])
+    if not isinstance(hints, list) or len(hints) > 5 or not all(isinstance(h, str) and h.strip() for h in hints):
+        err(where, "hints: at most 5 non-empty strings")
+    if "explain_extra" in v and (not isinstance(v["explain_extra"], str) or not v["explain_extra"].strip()):
+        err(where, "explain_extra must be a non-empty string")
+    if vtype == "fill":
+        template, blanks = v.get("template", ""), v.get("blanks", {})
+        in_template = set(BLANK_PATTERN.findall(template))
+        if not in_template:
+            err(where, "fill template has no blanks")
+        for b in in_template - set(blanks):
+            err(where, f"blank {{{{{b}}}}} has no answers")
+        for b in set(blanks) - in_template:
+            err(where, f"blank '{b}' is not used in template")
+        for b, spec in blanks.items():
+            if not re.match(r"^b\d+$", b) or not spec.get("answers"):
+                err(where, f"blank '{b}' needs id bN and at least one answer")
+    elif vtype == "order":
+        ids = [b.get("id") for b in v.get("blocks", [])]
+        order, distractors = v.get("order", []), v.get("distractors", [])
+        if len(ids) < 2 or len(order) < 2:
+            err(where, "order needs at least 2 blocks and 2 ids in 'order'")
+        if len(set(ids)) != len(ids):
+            err(where, "duplicate block ids")
+        for bid in order + distractors:
+            if bid not in ids:
+                err(where, f"unknown block id '{bid}'")
+        if set(order) & set(distractors):
+            err(where, "blocks both in order and distractors")
+        for bid in ids:
+            if bid not in order and bid not in distractors:
+                err(where, f"block '{bid}' is neither in order nor a distractor")
+    else:
+        pairs = v.get("pairs", [])
+        if len(pairs) < 2 or not all(p.get("left") and p.get("right") for p in pairs):
+            err(where, "match needs at least 2 pairs with left and right")
+
+
+def validate_variants(step: dict, where: str, err) -> None:
+    """`variants`: one exercise per track, or `{reuse: <other track>, note}` (both tracks show that exercise)."""
+    variants = step.get("variants")
+    if not isinstance(variants, dict) or set(variants) != set(TRACKS):
+        err(where, f"variants must have exactly the tracks {', '.join(TRACKS)}")
+        return
+    for track, v in variants.items():
+        w = f"{where}: variants.{track}"
+        if not isinstance(v, dict):
+            err(w, "must be an object")
+        elif "reuse" in v:
+            other = v["reuse"]
+            if other not in TRACKS or other == track or "reuse" in variants.get(other, {}):
+                err(w, "reuse must name the other track, which has its own exercise")
+            if set(v) - {"reuse", "note"} or not isinstance(v.get("note"), str) or not v["note"].strip():
+                err(w, "a reused exercise has only 'reuse' and a non-empty 'note'")
+        else:
+            validate_exercise(v, w, err)
+
+
+def track_panes(step: dict) -> list[dict]:
+    """Exercises to render: [{key, tracks, exercise, notes: {track: note}}]. A reused exercise is one pane
+    shown in both tracks, with the note of the track that reuses it."""
+    variants = step["variants"]
+    panes = []
+    for track in TRACKS:
+        v = variants[track]
+        if "reuse" in v:
+            continue
+        users = [track] + [t for t in TRACKS if t != track and variants[t].get("reuse") == track]
+        notes = {t: variants[t]["note"] for t in users if t != track}
+        panes.append({"key": track, "tracks": users, "exercise": v, "notes": notes})
+    return panes
 
 
 # --------------------------------------------------------------------------- translations
@@ -321,8 +426,9 @@ def inline_code(text: object) -> list[str]:
     if not isinstance(text, str):
         return []
     return sorted(INLINE_CODE_PATTERN.findall(FENCE_PATTERN.sub("", text)))
-OVERLAY_KEYS = {"id", "title", "intro", "steps"}
-OVERLAY_STEP_KEYS = {"title", "explain", "expected", "hints", "pairs", "docs"}
+OVERLAY_KEYS = {"id", "title", "intro", "tracks", "steps"}
+OVERLAY_STEP_KEYS = {"title", "explain", "expected", "hints", "pairs", "docs", "variants"}
+OVERLAY_VARIANT_KEYS = {"explain_extra", "note", "hints", "pairs"}
 
 
 def overlay_path(guide_id: str, lang: str) -> Path:
@@ -354,6 +460,20 @@ def validate_overlay(guide: dict, ov: dict, name: str) -> list[str]:
     for key in ("title", "intro"):
         if key in ov and inline_code(ov[key]) != inline_code(guide.get(key, "")):
             err(key, "inline `code` differs from the English guide")
+    tracks = ov.get("tracks", {})
+    if not isinstance(tracks, dict):
+        err("tracks", "must be an object keyed by track")
+        tracks = {}
+    for t, spec in tracks.items():
+        en_t = guide.get("tracks", {}).get(t)
+        if en_t is None:
+            err(f"tracks.{t}", "track not in the English guide")
+        elif not isinstance(spec, dict) or set(spec) - {"intro"}:
+            err(f"tracks.{t}", "only intro (the label is not translated)")
+        elif "intro" in spec:
+            text_ok(f"tracks.{t}.intro", spec["intro"])
+            if inline_code(spec["intro"]) != inline_code(en_t.get("intro", "")):
+                err(f"tracks.{t}.intro", "inline `code` differs from the English guide")
     steps = ov.get("steps", {})
     if not isinstance(steps, dict):
         return errors + [f"{name}: steps: must be an object keyed by step id"]
@@ -412,7 +532,60 @@ def validate_overlay(guide: dict, ov: dict, name: str) -> list[str]:
                         err(f"steps.{sid}.docs[{i}].url", "differs from the English guide")
                     elif "label" in d:
                         text_ok(f"steps.{sid}.docs[{i}].label", d["label"])
+        if "variants" in st:
+            validate_overlay_variants(en, st["variants"], f"steps.{sid}.variants", err, text_ok)
     return errors
+
+
+def validate_overlay_variants(en: dict, variants: object, where: str, err, text_ok) -> None:
+    """Per-track prose of an overlay: explain_extra, note, hints (same count, same code), match pair text."""
+    if not isinstance(variants, dict):
+        err(where, "must be an object keyed by track")
+        return
+    for track, ov in variants.items():
+        w = f"{where}.{track}"
+        ev = (en.get("variants") or {}).get(track)
+        if ev is None:
+            err(w, "track not in the English step")
+            continue
+        if not isinstance(ov, dict):
+            err(w, "must be an object")
+            continue
+        for key in sorted(set(ov) - OVERLAY_VARIANT_KEYS):
+            err(f"{w}.{key}", "unknown key (code is never translated)")
+        for key in ("explain_extra", "note"):
+            if key in ov:
+                if key not in ev:
+                    err(f"{w}.{key}", "not in the English step")
+                    continue
+                text_ok(f"{w}.{key}", ov[key])
+                if inline_code(ov[key]) != inline_code(ev[key]):
+                    err(f"{w}.{key}", "inline `code` differs from the English guide")
+        if "hints" in ov:
+            hints, en_hints = ov["hints"], ev.get("hints", [])
+            if not isinstance(hints, list) or len(hints) != len(en_hints):
+                err(f"{w}.hints", f"needs {len(en_hints)} entries like the English guide")
+            else:
+                for i, (h, e) in enumerate(zip(hints, en_hints)):
+                    text_ok(f"{w}.hints[{i}]", h)
+                    if isinstance(h, str) and FENCE_PATTERN.findall(h) != FENCE_PATTERN.findall(e):
+                        err(f"{w}.hints[{i}]", "code fence differs from the English hint (copy it byte for byte)")
+                    if inline_code(h) != inline_code(e):
+                        err(f"{w}.hints[{i}]", "inline `code` differs from the English hint")
+        if "pairs" in ov:
+            pairs, en_pairs = ov["pairs"], ev.get("pairs")
+            if ev.get("type") != "match":
+                err(f"{w}.pairs", "only match exercises have pairs")
+            elif not isinstance(pairs, list) or len(pairs) != len(en_pairs):
+                err(f"{w}.pairs", f"needs {len(en_pairs)} entries like the English guide")
+            else:
+                for i, pair in enumerate(pairs):
+                    if not isinstance(pair, dict) or set(pair) - {"left", "right"}:
+                        err(f"{w}.pairs[{i}]", "only left and right")
+                        continue
+                    for side in ("left", "right"):
+                        if side in pair:
+                            text_ok(f"{w}.pairs[{i}].{side}", pair[side])
 
 
 def apply_overlay(guide: dict, ov: dict | None) -> dict:
@@ -423,8 +596,25 @@ def apply_overlay(guide: dict, ov: dict | None) -> dict:
     for key in ("title", "intro"):
         if ov.get(key):
             out[key] = ov[key]
+    for t, spec in (ov.get("tracks") or {}).items():
+        if spec.get("intro") and t in out.get("tracks", {}):
+            out["tracks"][t]["intro"] = spec["intro"]
     steps = ov.get("steps", {})
     for step in out["steps"]:
+        st_variants = (steps.get(step["id"]) or {}).get("variants") or {}
+        for track, ovv in st_variants.items():
+            v = step.get("variants", {}).get(track)
+            if not v:
+                continue
+            for key in ("explain_extra", "note"):
+                if ovv.get(key) and key in v:
+                    v[key] = ovv[key]
+            for i, h in enumerate(ovv.get("hints") or []):
+                if h and i < len(v.get("hints", [])):
+                    v["hints"][i] = h
+            for i, pair in enumerate(ovv.get("pairs") or []):
+                if i < len(v.get("pairs", [])):
+                    v["pairs"][i] = {**v["pairs"][i], **{k: val for k, val in pair.items() if val}}
         st = steps.get(step["id"]) or {}
         for key in ("title", "explain", "expected"):
             if st.get(key):
@@ -573,28 +763,27 @@ def blank_width(spec: dict) -> int:
     return spec.get("width") or max(4, *(len(a) for a in spec["answers"])) + 2
 
 
-def render_fill(step: dict) -> str:
-    sid = step["id"]
-    blanks = step["blanks"]
-    order = list(dict.fromkeys(BLANK_PATTERN.findall(step["template"])))
+def render_fill(ex: dict, pid: str) -> str:
+    blanks = ex["blanks"]
+    order = list(dict.fromkeys(BLANK_PATTERN.findall(ex["template"])))
     pieces: list[str] = []
     last = 0
-    for m in BLANK_PATTERN.finditer(step["template"]):
-        pieces.append(html.escape(step["template"][last : m.start()], quote=False))
+    for m in BLANK_PATTERN.finditer(ex["template"]):
+        pieces.append(html.escape(ex["template"][last : m.start()], quote=False))
         bid = m.group(1)
         n = order.index(bid) + 1
         width = blank_width(blanks[bid])
         pieces.append(
-            f'<input class="blank" type="text" id="{sid}-{bid}" data-blank="{bid}" '
+            f'<input class="blank" type="text" id="{pid}-{bid}" data-blank="{bid}" '
             f'aria-label="{esc(UI["blank_aria"].format(n=n, total=len(order)))}" autocomplete="off" autocapitalize="off" '
             f'autocorrect="off" spellcheck="false" style="width:{width + 1}ch">'
         )
         last = m.end()
-    pieces.append(html.escape(step["template"][last:], quote=False))
+    pieces.append(html.escape(ex["template"][last:], quote=False))
     return (
         '<div class="exercise exercise-fill">'
         f'<p class="ex-instr">{UI["fill_instr"]}</p>'
-        f'<div class="codeblock codeblock-fill" data-lang="{esc(step.get("language", ""))}">'
+        f'<div class="codeblock codeblock-fill" data-lang="{esc(ex.get("language", ""))}">'
         f'<pre><code>{"".join(pieces)}</code></pre></div>'
         '<div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p>'
         '<span class="ex-actions">'
@@ -619,21 +808,20 @@ def render_block_item(block: dict) -> str:
     )
 
 
-def render_order(step: dict) -> str:
-    sid = step["id"]
-    blocks = shuffled_not_solved(step["blocks"], sid, lambda xs: [b["id"] for b in xs] == step["solution"])
-    n_traps = len(step.get("distractors", []))
+def render_order(ex: dict, pid: str) -> str:
+    blocks = shuffled_not_solved(ex["blocks"], pid, lambda xs: [b["id"] for b in xs] == ex["order"])
+    n_traps = len(ex.get("distractors", []))
     traps = " " + plural(n_traps, UI["order_traps"]) if n_traps else ""
     return (
         '<div class="exercise exercise-order">'
         f'<p class="ex-instr">{UI["order_instr"]}{traps}</p>'
         '<div class="order-grid">'
-        f'<div class="order-col"><h4 class="col-title" id="{sid}-pool-t">{UI["available_blocks"]}</h4>'
-        f'<ul class="blocklist pool" data-list="pool" aria-labelledby="{sid}-pool-t">'
+        f'<div class="order-col"><h4 class="col-title" id="{pid}-pool-t">{UI["available_blocks"]}</h4>'
+        f'<ul class="blocklist pool" data-list="pool" aria-labelledby="{pid}-pool-t">'
         + "".join(render_block_item(b) for b in blocks)
         + "</ul></div>"
-        f'<div class="order-col"><h4 class="col-title" id="{sid}-ans-t">{UI["your_answer"]}</h4>'
-        f'<ol class="blocklist answer" data-list="answer" aria-labelledby="{sid}-ans-t">'
+        f'<div class="order-col"><h4 class="col-title" id="{pid}-ans-t">{UI["your_answer"]}</h4>'
+        f'<ol class="blocklist answer" data-list="answer" aria-labelledby="{pid}-ans-t">'
         f'</ol><p class="empty-note">{UI["drop_here"]}</p></div></div>'
         '<div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p>'
         '<span class="ex-actions">'
@@ -644,12 +832,11 @@ def render_order(step: dict) -> str:
     )
 
 
-def render_match(step: dict) -> str:
-    sid = step["id"]
-    pairs = step["pairs"]
+def render_match(ex: dict, pid: str) -> str:
+    pairs = ex["pairs"]
     idx = list(range(len(pairs)))
-    terms = shuffled_not_solved(idx, sid + ":terms", lambda xs: xs == idx)
-    slots = seeded_shuffle(idx, sid + ":slots")
+    terms = shuffled_not_solved(idx, pid + ":terms", lambda xs: xs == idx)
+    slots = seeded_shuffle(idx, pid + ":slots")
     options = f'<option value="">{UI["choose"]}</option>' + "".join(
         f'<option value="{t}">{esc(pairs[t]["left"])}</option>' for t in terms
     )
@@ -659,16 +846,16 @@ def render_match(step: dict) -> str:
     )
     rows = "".join(
         f'<li class="match-row" data-slot="{s}">'
-        f'<label class="match-desc" for="{sid}-slot{s}">{_inline(pairs[s]["right"])}</label>'
-        f'<span class="dropzone" data-drop="{s}"><select id="{sid}-slot{s}" class="match-select">{options}</select>'
+        f'<label class="match-desc" for="{pid}-slot{s}">{_inline(pairs[s]["right"])}</label>'
+        f'<span class="dropzone" data-drop="{s}"><select id="{pid}-slot{s}" class="match-select">{options}</select>'
         '<span class="mark" aria-hidden="true"></span></span></li>'
         for s in slots
     )
     return (
         '<div class="exercise exercise-match">'
         f'<p class="ex-instr">{UI["match_instr"]}</p>'
-        f'<h4 class="col-title" id="{sid}-terms-t">{UI["terms"]}</h4>'
-        f'<ul class="chips" aria-labelledby="{sid}-terms-t">{chips}</ul>'
+        f'<h4 class="col-title" id="{pid}-terms-t">{UI["terms"]}</h4>'
+        f'<ul class="chips" aria-labelledby="{pid}-terms-t">{chips}</ul>'
         f'<ol class="match-list">{rows}</ol>'
         '<div class="ex-bar"><p class="ex-status" data-status aria-live="polite"></p>'
         '<span class="ex-actions">'
@@ -678,46 +865,33 @@ def render_match(step: dict) -> str:
     )
 
 
-def render_code(step: dict) -> str:
-    starter = step.get("starter")
-    body = (
-        f'<p class="ex-instr">{UI["code_instr_starter"]}</p>'
-        + code_block(starter, step.get("language", ""))
-        if starter
-        else f'<p class="ex-instr">{UI["code_instr_empty"]}</p>'
-    )
-    return (
-        '<div class="exercise exercise-code">'
-        + body
-        + f'<p class="ex-instr">{UI["code_stuck"]}</p></div>'
-    )
-
-
 # Small "i" in a circle, drawn with CSS (the page validator allows no SVG); the app shows an info icon here.
 OPT_ICON = '<span class="opt-note-icon" aria-hidden="true">i</span>'
 
-RENDERERS = {"fill": render_fill, "order": render_order, "match": render_match, "code": render_code}
+RENDERERS = {"fill": render_fill, "order": render_order, "match": render_match}
 
 
-def render_step(guide: dict, step: dict, number: int) -> str:
-    sid, stype = step["id"], step["type"]
-    check = step.get("check", "app" if stype in ("order", "match") else "notebook")
-    optional = step.get("optional", False)
-    badges = f'<span class="badge">{UI["types"][stype]}</span>'
-    if optional:
-        badges += f'<span class="badge badge-opt">{UI["optional_badge"]}</span>'
-    hints = step.get("hints", [])
-    hint_items = "".join(
+def tracks_attr(tracks: list[str]) -> str:
+    """data-tracks plus `hidden` when the default track does not show the element (no-JS view = default track)."""
+    return f' data-tracks="{" ".join(tracks)}"' + ("" if DEFAULT_TRACK in tracks else " hidden")
+
+
+def render_hints(ex: dict, pid: str) -> str:
+    hints = ex.get("hints", [])
+    if not hints:
+        return ""
+    language = ex.get("language", "")
+    items = "".join(
         f'<li class="hint{" hint-solution" if (i == len(hints) - 1 and len(hints) > 1) else ""}" data-hint="{i}">'
         f'<span class="hint-label">{UI["solution"] if (i == len(hints) - 1 and len(hints) > 1) else UI["hint_n"].format(n=i + 1)}</span>'
-        f"{hint_html(h, i == len(hints) - 1 and len(hints) > 1, step.get('language', ''))}</li>"
+        f"{hint_html(h, i == len(hints) - 1 and len(hints) > 1, language)}</li>"
         for i, h in enumerate(hints)
     )
-    hints_html = (
-        f'<section class="hints" aria-labelledby="{sid}-hints-t">'
-        f'<h4 class="sec-title" id="{sid}-hints-t">{UI["hints"]} <span class="muted" data-hint-count>'
+    return (
+        f'<section class="hints" aria-labelledby="{pid}-hints-t">'
+        f'<h4 class="sec-title" id="{pid}-hints-t">{UI["hints"]} <span class="muted" data-hint-count>'
         f'{UI["hints_available"].format(n=len(hints))}</span></h4>'
-        f'<ol class="hint-list">{hint_items}</ol>'
+        f'<ol class="hint-list">{items}</ol>'
         '<div class="hint-controls">'
         f'<button type="button" class="btn" data-hint-next hidden>{UI["show_hint"]}</button>'
         f'<span class="confirm" data-confirm hidden role="group" aria-label="{UI["confirm_aria"]}">'
@@ -725,14 +899,54 @@ def render_step(guide: dict, step: dict, number: int) -> str:
         f'<button type="button" class="btn btn-primary" data-confirm-yes>{UI["show_solution"]}</button>'
         f'<button type="button" class="btn btn-ghost" data-confirm-no>{UI["keep_trying"]}</button>'
         "</span></div></section>"
-        if hints
-        else ""
     )
+
+
+def render_notebook(guide: dict, sid: str, ex: dict, track: str) -> str:
+    """Collapsed "Notebook (optional)": the completed code of the track and how to check it on data."""
+    notebook = esc(Path(guide["notebook"]).stem)
+    call = esc(f'check("{guide["id"]}", "{sid}")')
+    return (
+        '<details class="nb"><summary>' + UI["notebook_title"] + "</summary>"
+        f'<p>{UI["notebook_text"][track].format(notebook=notebook)}</p>'
+        + code_block(ex["solution"], ex.get("language", ""))
+        + f'<p>{UI["notebook_check"].format(id=esc(guide["id"]), call=call)}</p></details>'
+    )
+
+
+def render_pane(guide: dict, sid: str, pane: dict) -> str:
+    ex, key = pane["exercise"], pane["key"]
+    pid = f"{sid}-{key}"
+    notes = "".join(
+        f'<p class="track-note"{tracks_attr([t])}>{OPT_ICON}<span>{_inline(note)}</span></p>'
+        for t, note in pane["notes"].items()
+    )
+    extra = f'<div class="md explain-extra">{markdown(ex["explain_extra"])}</div>' if ex.get("explain_extra") else ""
+    # The notebook section follows the track the participant reads: a reused SQL exercise in the PySpark
+    # track still runs as SQL, so it shows the SQL code with the SQL instructions.
+    return (
+        f'<div class="track-pane" id="{pid}" data-pane="{key}"{tracks_attr(pane["tracks"])}>'
+        f"{notes}{extra}{RENDERERS[ex['type']](ex, pid)}{render_hints(ex, pid)}"
+        f"{render_notebook(guide, sid, ex, key)}</div>"
+    )
+
+
+def render_step(guide: dict, step: dict, number: int) -> str:
+    sid = step["id"]
+    optional = step.get("optional", False)
+    panes = track_panes(step)
+    badges = "".join(
+        f'<span class="badge"{tracks_attr(p["tracks"])}>{UI["types"][p["exercise"]["type"]]}</span>' for p in panes
+    )
+    if optional:
+        badges += f'<span class="badge badge-opt">{UI["optional_badge"]}</span>'
     docs = step.get("docs", [])
     docs_html = (
         f'<section class="docs" aria-labelledby="{sid}-docs-t"><h4 class="sec-title" id="{sid}-docs-t">{UI["docs"]}</h4><ul>'
         + "".join(
-            f'<li><a href="{esc(d["url"])}" target="_blank" rel="noopener noreferrer">{esc(d["label"])}</a></li>'
+            # A doc link tagged with a track shows only in that track (e.g. PySpark API pages).
+            f'<li{tracks_attr([d["track"]]) if d.get("track") else ""}>'
+            f'<a href="{esc(d["url"])}" target="_blank" rel="noopener noreferrer">{esc(d["label"])}</a></li>'
             for d in docs
         )
         + "</ul></section>"
@@ -747,23 +961,8 @@ def render_step(guide: dict, step: dict, number: int) -> str:
     opt_note = (
         f'<p class="opt-note">{OPT_ICON}<span>{UI["optional_note"]}</span></p>' if optional else ""
     )
-    call = f'check("{guide["id"]}", "{sid}")'
-    if check == "notebook":
-        finish = (
-            '<section class="finish">'
-            f'<h4 class="sec-title">{UI["check_nb_title"]}</h4>'
-            f'<p>{UI["check_nb_text"].format(notebook=esc(Path(guide["notebook"]).stem), call=esc(call))}</p>'
-            '<label class="done-toggle"><input type="checkbox" data-done> '
-            f'<span>{UI["check_nb_done"].format(call=esc(call))}</span></label>'
-            "</section>"
-        )
-    else:
-        finish = (
-            f'<section class="finish"><h4 class="sec-title">{UI["graded_title"]}</h4>'
-            f'<p>{UI["graded_text"]}</p></section>'
-        )
     return (
-        f'<section class="step" id="step-{sid}" data-step="{sid}" data-type="{stype}" data-check="{check}"'
+        f'<section class="step" id="step-{sid}" data-step="{sid}"'
         f' data-optional="{"true" if optional else "false"}" aria-labelledby="{sid}-title">'
         '<header class="step-head">'
         f'<span class="step-num" aria-hidden="true">{number:02d}</span>'
@@ -771,7 +970,7 @@ def render_step(guide: dict, step: dict, number: int) -> str:
         f'<div class="badges">{badges}<span class="state" data-state>{UI["not_started"]}</span></div></div>'
         "</header>"
         f'<div class="md explain">{markdown(step["explain"])}</div>'
-        f"{opt_note}{RENDERERS[stype](step)}{expected}{hints_html}{docs_html}{finish}"
+        f'{opt_note}{"".join(render_pane(guide, sid, p) for p in panes)}{expected}{docs_html}'
         "</section>"
     )
 
@@ -789,32 +988,48 @@ def render_nav(guide: dict) -> str:
     return "".join(items)
 
 
+def render_tracks(guide: dict) -> str:
+    """Track switch (SPEC section 11) and the per-track introductions of the guide."""
+    labels = {t: (guide.get("tracks", {}).get(t, {}).get("label") or TRACK_LABELS[t]) for t in TRACKS}
+    buttons = "".join(
+        f'<button type="button" class="btn track-btn" data-track-btn="{t}" '
+        f'aria-pressed="{"true" if t == DEFAULT_TRACK else "false"}">{esc(labels[t])}</button>'
+        for t in TRACKS
+    )
+    intros = "".join(
+        f'<div class="track-intro md"{tracks_attr([t])}>{markdown(spec["intro"])}</div>'
+        for t, spec in guide.get("tracks", {}).items()
+        if spec.get("intro")
+    )
+    return (
+        f'<div class="track-switch" role="group" aria-label="{UI["track_aria"]}">'
+        f'<span class="track-title">{UI["track_title"]}</span>{buttons}</div>{intros}'
+    )
+
+
 def client_data(guide: dict) -> str:
     """Only what the page needs for grading; answers are in the page by design (self-study)."""
     steps = []
     for step in guide["steps"]:
-        s = {
-            "id": step["id"],
-            "type": step["type"],
-            "check": step.get("check", "app" if step["type"] in ("order", "match") else "notebook"),
-            "optional": bool(step.get("optional")),
-            "hints": len(step.get("hints", [])),
-        }
-        if step["type"] == "fill":
-            s["template"] = step["template"]
-            s["blanks"] = {
-                k: {"answers": v["answers"], "case_sensitive": bool(v.get("case_sensitive", False))}
-                for k, v in step["blanks"].items()
-            }
-        elif step["type"] == "order":
-            s["blocks"] = [{"id": b["id"], "code": b["code"]} for b in step["blocks"]]
-            s["solution"] = step["solution"]
-            s["distractors"] = step.get("distractors", [])
-        elif step["type"] == "match":
-            s["pairs"] = step["pairs"]
-        steps.append(s)
-    return json_script({"id": guide["id"], "steps": steps})
-
+        panes = []
+        for p in track_panes(step):
+            ex = p["exercise"]
+            d = {"key": p["key"], "tracks": p["tracks"], "type": ex["type"], "hints": len(ex.get("hints", []))}
+            if ex["type"] == "fill":
+                d["template"] = ex["template"]
+                d["blanks"] = {
+                    k: {"answers": v["answers"], "case_sensitive": bool(v.get("case_sensitive", False))}
+                    for k, v in ex["blanks"].items()
+                }
+            elif ex["type"] == "order":
+                d["blocks"] = [{"id": b["id"], "code": b["code"]} for b in ex["blocks"]]
+                d["solution"] = ex["order"]
+                d["distractors"] = ex.get("distractors", [])
+            else:
+                d["pairs"] = ex["pairs"]
+            panes.append(d)
+        steps.append({"id": step["id"], "optional": bool(step.get("optional")), "panes": panes})
+    return json_script({"id": guide["id"], "tracks": list(TRACKS), "default_track": DEFAULT_TRACK, "steps": steps})
 
 CSS = r"""
 :root{
@@ -978,11 +1193,20 @@ input.blank[data-state="wrong"]{border:1.5px solid var(--bad);background:var(--b
 .confirm[hidden],[hidden]{display:none!important}
 .docs ul{margin:0;padding-left:18px}
 .docs li{margin:2px 0}
-.finish{border-top:1px solid var(--border);margin-top:18px;padding-top:2px}
-.finish p{margin:0 0 8px;font-size:14px}
-.done-toggle{display:inline-flex;gap:8px;align-items:center;font-size:14px;cursor:pointer;padding:6px 10px;border:1px solid var(--border);border-radius:8px}
-.done-toggle input{width:16px;height:16px;accent-color:var(--ok)}
-.step[data-status-v="done"] .done-toggle{border-color:var(--ok);background:var(--ok-soft)}
+.track-switch{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}
+.track-title{font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.track-btn[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.track-intro{font-size:14.5px;margin:0 0 22px;padding:10px 14px;border-radius:8px;background:var(--surface)}
+.track-intro p{margin:0 0 6px}.track-intro p:last-child{margin:0}
+.track-note{display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;padding:8px 12px;border-radius:8px;
+  background:var(--accent-soft);font-size:14px}
+.explain-extra p{margin:0 0 10px}
+.explain-extra code,.track-note code,.track-intro code,.nb code{font-size:.88em;background:var(--surface-2);border-radius:4px;
+  padding:1px 5px;overflow-wrap:anywhere}
+.nb .codeblock code{background:none;padding:0;font-size:inherit}
+details.nb{border-top:1px solid var(--border);margin-top:18px;padding-top:10px}
+details.nb summary{cursor:pointer;font-size:11.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+details.nb p{font-size:14px;margin:8px 0}
 footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
 @media (max-width:900px){
   .layout{grid-template-columns:1fr;gap:12px}
@@ -997,7 +1221,7 @@ footer.foot{font-size:12.5px;color:var(--muted);margin-top:30px}
   .bar{width:90px}
 }
 @media print{
-  .accent-bar,nav.steps-nav,.ex-actions,.hint-controls,.btn-copy,.notice{display:none}
+  .accent-bar,nav.steps-nav,.ex-actions,.hint-controls,.btn-copy,.notice,.track-switch{display:none}
   .layout{display:block}.hint[hidden]{display:block!important}
 }
 """
@@ -1076,19 +1300,21 @@ UI_JS = r"""
   'use strict';
   var DATA = JSON.parse(document.getElementById('guide-data').textContent);
   var KEY = 'workshop-guide-static:' + DATA.id;
+  var TRACK_KEY = KEY + ':track';
   var STEPS = {};
   DATA.steps.forEach(function (s) { STEPS[s.id] = s; });
   var live = document.getElementById('live');
 
-  /* ---------- storage (every access in try/catch: private windows, blocked storage) ---------- */
-  function emptyState() { return { v: 1, fill: {}, order: {}, match: {}, hints: {}, done: {}, solved: {}, touched: {} }; }
+  /* ---------- storage (every access in try/catch: private windows, blocked storage) ----------
+     Exercise state is keyed per pane ("t03:sql"); a step is done once any track passed it (done[step] = track). */
+  function emptyState() { return { v: 2, fill: {}, order: {}, match: {}, hints: {}, done: {}, solved: {}, touched: {} }; }
   var state = emptyState();
   var storageOk = true;
   try {
     var raw = window.localStorage.getItem(KEY);
     if (raw) {
       var parsed = JSON.parse(raw);
-      if (parsed && parsed.v === 1) Object.keys(state).forEach(function (k) { if (parsed[k]) state[k] = parsed[k]; });
+      if (parsed && parsed.v === 2) Object.keys(state).forEach(function (k) { if (parsed[k]) state[k] = parsed[k]; });
     }
   } catch (e) { storageOk = false; }
   function save() {
@@ -1110,6 +1336,28 @@ UI_JS = r"""
     if (!el) return;
     el.textContent = msg;
     if (tone) el.setAttribute('data-tone', tone); else el.removeAttribute('data-tone');
+  }
+
+  /* ---------- track (SQL / PySpark), remembered per workshop ---------- */
+  var track = DATA.default_track;
+  try {
+    var savedTrack = window.localStorage.getItem(TRACK_KEY);
+    if (DATA.tracks.indexOf(savedTrack) >= 0) track = savedTrack;
+  } catch (e) { /* default track */ }
+  function setTrack(t, byUser) {
+    track = t;
+    document.querySelectorAll('[data-tracks]').forEach(function (el) {
+      el.hidden = el.getAttribute('data-tracks').split(' ').indexOf(t) < 0;
+    });
+    document.querySelectorAll('[data-track-btn]').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-track-btn') === t ? 'true' : 'false');
+    });
+    document.documentElement.setAttribute('data-track', t);
+    if (byUser) {
+      try { window.localStorage.setItem(TRACK_KEY, t); } catch (e) { /* not remembered */ }
+      var btn = document.querySelector('[data-track-btn="' + t + '"]');
+      announce(fmt(L.track_set, { track: btn ? btn.textContent : t }));
+    }
   }
 
   /* ---------- clipboard (file:// pages may lack navigator.clipboard) ---------- */
@@ -1142,10 +1390,9 @@ UI_JS = r"""
 
   /* ---------- step status ---------- */
   function stepStatus(id) {
-    var s = STEPS[id];
-    if (state.done[id] || (s.check === 'app' && state.solved[id])) return 'done';
-    if (state.solved[id]) return 'ready';
-    if (state.touched[id] || state.hints[id]) return 'progress';
+    if (state.done[id]) return 'done';
+    var hinted = STEPS[id].panes.some(function (p) { return state.hints[id + ':' + p.key]; });
+    if (state.touched[id] || hinted) return 'progress';
     return 'none';
   }
   var LABELS = L.states;
@@ -1159,8 +1406,6 @@ UI_JS = r"""
       link.setAttribute('data-status-v', st);
       link.querySelector('[data-nav-state]').textContent = ', ' + LABELS[st].toLowerCase();
     }
-    var box = sec.querySelector('[data-done]');
-    if (box) box.checked = !!state.done[id];
   }
   function refreshOverall() {
     var req = 0, reqDone = 0, opt = 0, optDone = 0;
@@ -1174,20 +1419,21 @@ UI_JS = r"""
     bar.style.width = (req ? Math.round(100 * reqDone / req) : 0) + '%';
     bar.parentNode.setAttribute('aria-valuenow', String(reqDone));
   }
-  function touch(id) {
-    if (!state.touched[id]) { state.touched[id] = true; }
-  }
+  function touch(id) { state.touched[id] = true; }
+  /* A correct answer in any track completes the step (it stays done until "Reset my progress"). */
+  function passed(id) { if (!state.done[id]) state.done[id] = track; }
   function changed(id) { save(); refreshStep(id); refreshOverall(); }
 
   /* ---------- hints ---------- */
-  function initHints(sec, s) {
+  function initHints(sec, p, sid) {
     var items = sec.querySelectorAll('[data-hint]');
     if (!items.length) return;
+    var key = sid + ':' + p.key;
     var next = sec.querySelector('[data-hint-next]');
     var confirmBox = sec.querySelector('[data-confirm]');
     var count = sec.querySelector('[data-hint-count]');
     function render() {
-      var shown = Math.min(state.hints[s.id] || 0, items.length);
+      var shown = Math.min(state.hints[key] || 0, items.length);
       items.forEach(function (li, i) { li.hidden = i >= shown; });
       var nextIsSolution = shown === items.length - 1 && items.length > 1;
       next.hidden = shown >= items.length;
@@ -1195,13 +1441,13 @@ UI_JS = r"""
       count.textContent = fmt(L.hints_shown, { n: shown, total: items.length });
     }
     function reveal(n) {
-      state.hints[s.id] = n;
-      render(); changed(s.id);
+      state.hints[key] = n;
+      render(); changed(sid);
       var li = items[n - 1];
       if (li) { li.setAttribute('tabindex', '-1'); li.focus({ preventScroll: false }); }
     }
     next.addEventListener('click', function () {
-      var shown = state.hints[s.id] || 0;
+      var shown = state.hints[key] || 0;
       if (shown === items.length - 1 && items.length > 1) {
         confirmBox.hidden = false; next.hidden = true;
         confirmBox.querySelector('[data-confirm-no]').focus();
@@ -1217,44 +1463,46 @@ UI_JS = r"""
   }
 
   /* ---------- fill ---------- */
-  function initFill(sec, s) {
+  function initFill(sec, p, sid) {
+    var key = sid + ':' + p.key;
     var inputs = sec.querySelectorAll('input[data-blank]');
-    var values = state.fill[s.id] || {};
+    var values = state.fill[key] || {};
     function evaluate(quiet) {
       inputs.forEach(function (inp) {
-        var st = WG.blankState(inp.value, s.blanks[inp.getAttribute('data-blank')]);
+        var st = WG.blankState(inp.value, p.blanks[inp.getAttribute('data-blank')]);
         inp.setAttribute('data-state', st);
         inp.setAttribute('aria-invalid', st === 'wrong' ? 'true' : 'false');
       });
-      var p = WG.fillProgress(s, values);
-      var all = p.correct === p.total;
-      state.solved[s.id] = all;
-      if (all) setStatus(sec, fmt(L.fill_all, { total: p.total }) + L.run_check_tail, 'ok');
-      else setStatus(sec, fmt(L.fill_some, { n: p.correct, total: p.total }), null);
+      var pr = WG.fillProgress(p, values);
+      var all = pr.correct === pr.total;
+      state.solved[key] = all;
+      if (all) { passed(sid); setStatus(sec, fmt(L.fill_all, { total: pr.total }), 'ok'); }
+      else setStatus(sec, fmt(L.fill_some, { n: pr.correct, total: pr.total }), null);
       if (!quiet && all) announce(L.fill_all_announce);
     }
     inputs.forEach(function (inp) {
       var id = inp.getAttribute('data-blank');
       if (values[id]) inp.value = values[id];
       inp.addEventListener('input', function () {
-        values[id] = inp.value; state.fill[s.id] = values; touch(s.id);
-        evaluate(false); changed(s.id);
+        values[id] = inp.value; state.fill[key] = values; touch(sid);
+        evaluate(false); changed(sid);
       });
     });
     sec.querySelector('[data-copy-assembled]').addEventListener('click', function (ev) {
-      copyText(WG.assembleFill(s, values), ev.currentTarget);
+      copyText(WG.assembleFill(p, values), ev.currentTarget);
     });
     sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
-      values = {}; state.fill[s.id] = values;
+      values = {}; state.fill[key] = values;
       inputs.forEach(function (inp) { inp.value = ''; });
-      evaluate(true); changed(s.id); inputs[0].focus();
+      evaluate(true); changed(sid); inputs[0].focus();
     });
     evaluate(true);
   }
 
   /* ---------- order ---------- */
   var dragged = null;
-  function initOrder(sec, s) {
+  function initOrder(sec, p, sid) {
+    var key = sid + ':' + p.key;
     var pool = sec.querySelector('[data-list="pool"]');
     var answer = sec.querySelector('[data-list="answer"]');
     var byId = {};
@@ -1267,10 +1515,10 @@ UI_JS = r"""
       sec.querySelectorAll('[data-block]').forEach(function (li) { li.removeAttribute('data-mark'); });
     }
     function persist(msg) {
-      state.order[s.id] = current(); touch(s.id);
-      state.solved[s.id] = false; clearMarks();
+      state.order[key] = current(); touch(sid);
+      state.solved[key] = false; clearMarks();
       setStatus(sec, msg || '', null);
-      changed(s.id);
+      changed(sid);
     }
     function blockLabel(li) {
       var t = li.querySelector('code').textContent.split('\n')[0];
@@ -1333,20 +1581,20 @@ UI_JS = r"""
     sec.querySelector('[data-check-order]').addEventListener('click', function () {
       var ans = current();
       if (!ans.length) { setStatus(sec, L.answer_empty, 'bad'); return; }
-      var r = WG.checkOrder(s, ans);
-      touch(s.id); state.solved[s.id] = r.pass;
+      var r = WG.checkOrder(p, ans);
+      touch(sid); state.solved[key] = r.pass;
+      if (r.pass) passed(sid);
       answer.querySelectorAll('[data-block]').forEach(function (li, i) {
-        li.setAttribute('data-mark', s.solution[i] === li.getAttribute('data-block') ? 'ok' : 'bad');
+        li.setAttribute('data-mark', p.solution[i] === li.getAttribute('data-block') ? 'ok' : 'bad');
       });
-      var tail = r.pass ? (s.check === 'notebook' ? L.run_check_tail : '') : '';
-      setStatus(sec, r.message + tail, r.pass ? 'ok' : 'bad');
+      setStatus(sec, r.message, r.pass ? 'ok' : 'bad');
       announce(r.message);
-      changed(s.id);
+      changed(sid);
     });
     sec.querySelector('[data-copy-assembled]').addEventListener('click', function (ev) {
       var ans = current();
       if (!ans.length) { setStatus(sec, L.answer_empty, 'bad'); return; }
-      copyText(WG.assembleOrder(s, ans), ev.currentTarget);
+      copyText(WG.assembleOrder(p, ans), ev.currentTarget);
     });
     sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
       initialPool.forEach(function (li) { pool.appendChild(li); });
@@ -1354,19 +1602,20 @@ UI_JS = r"""
       announce(L.blocks_reset);
     });
     /* restore */
-    var saved = state.order[s.id] || [];
+    var saved = state.order[key] || [];
     saved.forEach(function (id) { if (byId[id]) answer.appendChild(byId[id]); });
-    if (state.solved[s.id]) {
-      var r0 = WG.checkOrder(s, current());
-      if (r0.pass) setStatus(sec, r0.message, 'ok'); else state.solved[s.id] = false;
+    if (state.solved[key]) {
+      var r0 = WG.checkOrder(p, current());
+      if (r0.pass) setStatus(sec, r0.message, 'ok'); else state.solved[key] = false;
     }
   }
 
   /* ---------- match ---------- */
-  function initMatch(sec, s) {
+  function initMatch(sec, p, sid) {
+    var key = sid + ':' + p.key;
     var selects = sec.querySelectorAll('select.match-select');
     var chips = sec.querySelectorAll('.chip');
-    var saved = state.match[s.id] || {};
+    var saved = state.match[key] || {};
     function assignment() {
       var a = {};
       selects.forEach(function (sel) {
@@ -1387,9 +1636,9 @@ UI_JS = r"""
       sel.value = term;
       var a = assignment(), store = {};
       Object.keys(a).forEach(function (k) { if (a[k] !== null) store[k] = a[k]; });
-      state.match[s.id] = store; touch(s.id);
-      state.solved[s.id] = false; clearMarks(); syncChips(); setStatus(sec, '', null);
-      changed(s.id);
+      state.match[key] = store; touch(sid);
+      state.solved[key] = false; clearMarks(); syncChips(); setStatus(sec, '', null);
+      changed(sid);
     }
     selects.forEach(function (sel) {
       var slot = sel.closest('[data-slot]').getAttribute('data-slot');
@@ -1419,25 +1668,26 @@ UI_JS = r"""
       });
     });
     function grade(quiet) {
-      var r = WG.checkMatch(s, assignment());
+      var r = WG.checkMatch(p, assignment());
       sec.querySelectorAll('.match-row').forEach(function (row) {
         var slot = row.getAttribute('data-slot');
         if (slot in r.slotCorrect) row.setAttribute('data-mark', r.slotCorrect[slot] ? 'ok' : 'bad');
         else row.removeAttribute('data-mark');
       });
-      state.solved[s.id] = r.pass;
+      state.solved[key] = r.pass;
+      if (r.pass) passed(sid);
       setStatus(sec, r.message, r.pass ? 'ok' : 'bad');
       if (!quiet) announce(r.message);
       return r;
     }
-    sec.querySelector('[data-check-match]').addEventListener('click', function () { touch(s.id); grade(false); changed(s.id); });
+    sec.querySelector('[data-check-match]').addEventListener('click', function () { touch(sid); grade(false); changed(sid); });
     sec.querySelector('[data-reset-ex]').addEventListener('click', function () {
       selects.forEach(function (sel) { sel.value = ''; });
-      state.match[s.id] = {}; state.solved[s.id] = false; clearMarks(); syncChips(); setStatus(sec, '', null);
-      changed(s.id); selects[0].focus();
+      state.match[key] = {}; state.solved[key] = false; clearMarks(); syncChips(); setStatus(sec, '', null);
+      changed(sid); selects[0].focus();
     });
     syncChips();
-    if (state.solved[s.id]) grade(true);
+    if (state.solved[key]) grade(true);
   }
 
   /* ---------- nav highlight ---------- */
@@ -1461,19 +1711,21 @@ UI_JS = r"""
       copyText(btn.parentNode.querySelector('pre').textContent.replace(/\n$/, ''), btn);
     });
   });
+  document.querySelectorAll('[data-track-btn]').forEach(function (btn) {
+    btn.addEventListener('click', function () { setTrack(btn.getAttribute('data-track-btn'), true); });
+  });
+  setTrack(track, false);
   DATA.steps.forEach(function (s) {
-    var sec = document.getElementById('step-' + s.id);
-    if (s.type === 'fill') initFill(sec, s);
-    else if (s.type === 'order') initOrder(sec, s);
-    else if (s.type === 'match') initMatch(sec, s);
-    initHints(sec, s);
-    var box = sec.querySelector('[data-done]');
-    if (box) box.addEventListener('change', function () {
-      state.done[s.id] = box.checked; touch(s.id); changed(s.id);
-      if (box.checked) announce(L.step_done);
+    s.panes.forEach(function (p) {
+      var sec = document.getElementById(s.id + '-' + p.key);
+      if (p.type === 'fill') initFill(sec, p, s.id);
+      else if (p.type === 'order') initOrder(sec, p, s.id);
+      else if (p.type === 'match') initMatch(sec, p, s.id);
+      initHints(sec, p, s.id);
     });
     refreshStep(s.id);
   });
+  save();
   refreshOverall();
   initNav();
   showStorageWarning();
@@ -1485,7 +1737,6 @@ UI_JS = r"""
   document.documentElement.classList.add('js');
 })();
 """
-
 
 L10N_JS = r"""
 /* Page language: strings from #guide-l10n (build_static.py STRINGS[lang]["js"]). */
@@ -1502,12 +1753,13 @@ function plural(n, forms) {
 }
 """
 
-# The guide intro says "click **Check** here" (the app); the static page has no Check button.
+# The guide intro mentions the app's **Check on data** button; the static page has none: data checks run in
+# the notebook with check() (see the notice at the top of the page).
 STATIC_INTRO = {
-    "en": (r"then click \*\*Check\*\* here: [^.]*\.",
-           "then run `check(...)` for it in a new cell (see the note above)."),
-    "pl": (r"potem kliknij tutaj \*\*Sprawdź\*\*: [^.]*\.",
-           "potem uruchom w nowej komórce `check(...)` dla tego kroku (zobacz uwagę powyżej)."),
+    "en": (r"and you can click \*\*Check on data\*\*[^.]*\.",
+           "and `check(...)` in the notebook tests your result on your data (see the note above)."),
+    "pl": (r"a przez kliknięcie \*\*Sprawdź na danych\*\*[^.]*\.",
+           "a przez `check(...)` w notebooku sprawdzisz wynik na swoich danych (zobacz uwagę powyżej)."),
 }
 
 
@@ -1584,9 +1836,9 @@ def render_page(guide: dict, source_name: str, lang: str = "en") -> str:
 <p id="storage-warning" hidden>{UI["storage_warning"]}</p>
 </div>
 <div class="intro md">{markdown(intro)}</div>
+{render_tracks(guide)}
 <div class="legend" aria-hidden="true"><span><span class="dot"></span>{legend["none"]}</span>
 <span data-status-v="progress"><span class="dot"></span>{legend["progress"]}</span>
-<span data-status-v="ready"><span class="dot"></span>{legend["ready"]}</span>
 <span data-status-v="done"><span class="dot"></span>{legend["done"]}</span></div>
 {steps}
 <footer class="foot">{UI["footer"].format(source=esc(source_name))}</footer>
@@ -1656,7 +1908,7 @@ VOID = {"meta", "link", "br", "hr", "img", "input", "source", "wbr", "col", "are
 ALLOWED = VOID | {
     "html", "head", "body", "title", "style", "script", "a", "div", "span", "header", "nav", "main", "footer",
     "section", "h1", "h2", "h3", "h4", "p", "ol", "ul", "li", "pre", "code", "strong", "em", "button", "label",
-    "select", "option",
+    "select", "option", "details", "summary",
 }
 
 
@@ -1669,6 +1921,8 @@ class StructureCheck(HTMLParser):
         self.count: dict[str, int] = {}
         self.steps: dict[str, dict] = {}
         self.current: str | None = None
+        self.pane: str | None = None
+        self.pane_depth = -1
         self.script_json: list[str] = []
         self._in_data = False
 
@@ -1680,10 +1934,18 @@ class StructureCheck(HTMLParser):
             self.ids[a["id"]] = self.ids.get(a["id"], 0) + 1
         if tag == "section" and "data-step" in a:
             self.current = a["data-step"]
-            self.steps[self.current] = {"depth": len(self.stack), "type": a.get("data-type"), "inputs": 0, "blocks": 0,
-                                        "rows": 0, "selects": 0, "chips": 0, "hints": 0, "docs": [], "done": 0,
-                                        "title": False}
-        st = self.steps.get(self.current) if self.current else None
+            self.steps[self.current] = {"depth": len(self.stack), "panes": {}, "docs": [], "title": False}
+        step = self.steps.get(self.current) if self.current else None
+        if step is not None and "data-pane" in a:
+            self.pane, self.pane_depth = a["data-pane"], len(self.stack)
+            step["panes"][self.pane] = {"tracks": a.get("data-tracks", ""), "hidden": "hidden" in a, "inputs": 0,
+                                        "blocks": 0, "rows": 0, "selects": 0, "chips": 0, "hints": 0, "notebooks": 0}
+        st = step["panes"].get(self.pane) if step is not None and self.pane else None
+        if step is not None:
+            if tag == "a" and "href" in a:
+                step["docs"].append(a["href"])
+            if tag == "h3" and a.get("id") == f"{self.current}-title":
+                step["title"] = True
         if st is not None:
             if tag == "input" and "data-blank" in a:
                 st["inputs"] += 1
@@ -1697,12 +1959,8 @@ class StructureCheck(HTMLParser):
                 st["chips"] += 1
             if "data-hint" in a:
                 st["hints"] += 1
-            if "data-done" in a:
-                st["done"] += 1
-            if tag == "a" and "href" in a:
-                st["docs"].append(a["href"])
-            if tag == "h3" and a.get("id") == f"{self.current}-title":
-                st["title"] = True
+            if tag == "details":
+                st["notebooks"] += 1
         if tag == "script" and a.get("id") == "guide-data":
             self._in_data = True
         if tag not in VOID:
@@ -1723,6 +1981,8 @@ class StructureCheck(HTMLParser):
                     pass
             return
         self.stack.pop()
+        if tag == "div" and self.pane and len(self.stack) == self.pane_depth:
+            self.pane, self.pane_depth = None, -1
         if tag == "section" and self.current and len(self.stack) == self.steps[self.current]["depth"]:
             self.current = None
         if tag == "script":
@@ -1754,7 +2014,7 @@ def check_page(path: Path, guide: dict, lang: str = "en") -> list[str]:
     except (ValueError, KeyError) as exc:
         errors.append(f"{path.name}: embedded guide data is not valid JSON ({exc})")
     for step in guide["steps"]:
-        sid, stype = step["id"], step["type"]
+        sid = step["id"]
         st = p.steps.get(sid)
         if st is None:
             errors.append(f"{path.name}: step {sid} not rendered")
@@ -1766,17 +2026,33 @@ def check_page(path: Path, guide: dict, lang: str = "en") -> list[str]:
 
         if not st["title"]:
             errors.append(f"{path.name}: step {sid}: title missing")
-        need("hints", st["hints"], len(step.get("hints", [])))
-        if stype == "fill":
-            need("blank inputs", st["inputs"], len(step["blanks"]))
-        if stype == "order":
-            need("blocks", st["blocks"], len(step["blocks"]))
-        if stype == "match":
-            need("match rows", st["rows"], len(step["pairs"]))
-            need("selects", st["selects"], len(step["pairs"]))
-            need("terms", st["chips"], len(step["pairs"]))
-        check = step.get("check", "app" if stype in ("order", "match") else "notebook")
-        need("done toggles", st["done"], 1 if check == "notebook" else 0)
+        panes = track_panes(step)
+        need("track panes", len(st["panes"]), len(panes))
+        shown = [t for pane in st["panes"].values() for t in pane["tracks"].split()]
+        if sorted(shown) != sorted(TRACKS):
+            errors.append(f"{path.name}: step {sid}: every track must show exactly one exercise, got {shown}")
+        for pane in panes:
+            got = st["panes"].get(pane["key"])
+            if got is None:
+                errors.append(f"{path.name}: step {sid}: pane {pane['key']} not rendered")
+                continue
+            ex = pane["exercise"]
+
+            def needp(what: str, n: int, want: int) -> None:
+                need(f"{pane['key']} {what}", n, want)
+
+            needp("hints", got["hints"], len(ex.get("hints", [])))
+            needp("notebook sections", got["notebooks"], 1)
+            if got["hidden"] != (DEFAULT_TRACK not in pane["tracks"]):
+                errors.append(f"{path.name}: step {sid}: pane {pane['key']} hidden state wrong for the default track")
+            if ex["type"] == "fill":
+                needp("blank inputs", got["inputs"], len(ex["blanks"]))
+            if ex["type"] == "order":
+                needp("blocks", got["blocks"], len(ex["blocks"]))
+            if ex["type"] == "match":
+                needp("match rows", got["rows"], len(ex["pairs"]))
+                needp("selects", got["selects"], len(ex["pairs"]))
+                needp("terms", got["chips"], len(ex["pairs"]))
         for doc in step.get("docs", []):
             if doc["url"] not in st["docs"]:
                 errors.append(f"{path.name}: step {sid}: doc link {doc['url']} missing")
@@ -1879,10 +2155,17 @@ def main(argv: list[str] | None = None) -> int:
         print("\n".join(f"ERROR {e}" for e in errors), file=sys.stderr)
         return 1
     for guide, pages in guides:
-        types = {}
-        for s in guide["steps"]:
-            types[s["type"]] = types.get(s["type"], 0) + 1
-        mix = ", ".join(f"{k} {v}" for k, v in sorted(types.items()))
+        mixes = []
+        for track in TRACKS:
+            types: dict[str, int] = {}
+            for s in guide["steps"]:
+                v = s["variants"][track]
+                v = s["variants"][v["reuse"]] if "reuse" in v else v
+                types[v["type"]] = types.get(v["type"], 0) + 1
+            reused = sum(1 for s in guide["steps"] if "reuse" in s["variants"][track])
+            mixes.append(f"{track}: " + ", ".join(f"{k} {n}" for k, n in sorted(types.items()))
+                         + (f" ({reused} reused)" if reused else ""))
+        mix = "; ".join(mixes)
         for lang, g, _ in pages:
             page = out / page_name(g["id"], lang)
             print(f"OK  {page.relative_to(out.parent) if out.parent in page.parents else page}"

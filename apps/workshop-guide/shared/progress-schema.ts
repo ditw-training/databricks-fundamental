@@ -15,6 +15,8 @@ export const progressRowSchema = z.object({
   source: nullableString,
   ts: z.string(),
   runs: z.coerce.number(),
+  /** Tracks with a pass for this step, comma separated ("pyspark,sql"); empty or null = none. */
+  tracks: nullableString,
 });
 export type ProgressRow = z.infer<typeof progressRowSchema>;
 

@@ -1,11 +1,15 @@
 import { Badge, Button } from '@databricks/appkit-ui/react';
 import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Info, Loader2, PlayCircle, Target } from 'lucide-react';
 import { useState } from 'react';
-import type { Guide, Step } from '../../../shared/guide-schema';
+import type { CheckResponse } from '../../../shared/check-schema';
+import { checkFill, stripTrack, trackMessage } from '../../../shared/grading';
+import { dataCheckReachable, resolveExercise, type Answer, type Guide, type Step, type Track } from '../../../shared/guide-schema';
 import { postCheck, postProgress } from '../lib/api';
 import type { ParticipantRow } from '../lib/progress';
 import { formatAgo, parseTs, toStatus } from '../lib/status';
 import { stepKey, useStoredState } from '../lib/storage';
+import { parseTracks } from '../lib/track';
+import { localizeGradeMessage } from '../lib/grade-message';
 import { CodeExercise } from './exercises/CodeExercise';
 import { FillExercise } from './exercises/FillExercise';
 import { MatchExercise } from './exercises/MatchExercise';
@@ -15,7 +19,7 @@ import { useI18n } from '../i18n/context';
 import type { Dict } from '../i18n';
 import { typeLabel } from '../lib/labels';
 import { Markdown } from './Markdown';
-import { PasteHint } from './PasteHint';
+import { NotebookSection } from './NotebookSection';
 import { StatusDot } from './StatusDot';
 
 interface Props {
@@ -23,60 +27,80 @@ interface Props {
   step: Step;
   index: number;
   email: string;
+  /** Track the participant picked for this workshop (SPEC section 11). */
+  track: Track;
   row: ParticipantRow | undefined;
   progressError: string | null;
   onLocalResult: (row: ParticipantRow) => void;
   onNavigate: (stepId: string) => void;
 }
 
-export function StepPane({ guide, step, index, email, row, progressError, onLocalResult, onNavigate }: Props) {
+const addTrack = (tracks: string | null | undefined, track: Track) =>
+  [...new Set([...parseTracks(tracks), track])].sort().join(',');
+
+export function StepPane({ guide, step, index, email, track, row, progressError, onLocalResult, onNavigate }: Props) {
   const { m } = useI18n();
+  const resolved = resolveExercise(step, track);
+  const { exercise } = resolved;
   const key = (what: string) => stepKey(email, guide.id, step.id, what);
-  const [hintsUsed, setHintsUsed] = useStoredState<number>(key('hints'), 0);
+  // Answers and revealed hints are kept per shown exercise, so switching tracks keeps both.
+  const ns = step.type === 'tracks' ? `${resolved.shownTrack}:` : '';
+  const seed = step.type === 'tracks' && resolved.shownTrack !== 'sql' ? `${step.id}:${resolved.shownTrack}` : step.id;
+  const [hintsUsed, setHintsUsed] = useStoredState<number>(key(`${ns}hints`), 0);
   const [attempts, setAttempts] = useStoredState<number>(key('attempts'), 0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const passed = toStatus(row?.status) === 'pass';
 
   const prev = guide.steps[index - 1];
   const next = guide.steps[index + 1];
   const number = String(index + 1).padStart(2, '0');
-  const pasteHint = <PasteHint guide={guide} step={step} number={number} />;
 
-  const recordAppResult = (pass: boolean, message: string) => {
+  /**
+   * Every fill / order / match step is graded in the app (SPEC section 11). The local grade shows
+   * at once; the server grades the same answer again and records it (its result wins).
+   */
+  const submit = (answer: Answer, local: { pass: boolean; message: string }) => {
+    if (!exercise) return;
     const attemptNo = attempts + 1;
     setAttempts(attemptNo);
-    if (step.check !== 'app') return;
-    const body = {
-      workshop: guide.id,
+    const hints = Math.min(hintsUsed, 20);
+    const base: ParticipantRow = {
       step: step.id,
-      status: pass ? ('pass' as const) : ('fail' as const),
-      message: message.slice(0, 200),
-      hints_used: Math.min(hintsUsed, 20),
-      attempts: attemptNo,
-    };
-    // Show the result immediately; the next poll confirms it from the table.
-    onLocalResult({
-      step: step.id,
-      step_type: step.type,
-      status: body.status,
-      message: body.message,
-      hints_used: body.hints_used,
+      step_type: exercise.type,
+      status: local.pass ? 'pass' : 'fail',
+      message: trackMessage(track, local.message),
+      hints_used: hints,
       attempts: attemptNo,
       source: 'app',
       ts: new Date().toISOString(),
       runs: (row?.runs ?? 0) + 1,
-    });
+      tracks: local.pass ? addTrack(row?.tracks, track) : (row?.tracks ?? null),
+    };
+    onLocalResult(base);
     setSaving(true);
     setSaveError(null);
-    postProgress(body)
+    postProgress({ workshop: guide.id, step: step.id, track, answer, hints_used: hints, attempts: attemptNo })
+      .then((res) => {
+        if (res.status !== base.status || res.message !== base.message) {
+          onLocalResult({
+            ...base,
+            status: res.status,
+            message: res.message,
+            tracks: res.status === 'pass' ? addTrack(row?.tracks, track) : (row?.tracks ?? null),
+          });
+        }
+      })
       .catch((err: unknown) => setSaveError((err as Error).message))
       .finally(() => setSaving(false));
   };
 
-  // Check button (notebook-graded steps): the server runs the step's SQL as the participant.
+  // Check: the server runs the step's SQL as the participant. Required only for legacy free `code`
+  // steps; for every other step it is the optional "Check on data" and does not change the step.
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [notRecorded, setNotRecorded] = useState(false);
+  const [dataResult, setDataResult] = useState<CheckResponse | null>(null);
   const runCheck = () => {
     if (checking) return;
     setChecking(true);
@@ -84,6 +108,10 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
     setNotRecorded(false);
     postCheck({ workshop: guide.id, step: step.id, hints_used: Math.min(hintsUsed, 20) })
       .then((result) => {
+        if (result.bonus) {
+          setDataResult(result);
+          return;
+        }
         setNotRecorded(!result.recorded);
         // Show the result (and the status dot) immediately; the next poll confirms it.
         onLocalResult({
@@ -96,11 +124,21 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
           source: 'app',
           ts: new Date().toISOString(),
           runs: (row?.runs ?? 0) + 1,
+          tracks: row?.tracks ?? null,
         });
       })
       .catch((err: unknown) => setCheckError((err as Error).message))
       .finally(() => setChecking(false));
   };
+
+  const dataCheck = exercise && step.data_check && dataCheckReachable(step, track) ? { busy: checking, error: checkError, result: dataResult, onCheck: runCheck } : undefined;
+  const saveCode = (exercise as { save?: string } | null)?.save ?? null;
+  const notebook = (code: string | null, complete: boolean) => (
+    <NotebookSection code={code} complete={complete} language={resolved.language} dataCheck={dataCheck} save={saveCode} />
+  );
+  // Doc links tagged with a track show only in that track (and in the track whose exercise is shown).
+  const docs = step.docs.filter((d) => !d.track || d.track === track || d.track === resolved.shownTrack);
+  const exerciseType = exercise ? exercise.type : 'code';
 
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-6" aria-labelledby="step-title">
@@ -108,7 +146,12 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="font-mono">{m.stepNumber(number)}</span>
           <span aria-hidden>·</span>
-          <span>{typeLabel(step.type, m)}</span>
+          <span>{typeLabel(exerciseType, m)}</span>
+          {step.type === 'tracks' && (
+            <Badge variant="secondary">
+              {resolved.fallback ? m.trackShared(m.trackName(resolved.shownTrack)) : m.trackName(track)}
+            </Badge>
+          )}
           {step.optional && <Badge variant="outline">{m.optional}</Badge>}
         </div>
         <h2 id="step-title" className="text-2xl font-semibold tracking-tight text-foreground">
@@ -117,6 +160,7 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
       </header>
 
       <Markdown className="text-[15px]">{step.explain}</Markdown>
+      {resolved.explainExtra && <Markdown className="text-[15px]">{resolved.explainExtra}</Markdown>}
 
       {step.optional && (
         <p className="wg-expected">
@@ -137,26 +181,49 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
 
       <section aria-labelledby="exercise-heading" className="space-y-3">
         <h3 id="exercise-heading" className="wg-section-title">
-          {typeLabel(step.type, m)}
+          {typeLabel(exerciseType, m)}
         </h3>
-        {step.type === 'fill' && <FillExercise key={step.id} step={step} storageKey={key('fill')} pasteHint={pasteHint} />}
-        {step.type === 'order' && (
-          <OrderExercise
-            key={step.id}
-            step={step}
-            storageKey={key('order')}
-            pasteHint={step.check === 'notebook' ? pasteHint : undefined}
+        {(resolved.fallback || resolved.note) && (
+          <p className="wg-expected">
+            <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {resolved.note ? (
+              <Markdown className="inline-md">{resolved.note}</Markdown>
+            ) : (
+              <span>{m.trackFallback(m.trackName(track), m.trackName(resolved.shownTrack))}</span>
+            )}
+          </p>
+        )}
+        {exercise?.type === 'fill' && (
+          <FillExercise
+            key={`${step.id}:${ns}`}
+            exercise={exercise}
+            storageKey={key(`${ns}fill`)}
+            passed={passed}
             busy={saving}
-            onCheck={(r) => recordAppResult(r.pass, r.message)}
+            onComplete={(values) => submit({ type: 'fill', values }, checkFill(exercise, values))}
+            renderNotebook={notebook}
           />
         )}
-        {step.type === 'match' && (
-          <MatchExercise
-            key={step.id}
-            step={step}
-            storageKey={key('match')}
+        {exercise?.type === 'order' && (
+          <OrderExercise
+            key={`${step.id}:${ns}`}
+            exercise={exercise}
+            seed={seed}
+            storageKey={key(`${ns}order`)}
             busy={saving}
-            onCheck={(r) => recordAppResult(r.pass, r.message)}
+            onCheck={(r, order) => submit({ type: 'order', order }, r)}
+            renderNotebook={notebook}
+          />
+        )}
+        {exercise?.type === 'match' && (
+          <MatchExercise
+            key={`${step.id}:${ns}`}
+            exercise={exercise}
+            seed={seed}
+            storageKey={key(`${ns}match`)}
+            busy={saving}
+            onCheck={(r, assignment) => submit({ type: 'match', assignment }, r)}
+            renderNotebook={dataCheck ? () => notebook(null, false) : undefined}
           />
         )}
         {step.type === 'code' && <CodeExercise step={step} />}
@@ -168,18 +235,17 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
         row={row}
         error={progressError}
         saveError={saveError}
-        check={step.check === 'notebook' ? { busy: checking, error: checkError, notRecorded, onCheck: runCheck } : undefined}
+        check={step.type === 'code' ? { busy: checking, error: checkError, notRecorded, onCheck: runCheck } : undefined}
       />
 
-      <Hints hints={step.hints} revealed={hintsUsed} onReveal={setHintsUsed} />
-
-      {step.docs.length > 0 && (
+      <Hints key={ns} hints={resolved.hints} revealed={hintsUsed} onReveal={setHintsUsed} />
+      {docs.length > 0 && (
         <section aria-labelledby="docs-heading" className="space-y-2">
           <h3 id="docs-heading" className="wg-section-title">
             {m.docsHeading}
           </h3>
           <ul className="flex flex-col gap-1.5">
-            {step.docs.map((doc) => (
+            {docs.map((doc) => (
               <li key={doc.url}>
                 <a href={doc.url} target="_blank" rel="noopener noreferrer" className="wg-doclink">
                   <BookOpen className="size-4 shrink-0" aria-hidden />
@@ -227,7 +293,9 @@ function LiveStatus({ step, number, row, error, saveError, check }: LiveStatusPr
   const { lang, m } = useI18n();
   const status = toStatus(row?.status);
   const when = parseTs(row?.ts);
-  const announcement = useStatusAnnouncement(step, status, row?.message ?? null, m);
+  const message = row?.message ? stripTrack(row.message) : null;
+  const localized = message ? localizeGradeMessage(message, m) : null;
+  const announcement = useStatusAnnouncement(step, status, localized ?? message, m);
 
   const title = status === 'pass' ? m.liveTitlePass : status === 'fail' ? m.liveTitleFail : m.liveTitleNone;
 
@@ -239,11 +307,15 @@ function LiveStatus({ step, number, row, error, saveError, check }: LiveStatusPr
           <h3 id="status-heading" className="text-sm font-semibold">
             {title}
           </h3>
-          {/* Check messages come from the server and the notebooks: English (SPEC section 9). */}
-          {row?.message && (
-            <p className="text-sm" lang="en">
-              {row.message}
+          {/* App grading messages are shown in the UI language; Check messages from the server and the
+              notebooks stay English (SPEC section 9). */}
+          {message && (
+            <p className="text-sm" lang={localized ? lang : 'en'}>
+              {localized ?? message}
             </p>
+          )}
+          {parseTracks(row?.tracks).length > 0 && (
+            <p className="text-xs text-muted-foreground">{m.passedIn(parseTracks(row?.tracks).map((t) => m.trackName(t)).join(', '))}</p>
           )}
           {check && status !== 'pass' && (
             <p className="text-sm text-muted-foreground">

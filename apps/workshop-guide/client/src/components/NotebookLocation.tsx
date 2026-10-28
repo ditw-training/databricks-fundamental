@@ -17,7 +17,7 @@ export function NotebookLocation({ guide, className = '' }: { guide: Guide; clas
     <p className={`flex items-start gap-1.5 text-xs text-muted-foreground ${className}`}>
       <NotebookPen className="mt-0.5 size-3.5 shrink-0" aria-hidden />
       <span>
-        <span className="sr-only">{m.notebookLocation}</span>
+        <span>{m.notebookLocation}</span>
         {parts.map((p) => (
           <Fragment key={p}>
             {p}

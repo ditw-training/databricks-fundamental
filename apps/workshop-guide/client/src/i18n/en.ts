@@ -42,10 +42,26 @@ export const en = {
   statusFail: 'Failed — try again',
   statusNone: 'Not started',
 
+  // ── tracks (SPEC section 11) ──
+  track: 'Track',
+  trackName: (track: 'sql' | 'pyspark') => ({ sql: 'SQL', pyspark: 'PySpark' })[track],
+  trackSwitchLabel: 'Choose your track: SQL or PySpark',
+  trackHelp: 'You can switch at any time; a step counts once, in whichever track you pass it.',
+  trackFallback: (track: string, shown: string) => `This step has no ${track} variant: both tracks use the ${shown} exercise.`,
+  passedIn: (tracks: string) => `passed in: ${tracks}`,
+  trackShared: (shown: string) => `${shown} (both tracks)`,
+  trackChooseTitle: 'Choose your track',
+  trackChooseIntro:
+    'Every step has an SQL and a PySpark version. Pick the one that suits you; you can switch later with the SQL | PySpark switch at the top.',
+  trackSqlDesc: 'You know SQL: SELECT, WHERE, GROUP BY. You work with queries and views.',
+  trackPysparkDesc: 'You want to try Python: DataFrames and the PySpark API.',
+  trackChooseButton: (track: string) => `Start in ${track}`,
+  pickerTrackHint: 'Two tracks: SQL or PySpark. You choose when you open the workshop.',
+
   // ── workshop picker ──
   pickerTitle: 'Workshops and quiz',
   pickerIntro:
-    'Open the matching notebook next to this guide. You write and run the code there; this guide explains each step and shows your progress.',
+    'Pick a workshop and a track (SQL or PySpark). You do every exercise here and the guide checks it right away. Running the code in the notebook is optional.',
   unknownWorkshop: (id: string) => `Workshop “${id}” does not exist. Pick one below.`,
   stepCount: (required: number, optional: number) =>
     `${required} ${enPlural(required, 'step', 'steps')}${optional > 0 ? ` + ${optional} optional` : ''}`,
@@ -60,7 +76,7 @@ export const en = {
   lockedText: 'Your trainer will unlock this at the right moment.',
   lockedNowTitle: 'Locked by the trainer',
   lockedNowText:
-    'The trainer has locked this item for now. Nothing is lost: your code stays in the notebook and your results stay saved. It opens again here as soon as the trainer unlocks it.',
+    'The trainer has locked this item for now. Nothing is lost: your answers and results stay saved. It opens again here as soon as the trainer unlocks it.',
   lockedQuizText: 'This page updates by itself.',
   lockedQuizNowText:
     'The trainer has locked the quiz for now. Nothing is lost: your answers so far are saved. The quiz opens again here as soon as the trainer unlocks it.',
@@ -83,12 +99,13 @@ export const en = {
   lockAllConfirm: 'Lock all',
   accessSaveFailed: (error: string) => `Could not save the change: ${error}`,
   accessLoadFailed: (error: string) => `Could not read the access state: ${error}. Retrying.`,
-  notebookLocation: 'Notebook location: ',
+  notebookLocation: 'Notebook (optional): ',
   yourGitFolder: 'your Git folder',
 
   // ── workshop view ──
   workshopSteps: 'Workshop steps',
   stepsPassed: (passed: number, total: number) => `${passed} / ${total} steps passed`,
+  optionalPassed: (n: number) => `+${n} optional`,
   requiredPassed: 'Required steps passed',
   progressLoading: 'Loading your progress…',
   progressPaused: 'Live status paused — retrying',
@@ -108,7 +125,7 @@ export const en = {
 
   // ── step pane ──
   stepNumber: (n: string) => `Step ${n}`,
-  expectedResult: 'Expected result: ',
+  expectedResult: 'Expected result in the notebook: ',
   docsHeading: 'Documentation',
   stepNav: 'Step navigation',
   prevStep: 'Previous step',
@@ -131,15 +148,24 @@ export const en = {
   fromSource: (source: string) => ` · from ${source}`,
   liveUnavailable: (error: string) => `Live status unavailable: ${error}`,
   saveFailed: (error: string) => `Your result was not saved: ${error}`,
+  saving: 'Saving your result…',
+  saveRetry: 'Save the result again',
 
-  // ── paste hint ──
-  pasteInto: 'Paste into the code cell under',
-  pasteIn: 'in',
-  pasteSql: '(replace the code, keep the first line',
-  pasteReplace: '(replace the code that is there',
-  pasteKeepSaveLine: '; if the cell ends with a line that saves your result, keep it as the last line)',
-  pasteRun: 'Run the cell to the end',
-  pasteRunThenCheck: ', then press Check below',
+  // ── notebook (optional) ──
+  notebookOptional: 'Notebook (optional)',
+  notebookOptionalIntro: 'Want to see it on real data? Run the completed code in your notebook. This is optional and does not change your result here.',
+  notebookSqlCell:
+    'Paste it into a new cell of your workshop notebook (the first line %sql makes it an SQL cell). Views from earlier steps exist only in that notebook session, so run the steps in order there. In the SQL editor drop the %sql line and run USE CATALOG with your catalog first.',
+  notebookPlaceholders: (list: string) => `Replace ${list} with your own values before you run it.`,
+  notebookSaveNote: 'The last lines (comment “optional: saves your result…”) save your result for the Check on data button.',
+  notebookPythonCell: 'Paste it into a new Python cell of your notebook.',
+  notebookIncomplete: 'Finish the exercise above first; until then the code still has gaps or blocks out of order.',
+  notebookNoCode: 'This exercise has no code to run.',
+  dataCheckButton: 'Check on data',
+  dataCheckBonus: 'optional bonus',
+  dataCheckIntro: 'After running the code, check the tables in your catalog. The result is only for you: it does not change the step.',
+  dataCheckPass: 'Your data looks right.',
+  dataCheckFail: 'Your data is not there yet.',
 
   // ── hints ──
   hintsHeading: 'Hints',
@@ -159,7 +185,6 @@ export const en = {
   copied: 'Copied',
   copyFailed: 'Copy failed',
   copiedToClipboard: 'Copied to clipboard',
-  copyToNotebook: 'Copy to notebook',
   reset: 'Reset',
 
   // ── exercises ──
@@ -171,9 +196,8 @@ export const en = {
   blankWrongTitle: 'Not the expected answer yet: check the spelling, the keyword and any quotes.',
   fillAnyWrong:
     'A red blank is not the expected answer yet. Check the spelling, the exact keyword and any quotes; the hints below help.',
-  fillAllCorrect: (total: number) => `All ${total} blanks correct. Copy the code to your notebook.`,
+  fillAllCorrect: (total: number) => `All ${total} blanks correct.`,
   fillProgress: (correct: number, total: number) => `${correct} of ${total} blanks correct`,
-  fillEmptyCopied: 'Empty blanks are copied as ____ so you can spot them in the notebook.',
 
   matchHowBefore: 'Drag each term onto its description, or tap a term and then tap',
   matchHowAfter: 'next to its description.',
@@ -209,9 +233,8 @@ export const en = {
   moveDown: (line: string) => `Move down: ${line}`,
   removeFromSolution: (line: string) => `Remove from solution: ${line}`,
   dragBlock: (line: string) => `Drag block: ${line}`,
-  addBlocksFirst: 'Add blocks to your solution first',
   checkOrder: 'Check order',
-  orderCopyNext: 'Copy the code to your notebook and run the check cell.',
+  orderCopyNext: 'The completed code is under “Notebook (optional)”.',
   orderResult: (r: {
     pass: boolean;
     total: number;
@@ -251,7 +274,7 @@ export const en = {
   matrixLoadFailed: (error: string) => `Could not load the matrix: ${error}`,
   refreshFailed: (error: string) => `Could not refresh: ${error}. Showing the last data received; retrying.`,
   noResultsTitle: 'No results yet',
-  noResultsText: 'Participants appear here after their first Check or their first checked exercise in the guide.',
+  noResultsText: 'Participants appear here after their first checked exercise in the guide.',
   matrixCaption: (label: string) => `${label}: result per participant and step`,
   colParticipant: 'Participant',
   colDone: 'Done',
@@ -268,9 +291,9 @@ export const en = {
   hintsCount: (n: number) => `${n} ${enPlural(n, 'hint', 'hints')}`,
   legend: 'Legend',
   legendPass: 'passed',
-  legendFail: 'latest check failed',
+  legendFail: 'tried, not passed yet',
   legendNone: 'not started',
-  legendHints: 'hints used (app-graded steps)',
+  legendHints: 'hints used',
 
   // ── trainer quiz tab ──
   quizUnavailable: 'Quiz unavailable',

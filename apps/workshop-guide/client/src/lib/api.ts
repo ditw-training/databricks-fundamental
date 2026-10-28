@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CheckPost, CheckResponse, ResetResponse } from '../../../shared/check-schema';
-import type { GuidesResponse, MeResponse, ProgressPost } from '../../../shared/guide-schema';
+import type { GuidesResponse, MeResponse, ProgressPostInput, ProgressPostResponse } from '../../../shared/guide-schema';
 
 export interface FetchState<T> {
   data: T | null;
@@ -51,23 +51,6 @@ export const useMe = () => useJson<MeResponse>('/api/me');
 /** Guides the viewer may open plus metadata of locked ones; refetched when the unlock state changes. */
 export const useGuides = (unlockSignature: string) => useJson<GuidesResponse>('/api/guides', unlockSignature);
 
-export async function postProgress(body: ProgressPost): Promise<void> {
-  const res = await fetch('/api/progress', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    let detail = `${res.status}`;
-    try {
-      detail = ((await res.json()) as { error?: string }).error ?? detail;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(detail);
-  }
-}
-
 async function sendJson<T>(url: string, init: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, headers: { Accept: 'application/json', ...(init.headers ?? {}) } });
   if (!res.ok) {
@@ -81,6 +64,14 @@ async function sendJson<T>(url: string, init: RequestInit): Promise<T> {
   }
   return (await res.json()) as T;
 }
+
+/** Sends the participant's answer; the server grades it and records the result (POST /api/progress). */
+export const postProgress = (body: ProgressPostInput) =>
+  sendJson<ProgressPostResponse>('/api/progress', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
 
 /** Runs the step's check on the SQL warehouse as the signed-in user (POST /api/check). */
 export const postCheck = (body: CheckPost) =>

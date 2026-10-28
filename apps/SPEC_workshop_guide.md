@@ -226,3 +226,26 @@ trainer unlock reaches participants immediately (cache dropped after POST), lock
   user_email = trainer e-mail, source = 'trainer'. The latest row per item wins; no row = locked
   (configurable default via env GUIDE_DEFAULT_UNLOCKED=none|all). Trainer matrix, quiz stats and
   "Reset my progress" ignore these rows.
+
+## 11. Two tracks (SQL / PySpark), every step graded in the app (decided 28.10.2026)
+
+Supersedes the earlier idea of executing participant SQL in the app (not built).
+
+- Each workshop offers two **tracks**: **SQL** and **PySpark**. The participant picks one at the
+  start of a workshop (switch in the workshop header, remembered per workshop in localStorage,
+  can be changed any time; progress of a step counts once, whichever track passed it).
+  Where a natural PySpark variant does not exist (e.g. some Delta Lake steps), both tracks show
+  the SQL exercise with a one-line note.
+- **Every step is completed and graded in the app**: exercise types `fill`, `order`, `match` only.
+  Former `code` steps become `fill` or `order`. Correct answer -> the app records PASS in the
+  progress table (source `app`, step_type = exercise type, message includes `track=sql|pyspark`,
+  attempts and hints_used). No step requires the notebook.
+- The notebook is optional: a collapsed "Notebook (optional)" section shows the completed code of
+  the chosen track to run on real data (PySpark notebook cell, or a `%sql` cell / SQL editor for
+  the SQL track) and keeps the existing data **Check** button as an optional bonus
+  ("Sprawdź na danych" / "Check on data"); it does not affect step completion.
+- Guide JSON: each step keeps shared prose (`title`, `explain`, `expected`, `hints`, `docs`) and
+  gets `variants: { sql: {type, template|blocks|pairs, blanks?, solution, hints?, explain_extra?},
+  pyspark: {...} }`. Polish overlays translate prose only (shared and per-variant).
+- Trainer matrix: a step is green when passed in any track; the participant row shows the track(s).
+- Static HTML: same track switch, grading client-side.
