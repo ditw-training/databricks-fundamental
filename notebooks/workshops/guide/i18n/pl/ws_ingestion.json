@@ -1,7 +1,7 @@
 {
   "id": "ws_ingestion",
   "title": "Warsztat I — Ingestion",
-  "intro": "Jesteś inżynierem danych w RetailHub. Wczytasz surowe pliki klientów (CSV) i zamówień (JSON) jako DataFrame, przekształcisz je za pomocą PySpark i równoważnych zapytań SQL, a na koniec zapiszesz tabelę Bronze w formacie Delta z metadanymi ładowania. Kod uruchamiasz w notebooku `WORKSHOP_ingestion`; po każdym kroku uruchom jego komórkę, potem kliknij tutaj **Sprawdź**: aplikacja sprawdzi wynik i oznaczy krok. Ostatnia linia komórki kroku zapisuje twój wynik do tabeli `default._ws_...` w twoim katalogu; nie usuwaj jej. Kroki opcjonalne możesz pominąć. DataFrame to tabela, którą Spark trzyma dla ciebie, podobnie jak wynik zapytania SELECT; `spark` i `display()` są gotowe w każdym notebooku Databricks.",
+  "intro": "Jesteś inżynierem danych w RetailHub. Wczytasz surowe pliki klientów (CSV) i zamówień (JSON) jako DataFrame, przekształcisz je za pomocą PySpark i równoważnych zapytań SQL, a na koniec zapiszesz tabelę Bronze w formacie Delta z metadanymi ładowania. Kod uruchamiasz w notebooku `WORKSHOP_ingestion`; po każdym kroku uruchom jego komórkę, potem kliknij tutaj **Sprawdź**: aplikacja sprawdzi wynik i oznaczy krok. Ostatnia linia komórki kroku zapisuje twój wynik do tabeli `default._ws_...` w twoim katalogu; nie usuwaj jej. Kroki opcjonalne możesz pominąć. DataFrame to tabela, którą Spark trzyma dla ciebie, podobnie jak wynik zapytania SELECT; `spark` i `display()` są gotowe w każdym notebooku Databricks. Komórka konfiguracyjna definiuje `CUSTOMERS_CSV`, `ORDERS_JSON` (ścieżki do plików źródłowych w twoim Volume) i `TARGET_TABLE` (pełną nazwę tabeli Bronze); kroki używają tych zmiennych zamiast wpisywanych ręcznie ścieżek.",
   "steps": {
     "t01": {
       "title": "Funkcje PySpark i ich odpowiedniki w SQL",
@@ -49,7 +49,7 @@
     },
     "t02": {
       "title": "Wczytaj CSV z automatycznie wykrytym schematem",
-      "explain": "`spark.read` zwraca obiekt do odczytu, który konfigurujesz krok po kroku: format, opcje, wczytanie, a na końcu wyświetlenie. `header` mówi, że pierwszy wiersz zawiera nazwy kolumn. `inferSchema` każe Sparkowi przejrzeć plik i zgadnąć typy, co kosztuje dodatkowe przejście po danych. Nawiasy pozwalają rozpisać jedną instrukcję Pythona na kilka linii, po jednej metodzie w linii. Dwa bloki to pułapki.\n\nOdpowiednik w SQL: `SELECT * FROM read_files('<path>/customers.csv', format => 'csv', header => true)`.\n\nWklej swój kod nad ostatnią linią komórki w notebooku: ta linia zapisuje `customers_infer_df` do tabeli, żeby aplikacja mogła go sprawdzić.",
+      "explain": "`CUSTOMERS_CSV` to nie nazwa pliku do wpisania, tylko zmienna z komórki konfiguracyjnej. Zawiera pełną ścieżkę do pliku klientów w twoim Volume (`/Volumes/<catalog>/default/datasets/customers/customers.csv`).\n\n`spark.read` zwraca obiekt do odczytu, który konfigurujesz krok po kroku: format, opcje, wczytanie, a na końcu wyświetlenie. `header` mówi, że pierwszy wiersz zawiera nazwy kolumn. `inferSchema` każe Sparkowi przejrzeć plik i zgadnąć typy, co kosztuje dodatkowe przejście po danych. Nawiasy pozwalają rozpisać jedną instrukcję Pythona na kilka linii, po jednej metodzie w linii. Dwa bloki to pułapki.\n\nOdpowiednik w SQL: `SELECT * FROM read_files('<path>/customers.csv', format => 'csv', header => true)`.\n\nWklej swój kod nad ostatnią linią komórki w notebooku: ta linia zapisuje `customers_infer_df` do tabeli, żeby aplikacja mogła go sprawdzić.",
       "expected": "`customers_infer_df` z 10 nazwanymi kolumnami (`customer_id`, `first_name`, ...) i 10 000 wierszy.",
       "hints": [
         "Odczyt zawsze zaczyna się od `spark.read` i kończy na `.load(path)`. Zapis (`.write`, `.saveAsTable`) tu nie pasuje.",
@@ -67,7 +67,7 @@
     },
     "t03": {
       "title": "Wczytaj CSV z jawnym schematem",
-      "explain": "Schemat w formacie DDL to lista kolumn taka sama jak w `CREATE TABLE`: `\"customer_id STRING, first_name STRING, ...\"`. Przekaż go do `.schema(...)` zamiast `inferSchema`. Spark pomija wtedy dodatkowe skanowanie, a ty decydujesz o każdym typie. Kolumny CSV są dopasowywane po pozycji, więc kolejność musi być taka jak w pliku. `registration_date` ma format `YYYY-MM-DD`, więc `DATE` odczyta ją bezpośrednio.\n\nOdpowiednik w SQL: `read_files('<path>/customers.csv', format => 'csv', header => true, schema => 'customer_id STRING, ...')`.",
+      "explain": "Znowu czytasz z `CUSTOMERS_CSV`, czyli zmiennej z komórki konfiguracyjnej ze ścieżką do pliku klientów.\n\nSchemat w formacie DDL to lista kolumn taka sama jak w `CREATE TABLE`: `\"customer_id STRING, first_name STRING, ...\"`. Przekaż go do `.schema(...)` zamiast `inferSchema`. Spark pomija wtedy dodatkowe skanowanie, a ty decydujesz o każdym typie. Kolumny CSV są dopasowywane po pozycji, więc kolejność musi być taka jak w pliku. `registration_date` ma format `YYYY-MM-DD`, więc `DATE` odczyta ją bezpośrednio.\n\nOdpowiednik w SQL: `read_files('<path>/customers.csv', format => 'csv', header => true, schema => 'customer_id STRING, ...')`.",
       "expected": "`customers_df` z 10 kolumnami w kolejności z pliku CSV, `registration_date` jako DATE, pozostałe jako STRING; 10 000 wierszy.",
       "hints": [
         "Który typ SQL przechowuje datę bez czasu? Która opcja mówi, że pierwszy wiersz zawiera nazwy kolumn?",
@@ -103,7 +103,7 @@
     },
     "t05": {
       "title": "Wczytaj zamówienia JSON ze schematem",
-      "explain": "`orders_batch.json` to JSON Lines: jeden obiekt JSON w każdej linii. Łańcuch odczytu jest taki sam jak dla CSV, zmienia się tylko format. JSON nie ma opcji nagłówka, a pola są dopasowywane po nazwie, więc kolejność kolumn w schemacie nie ma znaczenia. `order_datetime` zostaje tu typu STRING; przekonwertujesz go w kroku 07.\n\nOdpowiednik w SQL: `SELECT * FROM read_files('<path>/orders_batch.json', format => 'json', schema => 'order_id STRING, ...')`.",
+      "explain": "`ORDERS_JSON` to zmienna z komórki konfiguracyjnej z pełną ścieżką do pliku zamówień w twoim Volume (`.../datasets/orders/orders_batch.json`).\n\n`orders_batch.json` to JSON Lines: jeden obiekt JSON w każdej linii. Łańcuch odczytu jest taki sam jak dla CSV, zmienia się tylko format. JSON nie ma opcji nagłówka, a pola są dopasowywane po nazwie, więc kolejność kolumn w schemacie nie ma znaczenia. `order_datetime` zostaje tu typu STRING; przekonwertujesz go w kroku 07.\n\nOdpowiednik w SQL: `SELECT * FROM read_files('<path>/orders_batch.json', format => 'json', schema => 'order_id STRING, ...')`.",
       "expected": "`orders_df` z 8 kolumnami, `total_amount` typu DOUBLE, `order_datetime` typu STRING; 100 000 wierszy.",
       "hints": [
         "Te same trzy kroki odczytu co w kroku 03: format, schemat, a potem metoda, która wczytuje ścieżkę.",
@@ -214,7 +214,7 @@
     },
     "t11": {
       "title": "Zapisz tabelę Bronze w formacie Delta",
-      "explain": "Warstwa Bronze przechowuje dane źródłowe bez zmian, plus metadane: kiedy je wczytano (`_load_ts`) i z jakiego pliku (`_source_file`). Zacznij od surowego `customers_df`. `_metadata` to ukryta kolumna dostępna w każdym DataFrame wczytanym z plików. Bez kolumn biznesowych: `full_name` i `customer_tier` należą do warstwy Silver. Delta to domyślny format tabel; `overwriteSchema` pozwala uruchomić komórkę ponownie po zmianie kolumn.\n\nOdpowiednik w SQL: `CREATE OR REPLACE TABLE <TARGET_TABLE> AS SELECT *, _metadata.file_path AS _source_file, current_timestamp() AS _load_ts FROM read_files(...)`.",
+      "explain": "`TARGET_TABLE` to zmienna z komórki konfiguracyjnej z pełną nazwą tabeli `<catalog>.bronze.lab_ingestion_customers`.\n\nWarstwa Bronze przechowuje dane źródłowe bez zmian, plus metadane: kiedy je wczytano (`_load_ts`) i z jakiego pliku (`_source_file`). Zacznij od surowego `customers_df`. `_metadata` to ukryta kolumna dostępna w każdym DataFrame wczytanym z plików. Bez kolumn biznesowych: `full_name` i `customer_tier` należą do warstwy Silver. Delta to domyślny format tabel; `overwriteSchema` pozwala uruchomić komórkę ponownie po zmianie kolumn.\n\nOdpowiednik w SQL: `CREATE OR REPLACE TABLE <TARGET_TABLE> AS SELECT *, _metadata.file_path AS _source_file, current_timestamp() AS _load_ts FROM read_files(...)`.",
       "expected": "`TARGET_TABLE` istnieje i ma 10 kolumn źródłowych plus `_load_ts` (TIMESTAMP) i `_source_file` (ścieżka kończąca się na `customers.csv`); tyle samo wierszy co `customers_df`.",
       "hints": [
         "Ścieżka pliku to pole `file_path` ukrytej kolumny `_metadata`. Czas wczytania zwraca funkcja SQL `current_timestamp()`.",
