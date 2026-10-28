@@ -1,5 +1,5 @@
 import { Badge, Button } from '@databricks/appkit-ui/react';
-import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Loader2, PlayCircle, Target } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, ExternalLink, Info, Loader2, PlayCircle, Target } from 'lucide-react';
 import { useState } from 'react';
 import type { Guide, Step } from '../../../shared/guide-schema';
 import { postCheck, postProgress } from '../lib/api';
@@ -117,6 +117,13 @@ export function StepPane({ guide, step, index, email, row, progressError, onLoca
       </header>
 
       <Markdown className="text-[15px]">{step.explain}</Markdown>
+
+      {step.optional && (
+        <p className="wg-expected">
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>{m.optionalNote}</span>
+        </p>
+      )}
 
       {step.expected && (
         <div className="wg-expected">

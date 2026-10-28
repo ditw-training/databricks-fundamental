@@ -54,7 +54,8 @@ STRINGS: dict[str, dict] = {
         "code_instr_starter": "Write the code in the notebook cell. The cell starts like this:",
         "code_instr_empty": "Write the code in the notebook cell from scratch.",
         "code_stuck": "Stuck? Open the hints one at a time below; the last one is the full solution.",
-        "optional_badge": "⭐ OPTIONAL", "optional_title": "Optional",
+        "optional_badge": "Optional", "optional_title": "Optional", "optional_short": "opt.",
+        "optional_note": "This step is optional: you can skip it; the next steps do not depend on it.",
         "solution": "Solution", "hint_n": "Hint {n}", "hints": "Hints", "hints_available": "{n} available",
         "show_hint": "Show a hint", "confirm_aria": "Confirm",
         "confirm_text": "Show the full solution? You learn more by trying once more with the hints you have.",
@@ -91,7 +92,7 @@ STRINGS: dict[str, dict] = {
                       "after the setup cells, then run <code>check(\"&lt;workshop&gt;\", \"tNN\")</code> in a new cell.",
         "index_item": "{count} · notebook <code>{notebook}</code>",
         "step_count": ["{n} step", "{n} steps"],
-        "optional_count": ["{n} ⭐ optional", "{n} ⭐ optional"],
+        "optional_count": ["{n} optional", "{n} optional"],
         "js": {
             "plural": "en",
             "copied": "Copied", "copy_failed": "Copy failed",
@@ -99,7 +100,7 @@ STRINGS: dict[str, dict] = {
             "copy_failed_announce": "Copy failed. Select the code and copy it by hand.",
             "states": {"none": "Not started", "progress": "In progress",
                        "ready": "Ready: run check() in the notebook", "done": "Done"},
-            "overall": "{n} of {total} steps done", "overall_optional": " · ⭐ {n} of {total} optional",
+            "overall": "{n} of {total} steps done", "overall_optional": " · {n} of {total} optional",
             "show_solution": "Show the solution", "show_hint": "Show a hint", "show_next_hint": "Show the next hint",
             "hints_shown": "{n} of {total} shown",
             "fill_all": "All {total} blanks are right.", "fill_some": "{n} of {total} blanks are right.",
@@ -137,7 +138,8 @@ STRINGS: dict[str, dict] = {
         "code_instr_starter": "Napisz kod w komórce notebooka. Komórka zaczyna się tak:",
         "code_instr_empty": "Napisz kod w komórce notebooka od zera.",
         "code_stuck": "Nie wiesz, jak zacząć? Otwieraj podpowiedzi poniżej po jednej; ostatnia to pełne rozwiązanie.",
-        "optional_badge": "⭐ Opcjonalny", "optional_title": "Opcjonalny",
+        "optional_badge": "Opcjonalny", "optional_title": "Opcjonalny", "optional_short": "opc.",
+        "optional_note": "Ten krok jest opcjonalny: możesz go pominąć, kolejne kroki go nie wymagają.",
         "solution": "Rozwiązanie", "hint_n": "Podpowiedź {n}", "hints": "Podpowiedzi", "hints_available": "dostępne: {n}",
         "show_hint": "Pokaż podpowiedź", "confirm_aria": "Potwierdź",
         "confirm_text": "Pokazać pełne rozwiązanie? Więcej się nauczysz, jeśli spróbujesz jeszcze raz "
@@ -178,7 +180,7 @@ STRINGS: dict[str, dict] = {
                       "<code>check(\"&lt;workshop&gt;\", \"tNN\")</code> w nowej komórce.",
         "index_item": "{count} · notebook <code>{notebook}</code>",
         "step_count": ["{n} krok", "{n} kroki", "{n} kroków"],
-        "optional_count": ["{n} ⭐ opcjonalny", "{n} ⭐ opcjonalne", "{n} ⭐ opcjonalnych"],
+        "optional_count": ["{n} opcjonalny", "{n} opcjonalne", "{n} opcjonalnych"],
         "js": {
             "plural": "pl",
             "copied": "Skopiowano", "copy_failed": "Nie skopiowano",
@@ -186,7 +188,7 @@ STRINGS: dict[str, dict] = {
             "copy_failed_announce": "Nie udało się skopiować. Zaznacz kod i skopiuj go ręcznie.",
             "states": {"none": "Nierozpoczęty", "progress": "W toku",
                        "ready": "Gotowe: uruchom check() w notebooku", "done": "Zaliczony"},
-            "overall": "Zaliczone kroki: {n} / {total}", "overall_optional": " · ⭐ opcjonalne: {n} / {total}",
+            "overall": "Zaliczone kroki: {n} / {total}", "overall_optional": " · opcjonalne: {n} / {total}",
             "show_solution": "Pokaż rozwiązanie", "show_hint": "Pokaż podpowiedź",
             "show_next_hint": "Pokaż następną podpowiedź",
             "hints_shown": "pokazane: {n} z {total}",
@@ -691,6 +693,9 @@ def render_code(step: dict) -> str:
     )
 
 
+# Small "i" in a circle, drawn with CSS (the page validator allows no SVG); the app shows an info icon here.
+OPT_ICON = '<span class="opt-note-icon" aria-hidden="true">i</span>'
+
 RENDERERS = {"fill": render_fill, "order": render_order, "match": render_match, "code": render_code}
 
 
@@ -739,6 +744,9 @@ def render_step(guide: dict, step: dict, number: int) -> str:
         if step.get("expected")
         else ""
     )
+    opt_note = (
+        f'<p class="opt-note">{OPT_ICON}<span>{UI["optional_note"]}</span></p>' if optional else ""
+    )
     call = f'check("{guide["id"]}", "{sid}")'
     if check == "notebook":
         finish = (
@@ -763,7 +771,7 @@ def render_step(guide: dict, step: dict, number: int) -> str:
         f'<div class="badges">{badges}<span class="state" data-state>{UI["not_started"]}</span></div></div>'
         "</header>"
         f'<div class="md explain">{markdown(step["explain"])}</div>'
-        f"{RENDERERS[stype](step)}{expected}{hints_html}{docs_html}{finish}"
+        f"{opt_note}{RENDERERS[stype](step)}{expected}{hints_html}{docs_html}{finish}"
         "</section>"
     )
 
@@ -771,7 +779,7 @@ def render_step(guide: dict, step: dict, number: int) -> str:
 def render_nav(guide: dict) -> str:
     items = []
     for n, step in enumerate(guide["steps"], 1):
-        opt = f' <span class="nav-opt" title="{UI["optional_title"]}">⭐</span>' if step.get("optional") else ""
+        opt = f' <span class="nav-opt" title="{UI["optional_title"]}">{UI["optional_short"]}</span>' if step.get("optional") else ""
         items.append(
             f'<li><a href="#step-{step["id"]}" data-nav="{step["id"]}">'
             '<span class="dot" aria-hidden="true"></span>'
@@ -862,7 +870,9 @@ nav.steps-nav{position:sticky;top:12px;align-self:start;max-height:calc(100vh - 
 .steps-nav a[aria-current="true"]{background:var(--surface-2);color:var(--fg);box-shadow:inset 2px 0 0 var(--accent)}
 .nav-num{font-variant-numeric:tabular-nums;font-size:12px;opacity:.8}
 .nav-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nav-opt{font-size:11px}
+.nav-opt{font-size:11px;opacity:.8}
+.opt-note{display:flex;gap:8px;align-items:flex-start;margin:0 0 14px;padding:2px 0 2px 12px;border-left:3px solid var(--border);color:var(--muted);font-size:14px}
+.opt-note-icon{flex:none;width:16px;height:16px;margin-top:2px;border:1.5px solid currentColor;border-radius:99px;font:600 10px/13px system-ui,sans-serif;text-align:center;font-style:normal}
 .dot{width:10px;height:10px;border-radius:99px;border:2px solid var(--muted);opacity:.6;flex:none}
 [data-status-v="progress"] .dot{border-color:var(--warn);background:var(--warn-soft);opacity:1}
 [data-status-v="ready"] .dot{border-color:var(--warn);background:var(--warn);opacity:1}
@@ -1592,7 +1602,7 @@ def render_page(guide: dict, source_name: str, lang: str = "en") -> str:
 
 
 def step_count(s: dict, guide: dict) -> str:
-    """'8 steps + 4 ⭐ optional' / '8 kroków + 4 ⭐ opcjonalne', the same format as the app's picker."""
+    """'8 steps + 4 optional' / '8 kroków + 4 opcjonalne', the same format as the app's picker."""
     opt = sum(1 for st in guide["steps"] if st.get("optional"))
     text = plural(len(guide["steps"]) - opt, s["step_count"])
     return text + (f" + {plural(opt, s['optional_count'])}" if opt else "")

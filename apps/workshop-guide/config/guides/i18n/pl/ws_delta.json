@@ -1,7 +1,7 @@
 {
   "id": "ws_delta",
   "title": "Warsztat II — Delta Lake",
-  "intro": "Zarządzasz tabelą klientów RetailHub. Utworzysz ją jako tabelę Delta, zmienisz jej schemat i dane (INSERT, UPDATE, MERGE), a potem użyjesz historii tabeli, żeby odczytać stare wersje i cofnąć przypadkowe usunięcie. Pisz kod w notebooku `WORKSHOP_delta`, uruchom komórkę, potem kliknij tutaj **Sprawdź**: krok zmieni kolor na zielony, gdy wynik jest poprawny. Kroki opcjonalne (⭐, w notebooku oznaczone OPTIONAL) to dodatkowe ćwiczenia; kolejne kroki ich nie wymagają.",
+  "intro": "Zarządzasz tabelą klientów RetailHub. Utworzysz ją jako tabelę Delta, zmienisz jej schemat i dane (INSERT, UPDATE, MERGE), a potem użyjesz historii tabeli, żeby odczytać stare wersje i cofnąć przypadkowe usunięcie. Pisz kod w notebooku `WORKSHOP_delta`, uruchom komórkę, potem kliknij tutaj **Sprawdź**: krok zmieni kolor na zielony, gdy wynik jest poprawny. Kroki opcjonalne to dodatkowe ćwiczenia; kolejne kroki ich nie wymagają.",
   "steps": {
     "t01": {
       "title": "Utwórz tabelę Delta",

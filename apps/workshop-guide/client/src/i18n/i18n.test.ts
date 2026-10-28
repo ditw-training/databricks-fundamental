@@ -29,8 +29,10 @@ describe('UI dictionary', () => {
       'kroki',
       'kroków',
     ]);
-    expect(pl.stepCount(12, 2)).toBe('12 kroków + 2 ⭐ opcjonalne');
+    expect(pl.stepCount(12, 2)).toBe('12 kroków + 2 opcjonalne');
     expect(en.stepCount(1, 0)).toBe('1 step');
+    expect(en.stepCount(8, 4)).toBe('8 steps + 4 optional');
+    expect(pl.stepCount(8, 4)).toBe('8 kroków + 4 opcjonalne');
     expect(pl.lastCheck('przed chwilą', 1)).toBe('Ostatnie sprawdzenie przed chwilą · 1 uruchomienie');
   });
 

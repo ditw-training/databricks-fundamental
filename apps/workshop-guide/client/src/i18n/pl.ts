@@ -34,8 +34,9 @@ export const pl: Dict = {
   typeOrder: 'Ułóż w kolejności',
   typeMatch: 'Połącz w pary',
   typeCode: 'Napisz kod',
-  optional: '⭐ Opcjonalny',
-  optionalShort: '⭐ opc.',
+  optional: 'Opcjonalny',
+  optionalShort: 'opc.',
+  optionalNote: 'Ten krok jest opcjonalny: możesz go pominąć, kolejne kroki go nie wymagają.',
   statusPass: 'Zaliczony',
   statusFail: 'Niezaliczony, spróbuj jeszcze raz',
   statusNone: 'Nierozpoczęty',
@@ -47,7 +48,7 @@ export const pl: Dict = {
   unknownWorkshop: (id) => `Warsztat „${id}” nie istnieje. Wybierz jeden z poniższych.`,
   stepCount: (required, optional) =>
     `${required} ${plPlural(required, 'krok', 'kroki', 'kroków')}${
-      optional > 0 ? ` + ${optional} ⭐ ${plPlural(optional, 'opcjonalny', 'opcjonalne', 'opcjonalnych')}` : ''
+      optional > 0 ? ` + ${optional} ${plPlural(optional, 'opcjonalny', 'opcjonalne', 'opcjonalnych')}` : ''
     }`,
   openWorkshop: (name) => `Otwórz ${name}`,
   quizItemTitle: 'III — Quiz',

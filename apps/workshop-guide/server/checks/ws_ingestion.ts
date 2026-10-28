@@ -98,7 +98,7 @@ const t03: StepCheck = async (ctx) => {
   return `explicit schema OK, ${fmt(n)} rows.`;
 };
 
-// t04 ⭐ — explore the customer DataFrame (total_rows, distinct_countries saved as one row)
+// t04 (optional) — explore the customer DataFrame (total_rows, distinct_countries saved as one row)
 const t04: StepCheck = async (ctx) => {
   const ref = await customersRef(ctx);
   const { table, cols } = await scratch(ctx, 't04', '`total_rows` and `distinct_countries`', 'your step 04 cell');
@@ -139,7 +139,7 @@ const t05: StepCheck = async (ctx) => {
   return `orders loaded: ${fmt(n)} rows.`;
 };
 
-// t06 ⭐ — filter customers (customers_ny_ca and customers_recent, `_part` ny_ca / recent)
+// t06 (optional) — filter customers (customers_ny_ca and customers_recent, `_part` ny_ca / recent)
 const t06: StepCheck = async (ctx) => {
   const base = await customersRef(ctx);
   const where = 'your step 06 cell';
@@ -232,7 +232,7 @@ const t09: StepCheck = async (ctx) => {
   return `${n} payment methods aggregated.`;
 };
 
-// t10 ⭐ — SQL on temp views (top_states; row order is not checked)
+// t10 (optional) — SQL on temp views (top_states; row order is not checked)
 const t10: StepCheck = async (ctx) => {
   const base = await customersRef(ctx);
   const { table, cols } = await scratch(ctx, 't10', '`top_states`', 'your step 10 cell');
@@ -272,7 +272,7 @@ const t11: StepCheck = async (ctx) => {
   return `${fmt(n)} rows written to ${target}.`;
 };
 
-// t12 ⭐ — join orders with customers (orders_enriched / orders_by_country, `_part` enriched / by_country)
+// t12 (optional) — join orders with customers (orders_enriched / orders_by_country, `_part` enriched / by_country)
 const t12: StepCheck = async (ctx) => {
   const orders = await ordersRef(ctx);
   const customers = await customersRef(ctx);

@@ -3,7 +3,7 @@
  "number": 2,
  "title": "Workshop II — Delta Lake",
  "notebook": "notebooks/workshops/WORKSHOP_delta.ipynb",
- "intro": "You manage the RetailHub customer table. You create it as a Delta table, change its schema and data (INSERT, UPDATE, MERGE), then use the table history to read old versions and undo an accidental delete. Write the code in the notebook `WORKSHOP_delta`, run the cell, then click **Check** here: the step turns green when it passes. ⭐ OPTIONAL steps are extra practice; the next steps do not need them.",
+ "intro": "You manage the RetailHub customer table. You create it as a Delta table, change its schema and data (INSERT, UPDATE, MERGE), then use the table history to read old versions and undo an accidental delete. Write the code in the notebook `WORKSHOP_delta`, run the cell, then click **Check** here: the step turns green when it passes. Optional steps are extra practice; the next steps do not need them.",
  "steps": [
   {
    "id": "t01",

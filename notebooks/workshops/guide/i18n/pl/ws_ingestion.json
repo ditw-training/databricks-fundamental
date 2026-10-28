@@ -1,7 +1,7 @@
 {
   "id": "ws_ingestion",
   "title": "Warsztat I — Ingestion",
-  "intro": "Jesteś inżynierem danych w RetailHub. Wczytasz surowe pliki klientów (CSV) i zamówień (JSON) jako DataFrame, przekształcisz je za pomocą PySpark i równoważnych zapytań SQL, a na koniec zapiszesz tabelę Bronze w formacie Delta z metadanymi ładowania. Kod uruchamiasz w notebooku `WORKSHOP_ingestion`; po każdym kroku uruchom jego komórkę, potem kliknij tutaj **Sprawdź**: aplikacja sprawdzi wynik i oznaczy krok. Ostatnia linia komórki kroku zapisuje twój wynik do tabeli `default._ws_...` w twoim katalogu; nie usuwaj jej. Kroki opcjonalne (⭐, w notebooku oznaczone OPTIONAL) możesz pominąć. DataFrame to tabela, którą Spark trzyma dla ciebie, podobnie jak wynik zapytania SELECT; `spark` i `display()` są gotowe w każdym notebooku Databricks.",
+  "intro": "Jesteś inżynierem danych w RetailHub. Wczytasz surowe pliki klientów (CSV) i zamówień (JSON) jako DataFrame, przekształcisz je za pomocą PySpark i równoważnych zapytań SQL, a na koniec zapiszesz tabelę Bronze w formacie Delta z metadanymi ładowania. Kod uruchamiasz w notebooku `WORKSHOP_ingestion`; po każdym kroku uruchom jego komórkę, potem kliknij tutaj **Sprawdź**: aplikacja sprawdzi wynik i oznaczy krok. Ostatnia linia komórki kroku zapisuje twój wynik do tabeli `default._ws_...` w twoim katalogu; nie usuwaj jej. Kroki opcjonalne możesz pominąć. DataFrame to tabela, którą Spark trzyma dla ciebie, podobnie jak wynik zapytania SELECT; `spark` i `display()` są gotowe w każdym notebooku Databricks.",
   "steps": {
     "t01": {
       "title": "Funkcje PySpark i ich odpowiedniki w SQL",

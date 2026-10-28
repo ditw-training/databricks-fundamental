@@ -34,9 +34,10 @@ export const en = {
   typeOrder: 'Put in order',
   typeMatch: 'Match pairs',
   typeCode: 'Write the code',
-  /** Same marker as the notebook headings ("## Step 02 ⭐ OPTIONAL — …"). */
-  optional: '⭐ Optional',
-  optionalShort: '⭐ opt',
+  optional: 'Optional',
+  optionalShort: 'opt.',
+  /** Shown under the explanation of an optional step (the notebooks carry the same note). */
+  optionalNote: 'This step is optional: you can skip it; the next steps do not depend on it.',
   statusPass: 'Passed',
   statusFail: 'Failed — try again',
   statusNone: 'Not started',
@@ -47,7 +48,7 @@ export const en = {
     'Open the matching notebook next to this guide. You write and run the code there; this guide explains each step and shows your progress.',
   unknownWorkshop: (id: string) => `Workshop “${id}” does not exist. Pick one below.`,
   stepCount: (required: number, optional: number) =>
-    `${required} ${enPlural(required, 'step', 'steps')}${optional > 0 ? ` + ${optional} ⭐ optional` : ''}`,
+    `${required} ${enPlural(required, 'step', 'steps')}${optional > 0 ? ` + ${optional} optional` : ''}`,
   openWorkshop: (name: string) => `Open ${name}`,
   quizItemTitle: 'III — Quiz',
   quizItemIntro:
