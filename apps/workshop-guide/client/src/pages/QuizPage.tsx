@@ -6,6 +6,11 @@ import {
   Button,
   Card,
   CardContent,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   Progress,
   Select,
   SelectContent,
@@ -19,7 +24,7 @@ import {
   Skeleton,
   useIsMobile,
 } from '@databricks/appkit-ui/react';
-import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Check, ListChecks, RotateCcw, Trophy, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Check, ListChecks, Lock, RotateCcw, Trophy, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Link, useSearchParams } from 'react-router';
@@ -42,6 +47,7 @@ import {
 import type { StepStatus } from '../lib/status';
 import { useI18n } from '../i18n/context';
 import { useStoredState } from '../lib/storage';
+import type { UnlockView } from '../lib/unlock';
 
 type ReviewItems = QuizReviewResponse['items'];
 
@@ -60,9 +66,47 @@ function Inline({ children }: { children: string }) {
   );
 }
 
+/** fetchQuiz error marker for a 423 (quiz locked for this participant). */
+const LOCKED = '__locked__';
+
 const statusOf = (s: QuestionState | undefined): StepStatus => (s?.passed ? 'pass' : s?.attempted ? 'fail' : 'none');
 
-export function QuizPage({ email }: { email: string }) {
+/** Item III of the day. Locked for participants until the trainer unlocks it (SPEC section 10). */
+export function QuizPage({ email, unlock }: { email: string; unlock: UnlockView }) {
+  // Before the first unlock poll returns, try the quiz: the server answers 423 if it is locked.
+  const open = unlock.rows === null || unlock.open('quiz');
+  // Locked while the participant was in the quiz: say that the answers so far are saved.
+  const [wasOpen, setWasOpen] = useState(false);
+  const confirmedOpen = unlock.rows !== null && unlock.open('quiz');
+  // Adjusting state while rendering (React docs: "storing information from previous renders").
+  if (confirmedOpen && !wasOpen) setWasOpen(true);
+  if (!open) return <QuizLocked lockedNow={wasOpen} />;
+  return <QuizLoader email={email} />;
+}
+
+function QuizLocked({ lockedNow = false }: { lockedNow?: boolean }) {
+  const { m } = useI18n();
+  return (
+    <Empty className="mx-auto mt-8 max-w-xl rounded-xl border" role="status">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Lock aria-hidden />
+        </EmptyMedia>
+        <EmptyTitle>
+          {m.quizItemTitle}: {lockedNow ? m.lockedNowTitle : m.lockedBadge}
+        </EmptyTitle>
+        <EmptyDescription>{lockedNow ? m.lockedQuizNowText : `${m.lockedText} ${m.lockedQuizText}`}</EmptyDescription>
+      </EmptyHeader>
+      <Button asChild variant="outline">
+        <Link to="/">
+          <ArrowLeft className="size-4" aria-hidden /> {m.backToWorkshops}
+        </Link>
+      </Button>
+    </Empty>
+  );
+}
+
+function QuizLoader({ email }: { email: string }) {
   // Language comes from the switch in the header (shared with the whole app).
   const { m } = useI18n();
   const [data, setData] = useState<Awaited<ReturnType<typeof fetchQuiz>> | null>(null);
@@ -72,12 +116,13 @@ export function QuizPage({ email }: { email: string }) {
     let cancelled = false;
     fetchQuiz()
       .then((d) => !cancelled && setData(d))
-      .catch((e: unknown) => !cancelled && setError((e as Error).message));
+      .catch((e: unknown) => !cancelled && setError((e as { status?: number }).status === 423 ? LOCKED : (e as Error).message));
     return () => {
       cancelled = true;
     };
   }, []);
 
+  if (error === LOCKED) return <QuizLocked />;
   if (error) {
     return (
       <Alert variant="destructive" className="mx-auto max-w-xl">

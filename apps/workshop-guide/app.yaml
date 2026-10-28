@@ -22,3 +22,7 @@ env:
   # service principal with the Files API (README, "Quiz"). The app SP needs READ VOLUME.
   - name: QUIZ_KEY_PATH
     value: /Volumes/retailhub_trainer/default/workshop_guide_private/quiz_key.json
+  # Trainer unlock (README, "Trainer unlock"): items with no unlock row are locked for
+  # participants (`none`, default) or open (`all`, e.g. self-study without a trainer).
+  - name: GUIDE_DEFAULT_UNLOCKED
+    value: none

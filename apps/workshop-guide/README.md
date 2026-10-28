@@ -23,6 +23,9 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 - `/quiz` is the course quiz (40 questions, PL/EN) in learning mode: feedback, explanation and the
   notebook section after every answer, retry until correct. Graded on the server with a private
   key; the trainer view has a Quiz tab. See [Quiz](#quiz).
+- The home page lists three items in the order of the day: **I — Ingestion**, **II — Delta Lake**,
+  **III — Quiz**. Each is **locked for participants until a trainer unlocks it** in the Access panel
+  of `/trainer`. The server enforces it (423). See [Trainer unlock](#trainer-unlock).
 
 ## Layout
 
@@ -35,6 +38,7 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 | `scripts/sync-guides.mjs` | copies `../../notebooks/workshops/guide/*.json` to `config/guides/` |
 | `config/quiz/questions.json` | quiz questions and options, PL + EN, **no answers** (generated, committed) |
 | `scripts/quiz-from-md.mjs` | builds `config/quiz/questions.json` and the private key from `../../utilization/` |
+| `server/sql/unlock_state.sql`, `server/unlock.ts`, `shared/unlock-schema.ts` | trainer unlock: latest row per item, reducer, 423 gate helpers, POST validation; server only SQL |
 | `server/sql/quiz_progress.sql` | quiz state per participant and question (first answer, solved, attempts); server only |
 | `server/quiz.ts`, `shared/quiz-schema.ts` | key loading and caching, grading, attempt numbering, rate limit; zod schemas |
 | `shared/guide-schema.ts` | zod schema of the guide files and the POST body; workshop labels (Roman numerals) and order |
@@ -44,7 +48,7 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 | `server/checks/` | one check per Check-graded step (`ws_ingestion.ts`, `ws_delta.ts`), helpers (`framework.ts`), registry and error handling (`index.ts`), tests |
 | `server/slug.ts` | e-mail → `retailhub_<slug>`, same rules as `user_slug_for()` in `notebooks/setup/00_setup` |
 | `shared/check-schema.ts` | body of `POST /api/check`, query of `DELETE /api/progress/me` |
-| `server/` | `/api/me`, `/api/guides`, `/api/check`, `/api/progress`, `/api/progress/me` (GET, DELETE), `/api/progress/matrix`, `/api/quiz*`; guide loading and validation |
+| `server/` | `/api/me`, `/api/guides`, `/api/check`, `/api/progress`, `/api/progress/me` (GET, DELETE), `/api/progress/matrix`, `/api/quiz*`, `/api/unlock` (GET, POST); guide loading and validation |
 | `client/src/` | participant view (`/`), quiz (`/quiz`), trainer view (`/trainer`, tabs Workshops / Quiz) |
 
 ## Environment variables
@@ -56,6 +60,7 @@ check library and Terraform: [`../SPEC_workshop_guide.md`](../SPEC_workshop_guid
 | `TRAINER_EMAILS` | `app.yaml` (`valueFrom: trainer-emails`) | comma-separated emails that may open `/trainer` |
 | `TRAINER_ACCOUNTS` | `app.yaml` (`valueFrom: trainer-accounts`) | `TRAINER_ACCOUNTS` of `00_setup` (e-mails or logins, comma separated): their catalog is `retailhub_trainer`. `none` = no trainer accounts |
 | `QUIZ_KEY_PATH` | `app.yaml` | private quiz key in a UC volume, default `/Volumes/retailhub_trainer/default/workshop_guide_private/quiz_key.json` |
+| `GUIDE_DEFAULT_UNLOCKED` | `app.yaml` (optional) | state of an item with no unlock row yet: `none` (default, everything locked until a trainer unlocks it) or `all` (open, e.g. self-study). Anything else stops the server |
 | `DEV_USER_EMAIL` | `.env` (local only) | identity when there is no `X-Forwarded-Email` header; ignored when `NODE_ENV=production` |
 | `DEV_CHECK_AS_CLI` | `.env` (local only) | `1` = run Check with the CLI identity when there is no user token; ignored when `NODE_ENV=production` |
 | `DATABRICKS_CONFIG_PROFILE` | `.env` (local only) | CLI profile for local development |
@@ -150,6 +155,58 @@ The participant view has **Reset my progress** next to the workshop title. After
 (`WHERE lower(user_email) = <caller> AND workshop = :workshop`, run by the app service principal),
 clears the browser's hint and attempt counters for that workshop and invalidates the server cache.
 Notebook code and tables stay. At most 3 resets per user per minute.
+
+## Trainer unlock
+
+SPEC section 10. Items: `ws_ingestion` (I), `ws_delta` (II), `quiz` (III).
+
+- **Participants** see all three cards on the home page. A locked card shows a lock and
+  "Trener odblokuje to w odpowiednim momencie" / "Your trainer will unlock this at the right
+  moment". The app polls `GET /api/unlock` every 5 s and refetches the guides when the state
+  changes, so a change appears within about 5–10 s of the save without a reload. A participant inside a
+  workshop or the quiz when it gets locked sees a "Locked by the trainer" notice instead (code in
+  the notebook and saved results stay). The header Quiz tab shows a lock while the quiz is locked.
+- **Trainers** (`TRAINER_EMAILS`) always see everything. `/trainer` starts with the **Access**
+  (Dostęp) panel: one switch per item with a green "Unlocked" / grey "Locked" badge,
+  **Unlock all** / **Lock all** (Lock all asks for confirmation; each button is disabled when it
+  would change nothing), and who changed each item and when. A save takes a few seconds (one
+  warehouse INSERT and a re-read); the switch moves at once and shows a spinner and "Saving…"
+  meanwhile. On the home page trainers see every card open, with a "Locked for participants"
+  badge on items participants still see locked.
+- **Storage**: no new table. `POST /api/unlock {"item": "ws_ingestion" | "ws_delta" | "quiz" | "all",
+  "on": true | false}` (trainers only, 403 otherwise) appends rows to the progress table:
+  `workshop = '__unlock'`, `step = <item>`, `step_type = 'unlock'`, `status = 'on' | 'off'`,
+  `user_email = <trainer>`, `source = 'trainer'`. The latest row per item wins; only rows with
+  `source = 'trainer'` written by an e-mail in `TRAINER_EMAILS` count (defense in depth; only the
+  app service principal can write to the table). No row = `GUIDE_DEFAULT_UNLOCKED`. The server
+  reads `server/sql/unlock_state.sql` at most once every 4 s (same cache as the progress reads) and
+  drops the cache after a POST. If a read fails it keeps the last known state for at most 60 s,
+  then answers 502, never "unlocked". If the re-read right after a POST fails, the POST answers
+  502 ("Saved, but the new state could not be read yet") instead of stale rows.
+- **Pacing, not secrecy**: the lock keeps guide and quiz content out of the browser until the
+  item is unlocked (nothing of it is in the client bundle). Participants who already have the
+  notebooks or the participant quiz PDF (`docs/`) can still read those, so hand out the PDF after
+  the quiz if that matters.
+- **Enforcement** (participants, locked item → `423` with `{"locked": true, "item": ...}`):
+  `GET /api/guides/:id`, `GET /api/progress/me`, `DELETE /api/progress/me` (gate before the reset
+  rate limit), `POST /api/progress`,
+  `POST /api/check`, `GET /api/quiz`, `GET /api/quiz/me`, `GET /api/quiz/review`,
+  `POST /api/quiz/answer`. `GET /api/guides` answers 200 but lists a locked workshop under `locked`
+  with metadata only (`id`, `number`, `title`, `locked: true`): no steps, no overlay text.
+- The matrix, quiz statistics and Reset never see these rows: they read one guide id or
+  `workshop = 'quiz'`, and `__unlock` is not a guide id.
+
+Try it locally (`TRAINER_EMAILS=trainer@example.com` in `.env`):
+
+```bash
+P='X-Forwarded-Email: participant@example.com'; T='X-Forwarded-Email: trainer@example.com'
+curl -s -H "$P" localhost:8000/api/quiz -w ' %{http_code}\n'                 # 423 (locked by default)
+curl -s -H "$T" -H 'Content-Type: application/json' -d '{"item":"quiz","on":true}' localhost:8000/api/unlock
+curl -s -H "$P" localhost:8000/api/quiz -o /dev/null -w '%{http_code}\n'       # 200
+```
+
+Clean test rows afterwards: `DELETE FROM <PROGRESS_TABLE> WHERE workshop = '__unlock'` (this also
+locks everything again).
 
 ## Guides
 

@@ -557,3 +557,24 @@ body {
   border-color: var(--wg-fail);
   color: var(--wg-fail);
 }
+
+/* Trainer access panel: on/off must read clearly on a projector. sRGB mixing: in oklch the
+   achromatic --card pulls the hue towards red. */
+.wg-access-switch[data-state='checked'] {
+  background: var(--wg-pass);
+}
+.wg-access-switch[data-state='unchecked'] {
+  background: color-mix(in srgb, var(--muted-foreground) 75%, var(--background));
+}
+.wg-access-item-on {
+  border-color: color-mix(in srgb, var(--wg-pass) 55%, transparent);
+  background: color-mix(in srgb, var(--wg-pass) 6%, var(--card));
+}
+.wg-access-on {
+  border-color: color-mix(in srgb, var(--wg-pass) 60%, transparent);
+  background: color-mix(in srgb, var(--wg-pass) 16%, var(--card));
+  color: var(--foreground);
+}
+.wg-access-off {
+  color: var(--muted-foreground);
+}

@@ -23,22 +23,33 @@ async function getJson<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-function useJson<T>(url: string): FetchState<T> {
+/**
+ * GET once, and again whenever `refreshKey` changes. A refetch keeps the previous data on
+ * screen (no loading state) and keeps it when the refetch fails.
+ */
+function useJson<T>(url: string, refreshKey = ''): FetchState<T> {
   const [state, setState] = useState<FetchState<T>>({ data: null, loading: true, error: null });
   useEffect(() => {
     let cancelled = false;
     getJson<T>(url)
       .then((data) => !cancelled && setState({ data, loading: false, error: null }))
-      .catch((err: unknown) => !cancelled && setState({ data: null, loading: false, error: (err as Error).message }));
+      .catch(
+        (err: unknown) =>
+          !cancelled &&
+          setState((prev) =>
+            prev.data ? { ...prev, loading: false } : { data: null, loading: false, error: (err as Error).message }
+          )
+      );
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, refreshKey]);
   return state;
 }
 
 export const useMe = () => useJson<MeResponse>('/api/me');
-export const useGuides = () => useJson<GuidesResponse>('/api/guides');
+/** Guides the viewer may open plus metadata of locked ones; refetched when the unlock state changes. */
+export const useGuides = (unlockSignature: string) => useJson<GuidesResponse>('/api/guides', unlockSignature);
 
 export async function postProgress(body: ProgressPost): Promise<void> {
   const res = await fetch('/api/progress', {

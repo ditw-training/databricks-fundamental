@@ -199,10 +199,20 @@ export interface MeResponse {
   isTrainer: boolean;
 }
 
+/** A guide the trainer has not unlocked yet (SPEC section 10): metadata only, no steps. */
+export interface LockedGuide {
+  id: string;
+  number?: number;
+  title: string;
+  locked: true;
+}
+
 /** Response of GET /api/guides. */
 export interface GuidesResponse {
-  /** English guides, ordered by number. With `?lang=pl` already translated. */
+  /** English guides the viewer can open, ordered by number. With `?lang=pl` already translated. */
   guides: Guide[];
+  /** Guides locked for this participant (always empty for trainers). */
+  locked: LockedGuide[];
   /** Translation overlays per language and guide id (empty with `?lang=`). */
   overlays: GuideOverlays;
 }

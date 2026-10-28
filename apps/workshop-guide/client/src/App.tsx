@@ -1,24 +1,29 @@
 import { Alert, AlertDescription, AlertTitle, Badge, Skeleton } from '@databricks/appkit-ui/react';
-import { AlertTriangle, GraduationCap } from 'lucide-react';
+import { AlertTriangle, GraduationCap, Lock } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
 import { createBrowserRouter, Link, NavLink, Outlet, RouterProvider } from 'react-router';
 import { localizeGuides } from '../../shared/guide-i18n';
-import { sortGuides, type Guide, type MeResponse } from '../../shared/guide-schema';
+import { sortGuides, type Guide, type LockedGuide, type MeResponse } from '../../shared/guide-schema';
 import { LangSwitch } from './components/LangSwitch';
 import { ThemeToggle } from './components/ThemeToggle';
 import { useI18n } from './i18n/context';
 import { LanguageProvider } from './i18n/LanguageProvider';
 import { useGuides, useMe } from './lib/api';
+import { useUnlock, type UnlockView } from './lib/unlock';
 import { ParticipantPage } from './pages/ParticipantPage';
 import { QuizPage } from './pages/QuizPage';
 import { TrainerPage } from './pages/TrainerPage';
 
 interface Session {
   me: MeResponse;
+  /** Guides the viewer can open (trainers: all). */
   guides: Guide[];
+  /** Guides the trainer has not unlocked yet (metadata only). */
+  locked: LockedGuide[];
+  unlock: UnlockView;
 }
 
-function Shell({ me, children }: { me: MeResponse | null; children: ReactNode }) {
+function Shell({ me, quizLocked = false, children }: { me: MeResponse | null; quizLocked?: boolean; children: ReactNode }) {
   const { m } = useI18n();
   const navClass = ({ isActive }: { isActive: boolean }) => `wg-nav ${isActive ? 'wg-nav-active' : ''}`;
   return (
@@ -40,8 +45,10 @@ function Shell({ me, children }: { me: MeResponse | null; children: ReactNode })
             <NavLink to="/" end className={navClass}>
               {m.navWorkshops}
             </NavLink>
-            <NavLink to="/quiz" className={navClass}>
+            <NavLink to="/quiz" className={navClass} title={quizLocked ? m.lockedText : undefined}>
+              {quizLocked && <Lock className="mr-1 inline size-3.5 align-[-2px]" aria-hidden />}
               {m.navQuiz}
+              {quizLocked && <span className="sr-only"> ({m.lockedBadge})</span>}
             </NavLink>
             {me?.isTrainer && (
               <NavLink to="/trainer" className={navClass}>
@@ -68,7 +75,9 @@ function Shell({ me, children }: { me: MeResponse | null; children: ReactNode })
 function SessionGate({ render }: { render: (s: Session) => ReactNode }) {
   const { lang, m } = useI18n();
   const me = useMe();
-  const guides = useGuides();
+  const unlock = useUnlock(me.data?.isTrainer ?? false);
+  // Refetched when a trainer locks or unlocks an item (polled every 5 s).
+  const guides = useGuides(unlock.signature);
   // Ordered by number (Workshop I, II, …) and translated on the client: switching the
   // language needs no request, and ids stay the same, so progress and stored answers carry over.
   const localized = useMemo(
@@ -108,7 +117,12 @@ function SessionGate({ render }: { render: (s: Session) => ReactNode }) {
     );
   }
 
-  return <Shell me={me.data}>{render({ me: me.data, guides: localized })}</Shell>;
+  const locked = guides.data?.locked ?? [];
+  return (
+    <Shell me={me.data} quizLocked={unlock.rows !== null && !unlock.open('quiz')}>
+      {render({ me: me.data, guides: localized, locked, unlock })}
+    </Shell>
+  );
 }
 
 const router = createBrowserRouter([
@@ -117,15 +131,25 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <SessionGate render={({ me, guides }) => <ParticipantPage guides={guides} email={me.email} />} />,
+        element: (
+          <SessionGate
+            render={({ me, guides, locked, unlock }) => (
+              <ParticipantPage guides={guides} locked={locked} unlock={unlock} email={me.email} isTrainer={me.isTrainer} />
+            )}
+          />
+        ),
       },
       {
         path: '/quiz',
-        element: <SessionGate render={({ me }) => <QuizPage email={me.email} />} />,
+        element: <SessionGate render={({ me, unlock }) => <QuizPage email={me.email} unlock={unlock} />} />,
       },
       {
         path: '/trainer',
-        element: <SessionGate render={({ me, guides }) => <TrainerPage guides={guides} isTrainer={me.isTrainer} />} />,
+        element: (
+          <SessionGate
+            render={({ me, guides, unlock }) => <TrainerPage guides={guides} isTrainer={me.isTrainer} unlock={unlock} />}
+          />
+        ),
       },
       {
         path: '*',

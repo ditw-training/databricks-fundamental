@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Card,
   CardContent,
@@ -9,6 +10,7 @@ import {
   Empty,
   EmptyDescription,
   EmptyHeader,
+  EmptyMedia,
   EmptyTitle,
   Progress,
   Sheet,
@@ -17,10 +19,17 @@ import {
   SheetTitle,
   useIsMobile,
 } from '@databricks/appkit-ui/react';
-import { ArrowRight, ListChecks } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ListChecks, Lock } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
-import { workshopLabel, workshopShortLabel, workshopTopic, type Guide } from '../../../shared/guide-schema';
+import { useNavigate, useSearchParams } from 'react-router';
+import {
+  sortGuides,
+  workshopLabel,
+  workshopShortLabel,
+  workshopTopic,
+  type Guide,
+  type LockedGuide,
+} from '../../../shared/guide-schema';
 import { Markdown } from '../components/Markdown';
 import { NotebookLocation } from '../components/NotebookLocation';
 import { ResetProgress } from '../components/ResetProgress';
@@ -31,16 +40,36 @@ import { typeLabel } from '../lib/labels';
 import { useParticipantProgress, type ParticipantRow } from '../lib/progress';
 import { formatAgo, parseTs, toStatus } from '../lib/status';
 import { clearStoredPrefix, stepKey } from '../lib/storage';
+import type { UnlockItem, UnlockView } from '../lib/unlock';
 
-export function ParticipantPage({ guides, email }: { guides: Guide[]; email: string }) {
+interface Props {
+  guides: Guide[];
+  locked: LockedGuide[];
+  unlock: UnlockView;
+  email: string;
+  isTrainer: boolean;
+}
+
+export function ParticipantPage({ guides, locked, unlock, email, isTrainer }: Props) {
   const [params, setParams] = useSearchParams();
   const wsParam = params.get('ws');
-  const guide = guides.find((g) => g.id === wsParam) ?? (guides.length === 1 ? guides[0] : undefined);
+  const guide = guides.find((g) => g.id === wsParam);
+  const lockedGuide = locked.find((g) => g.id === wsParam);
+  // Trainers see every item open; their home page marks the ones participants still see locked.
+  const lockedForParticipants = (id: string) => {
+    const row = unlock.rows?.[id as UnlockItem];
+    return isTrainer && row !== undefined && !row.on;
+  };
 
+  // Inside a workshop the trainer has just locked (or a link to a locked one).
+  if (lockedGuide) return <LockedNotice guide={lockedGuide} onBack={() => setParams({})} />;
   if (!guide) {
     return (
       <WorkshopPicker
         guides={guides}
+        locked={locked}
+        quizOpen={unlock.open('quiz')}
+        lockedForParticipants={lockedForParticipants}
         unknown={wsParam}
         onPick={(id) => setParams({ ws: id })}
       />
@@ -49,22 +78,99 @@ export function ParticipantPage({ guides, email }: { guides: Guide[]; email: str
   return <WorkshopView key={guide.id} guide={guide} email={email} />;
 }
 
-function WorkshopPicker({ guides, unknown, onPick }: { guides: Guide[]; unknown: string | null; onPick: (id: string) => void }) {
+/** Shown in place of a workshop that is locked for the participant. */
+function LockedNotice({ guide, onBack }: { guide: LockedGuide; onBack: () => void }) {
   const { lang, m } = useI18n();
   return (
-    <div className="mx-auto max-w-4xl space-y-6 py-4">
+    <Empty className="mx-auto mt-8 max-w-xl rounded-xl border" role="status">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Lock aria-hidden />
+        </EmptyMedia>
+        <EmptyTitle>
+          {workshopLabel(guide, lang)}: {m.lockedNowTitle}
+        </EmptyTitle>
+        <EmptyDescription>{m.lockedNowText}</EmptyDescription>
+      </EmptyHeader>
+      <Button type="button" variant="outline" onClick={onBack}>
+        <ArrowLeft className="size-4" aria-hidden /> {m.backToWorkshops}
+      </Button>
+    </Empty>
+  );
+}
+
+function LockedCard({ title }: { title: string }) {
+  const { m } = useI18n();
+  return (
+    // self-start: keeps its own height next to a tall open card.
+    <Card className="self-start border-dashed bg-muted/30" aria-label={`${title}: ${m.lockedBadge}`}>
+      <CardHeader>
+        {/* The lock icon and the sentence say "locked"; the aria-label above carries the word. */}
+        <CardTitle className="flex items-center gap-2 text-lg text-muted-foreground">
+          <Lock className="size-4 shrink-0" aria-hidden /> {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{m.lockedText}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Card title; for trainers also a badge while participants still see the item locked. */
+function ItemTitle({ title, trainerLocked }: { title: string; trainerLocked: boolean }) {
+  const { m } = useI18n();
+  return (
+    <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
+      {title}
+      {trainerLocked && (
+        <Badge variant="outline" className="font-normal text-muted-foreground">
+          <Lock aria-hidden /> {m.lockedForParticipants}
+        </Badge>
+      )}
+    </CardTitle>
+  );
+}
+
+type PickerItem = { kind: 'guide'; guide: Guide } | { kind: 'locked'; guide: LockedGuide };
+
+function WorkshopPicker({
+  guides,
+  locked,
+  quizOpen,
+  lockedForParticipants,
+  unknown,
+  onPick,
+}: {
+  guides: Guide[];
+  locked: LockedGuide[];
+  quizOpen: boolean;
+  lockedForParticipants: (id: string) => boolean;
+  unknown: string | null;
+  onPick: (id: string) => void;
+}) {
+  const { lang, m } = useI18n();
+  const navigate = useNavigate();
+  // Order of the day: I, II (open or locked), then III — Quiz.
+  const items: PickerItem[] = sortGuides<Guide | LockedGuide>([...guides, ...locked]).map((g) =>
+    'locked' in g ? { kind: 'locked', guide: g } : { kind: 'guide', guide: g }
+  );
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 py-4">
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold tracking-tight">{m.pickerTitle}</h2>
         <p className="text-muted-foreground">{m.pickerIntro}</p>
       </div>
       {unknown && <p className="text-sm text-[var(--destructive)]">{m.unknownWorkshop(unknown)}</p>}
-      <div className="grid gap-4 md:grid-cols-2">
-        {guides.map((g) => {
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => {
+          if (item.kind === 'locked') return <LockedCard key={item.guide.id} title={workshopLabel(item.guide, lang)} />;
+          const g = item.guide;
           const required = g.steps.filter((s) => !s.optional).length;
           return (
             <Card key={g.id} className="flex flex-col">
               <CardHeader>
-                <CardTitle className="text-lg">{workshopLabel(g, lang)}</CardTitle>
+                <ItemTitle title={workshopLabel(g, lang)} trainerLocked={lockedForParticipants(g.id)} />
                 <CardDescription className="flex flex-col gap-1.5">
                   <span className="inline-flex items-center gap-1">
                     <ListChecks className="size-3.5" aria-hidden /> {m.stepCount(required, g.steps.length - required)}
@@ -83,6 +189,23 @@ function WorkshopPicker({ guides, unknown, onPick }: { guides: Guide[]; unknown:
             </Card>
           );
         })}
+        {quizOpen ? (
+          <Card className="flex flex-col">
+            <CardHeader>
+              <ItemTitle title={m.quizItemTitle} trainerLocked={lockedForParticipants('quiz')} />
+            </CardHeader>
+            <CardContent className="flex-1">
+              <p className="text-sm text-muted-foreground">{m.quizItemIntro}</p>
+            </CardContent>
+            <CardFooter>
+              <Button type="button" onClick={() => void navigate('/quiz')}>
+                {m.openQuiz} <ArrowRight className="size-4" aria-hidden />
+              </Button>
+            </CardFooter>
+          </Card>
+        ) : (
+          <LockedCard title={m.quizItemTitle} />
+        )}
       </div>
     </div>
   );

@@ -41,7 +41,7 @@ export const pl: Dict = {
   statusNone: 'Nierozpoczęty',
 
   // ── workshop picker ──
-  pickerTitle: 'Wybierz warsztat',
+  pickerTitle: 'Warsztaty i quiz',
   pickerIntro:
     'Obok przewodnika otwórz odpowiedni notebook. Tam piszesz i uruchamiasz kod, a przewodnik objaśnia każdy krok i pokazuje twoje postępy.',
   unknownWorkshop: (id) => `Warsztat „${id}” nie istnieje. Wybierz jeden z poniższych.`,
@@ -50,6 +50,39 @@ export const pl: Dict = {
       optional > 0 ? ` + ${optional} ⭐ ${plPlural(optional, 'opcjonalny', 'opcjonalne', 'opcjonalnych')}` : ''
     }`,
   openWorkshop: (name) => `Otwórz ${name}`,
+  quizItemTitle: 'III — Quiz',
+  quizItemIntro:
+    'Quiz utrwalający z całego dnia: jedno pytanie naraz, po każdej odpowiedzi wyjaśnienie i sekcja notebooka.',
+  openQuiz: 'Otwórz quiz',
+
+  // ── trainer unlock (participant side) ──
+  lockedBadge: 'Zablokowane',
+  lockedText: 'Trener odblokuje to w odpowiednim momencie.',
+  lockedNowTitle: 'Zablokowane przez trenera',
+  lockedNowText:
+    'Trener na razie zablokował tę część. Nic nie ginie: kod zostaje w notebooku, a wyniki są zapisane. Strona otworzy się tu znowu, gdy trener ją odblokuje.',
+  lockedQuizText: 'Ta strona odświeży się sama.',
+  lockedQuizNowText:
+    'Trener na razie zablokował quiz. Nic nie ginie: twoje dotychczasowe odpowiedzi są zapisane. Quiz otworzy się tu znowu, gdy trener go odblokuje.',
+  lockedForParticipants: 'Zablokowane dla uczestników',
+
+  // ── trainer unlock (trainer view) ──
+  accessTitle: 'Dostęp',
+  accessIntro: 'Uczestnicy widzą daną część dopiero po jej odblokowaniu. Zapis trwa kilka sekund, a uczestnicy widzą zmianę najpóźniej kilkanaście sekund później.',
+  unlockAll: 'Odblokuj wszystko',
+  lockAll: 'Zablokuj wszystko',
+  accessOn: 'Odblokowane',
+  accessOff: 'Zablokowane',
+  accessToggle: (label) => `Odblokuj ${label} dla uczestników`,
+  accessChanged: (by, ago) => `${by} · ${ago}`,
+  accessDefault: 'Ustawienie domyślne — jeszcze nie zmieniano',
+  accessSaving: 'Zapisuję…',
+  lockAllTitle: 'Zablokować wszystko?',
+  lockAllText:
+    'Wszyscy uczestnicy stracą od razu dostęp do warsztatów I i II oraz do quizu. Ich wyniki i odpowiedzi zostają zapisane; po odblokowaniu wracają tam, gdzie skończyli.',
+  lockAllConfirm: 'Zablokuj wszystko',
+  accessSaveFailed: (error) => `Nie udało się zapisać zmiany: ${error}`,
+  accessLoadFailed: (error) => `Nie udało się odczytać dostępu: ${error}. Ponawiam.`,
   notebookLocation: 'Lokalizacja notebooka: ',
   yourGitFolder: 'twój folder Git',
 

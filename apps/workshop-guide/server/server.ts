@@ -40,6 +40,21 @@ import {
   RateLimiter,
   resolveQuizKeyPath,
 } from './quiz';
+import { isUnlockItem, type UnlockItem, type UnlockResponse } from '../shared/unlock-schema';
+import {
+  buildUnlockInsert,
+  canOpen,
+  guidesFor,
+  lockedBody,
+  parseDefaultUnlocked,
+  reduceUnlock,
+  UnlockFallback,
+  unlockRowsFor,
+  unlockRowsFromResult,
+  validateUnlockPost,
+  type UnlockDbRow,
+  type UnlockState,
+} from './unlock';
 
 // Fail fast on broken configuration or guide files.
 const guides = loadGuides();
@@ -59,11 +74,15 @@ const quiz = loadQuizQuestions();
 const quizKeyPath = resolveQuizKeyPath();
 const quizProgressSql = loadServerSql('quiz_progress.sql', progressTable);
 const quizInsert = buildQuizInsert(progressTable);
+// Trainer unlock (SPEC section 10): no row = locked unless GUIDE_DEFAULT_UNLOCKED=all.
+const defaultUnlocked = parseDefaultUnlocked();
+const unlockSql = loadServerSql('unlock_state.sql', progressTable);
+const unlockInsert = buildUnlockInsert(progressTable);
 
 console.log(
   `[workshop-guide] guides: ${[...guides.keys()].join(', ')}; overlays: ${
     Object.entries(overlays).map(([l, o]) => `${l} (${Object.keys(o ?? {}).length})`).join(', ') || 'none'
-  }; progress table: ${progressTable}; trainers: ${trainerEmails.size}; ` +
+  }; progress table: ${progressTable}; trainers: ${trainerEmails.size}; default unlocked: ${defaultUnlocked}; ` +
     `quiz: ${quiz ? `${quiz.questions.length} questions, key ${quizKeyPath}` : 'config/quiz/questions.json missing'}`,
 );
 
@@ -99,6 +118,51 @@ createApp({
     const checkLimiter = new RateLimiter(1, 3_000);
     const resetLimiter = new RateLimiter(3, 60_000);
     const answerLock = new KeyedLock();
+    // ── Trainer unlock: one statement every few seconds, shared like the progress reads ──
+    const unlockCache = new ProgressCache<UnlockDbRow>(async () =>
+      unlockRowsFromResult(await appkit.analytics.query(unlockSql, { trainers: sql.string([...trainerEmails].join(',')) })),
+    );
+    const unlockFallback = new UnlockFallback(60_000);
+    /**
+     * Current state. A failed read falls back to the last good state for at most 60 s (never to
+     * "unlocked"), then throws. `fresh` skips the fallback (the re-read after POST /api/unlock).
+     */
+    const unlockState = async (fresh = false): Promise<{ state: UnlockState; fetchedAt: string }> => {
+      try {
+        const { rows, fetchedAt } = await unlockCache.get('unlock');
+        const state = reduceUnlock(rows, defaultUnlocked, trainerEmails);
+        unlockFallback.remember(state, fetchedAt);
+        return { state, fetchedAt };
+      } catch (err) {
+        const last = fresh ? null : unlockFallback.recent();
+        if (last) {
+          console.warn('[workshop-guide] unlock read failed, using the last known state', err);
+          return last;
+        }
+        throw err;
+      }
+    };
+    /**
+     * 423 for a participant when `item` is locked. Resolves true when the request may go on;
+     * otherwise the response is already sent (423, or 502 when the state cannot be read).
+     */
+    const gate = async (res: Response, email: string, item: UnlockItem): Promise<boolean> => {
+      const isTrainer = trainerEmails.has(email);
+      if (isTrainer) return true;
+      try {
+        const { state } = await unlockState();
+        if (canOpen(state, item, isTrainer)) return true;
+        res.status(423).json(lockedBody(item));
+      } catch (err) {
+        console.error('[workshop-guide] unlock read failed', err);
+        res.status(502).json({ error: 'Could not read which items are unlocked. Retrying.' });
+      }
+      return false;
+    };
+    /** Workshop ids that are unlock items are gated; any other guide (fixtures) is open. */
+    const gateWorkshop = (res: Response, email: string, workshop: string) =>
+      isUnlockItem(workshop) ? gate(res, email, workshop) : Promise.resolve(true);
+
     if (keyStore) void keyStore.get().then((s) => s.reason && console.warn(`[workshop-guide] quiz not configured: ${s.reason}`));
 
     const registerQuizRoutes = (app: Parameters<Parameters<typeof appkit.server.extend>[0]>[0]) => {
@@ -113,10 +177,15 @@ createApp({
           return;
         }
         res.set('Cache-Control', 'no-store');
-        void keyStore.get().then(({ key, reason }) => {
+        void (async () => {
+          if (!(await gate(res, email, 'quiz'))) return;
+          const { key, reason } = await keyStore.get();
           const body: QuizResponse = { quiz, configured: key !== null };
           if (!key && trainerEmails.has(email)) body.reason = `${reason ?? 'unknown'} (QUIZ_KEY_PATH=${quizKeyPath})`;
           res.json(body);
+        })().catch((err: unknown) => {
+          console.error('[workshop-guide] quiz read failed', err);
+          if (!res.headersSent) res.status(502).json({ error: 'Could not load the quiz. Try again in a moment.' });
         });
       });
 
@@ -131,11 +200,12 @@ createApp({
           return;
         }
         res.set('Cache-Control', 'no-store');
-        quizCache
-          .get(QUIZ_WORKSHOP)
-          .then(({ rows, fetchedAt }) =>
-            res.json({ rows: view === 'me' ? quizParticipantRows(rows, email) : rows, fetchedAt }),
-          )
+        (view === 'me' ? gate(res, email, 'quiz') : Promise.resolve(true))
+          .then(async (open) => {
+            if (!open) return;
+            const { rows, fetchedAt } = await quizCache.get(QUIZ_WORKSHOP);
+            res.json({ rows: view === 'me' ? quizParticipantRows(rows, email) : rows, fetchedAt });
+          })
           .catch((err: unknown) => {
             console.error('[workshop-guide] quiz progress read failed', err);
             res.status(502).json({ error: 'Could not read quiz progress. Retrying.' });
@@ -161,6 +231,7 @@ createApp({
         }
         res.set('Cache-Control', 'no-store');
         void (async () => {
+          if (!(await gate(res, email, 'quiz'))) return;
           const { key } = await keyStore.get();
           if (!key) {
             res.status(503).json({ error: 'The quiz is not configured yet. Tell the trainer.' });
@@ -185,6 +256,7 @@ createApp({
           return;
         }
         void (async () => {
+          if (!(await gate(res, email, 'quiz'))) return;
           const { key } = await keyStore.get();
           if (!key) {
             res.status(503).json({ error: 'The quiz is not configured yet. Tell the trainer.' });
@@ -241,22 +313,115 @@ createApp({
         res.json(body);
       });
 
-      // English guides plus the overlays; the client switches language without a refetch.
-      // `?lang=pl` returns the guides already translated (handy for curl and other clients).
-      app.get('/api/guides', (req, res) => {
-        const sorted = sortGuides([...guides.values()]);
-        if (req.query.lang === undefined) {
-          const body: GuidesResponse = { guides: sorted, overlays };
-          res.json(body);
+      // ── Trainer unlock (SPEC section 10) ──
+      app.get('/api/unlock', (req, res) => {
+        const email = resolveUserEmail(req);
+        if (!email) {
+          res.status(401).json({ error: 'No user identity' });
           return;
         }
-        const lang = langSchema.safeParse(req.query.lang);
-        if (!lang.success) {
+        res.set('Cache-Control', 'no-store');
+        unlockState()
+          .then(({ state, fetchedAt }) => {
+            const body: UnlockResponse = { rows: unlockRowsFor(state, trainerEmails.has(email)), fetchedAt };
+            res.json(body);
+          })
+          .catch((err: unknown) => {
+            console.error('[workshop-guide] unlock read failed', err);
+            res.status(502).json({ error: 'Could not read which items are unlocked. Retrying.' });
+          });
+      });
+
+      app.post('/api/unlock', (req, res) => {
+        const email = resolveUserEmail(req);
+        if (!email) {
+          res.status(401).json({ error: 'No user identity' });
+          return;
+        }
+        const result = validateUnlockPost(req.body, trainerEmails.has(email));
+        if (!result.ok) {
+          res.status(result.status).json({ error: result.error });
+          return;
+        }
+        appkit.analytics
+          .query(unlockInsert, {
+            user_email: sql.string(email),
+            status: sql.string(result.post.on ? 'on' : 'off'),
+            items: sql.string(result.items.join(',')),
+          })
+          .then(async () => {
+            unlockCache.invalidate('unlock');
+            try {
+              const { state, fetchedAt } = await unlockState(true);
+              const body: UnlockResponse = { rows: unlockRowsFor(state, true), fetchedAt };
+              res.status(201).json(body);
+            } catch (err) {
+              // Saved, but the new state cannot be read: no stale rows, the next poll shows it.
+              console.error('[workshop-guide] unlock read after insert failed', err);
+              res.status(502).json({ error: 'Saved, but the new state could not be read yet. It will show up in a moment.' });
+            }
+          })
+          .catch((err: unknown) => {
+            console.error('[workshop-guide] unlock insert failed', err);
+            if (!res.headersSent) res.status(502).json({ error: 'Could not save the change. Try again in a moment.' });
+          });
+      });
+
+      // English guides plus the overlays; the client switches language without a refetch.
+      // `?lang=pl` returns the guides already translated (handy for curl and other clients).
+      // Participants get only metadata (no steps, no overlay) for items the trainer has not unlocked.
+      app.get('/api/guides', (req, res) => {
+        const email = resolveUserEmail(req);
+        if (!email) {
+          res.status(401).json({ error: 'No user identity' });
+          return;
+        }
+        const lang = req.query.lang === undefined ? null : langSchema.safeParse(req.query.lang);
+        if (lang && !lang.success) {
           res.status(400).json({ error: 'lang must be pl or en' });
           return;
         }
-        const body: GuidesResponse = { guides: localizeGuides(sorted, overlays, lang.data), overlays: {} };
-        res.json(body);
+        res.set('Cache-Control', 'no-store');
+        unlockState()
+          .then(({ state }) => {
+            const view = guidesFor(sortGuides([...guides.values()]), overlays, state, trainerEmails.has(email));
+            const body: GuidesResponse = lang
+              ? { guides: localizeGuides(view.guides, view.overlays, lang.data), locked: view.locked, overlays: {} }
+              : view;
+            res.json(body);
+          })
+          .catch((err: unknown) => {
+            console.error('[workshop-guide] unlock read failed', err);
+            res.status(502).json({ error: 'Could not read which items are unlocked. Reload in a moment.' });
+          });
+      });
+
+      // One guide: 423 with its metadata while it is locked for this participant.
+      app.get('/api/guides/:id', (req, res) => {
+        const email = resolveUserEmail(req);
+        if (!email) {
+          res.status(401).json({ error: 'No user identity' });
+          return;
+        }
+        const guide = guides.get(req.params.id);
+        if (!guide) {
+          res.status(404).json({ error: `Unknown workshop "${req.params.id}"` });
+          return;
+        }
+        res.set('Cache-Control', 'no-store');
+        unlockState()
+          .then(({ state }) => {
+            const view = guidesFor([guide], overlays, state, trainerEmails.has(email));
+            if (view.locked.length) {
+              res.status(423).json({ ...lockedBody(guide.id as UnlockItem), guide: view.locked[0] });
+              return;
+            }
+            res.json({ guide, overlays: view.overlays });
+          })
+          .catch((err: unknown) => {
+            console.error('[workshop-guide] unlock read failed', err);
+            res.status(502).json({ error: 'Could not read which items are unlocked. Reload in a moment.' });
+          });
       });
 
       const readProgress = (
@@ -279,9 +444,10 @@ createApp({
           return;
         }
         res.set('Cache-Control', 'no-store');
-        progressCache
-          .get(workshop)
-          .then(({ rows, fetchedAt }) => {
+        (view === 'me' ? gateWorkshop(res, email, workshop) : Promise.resolve(true))
+          .then(async (open) => {
+            if (!open) return;
+            const { rows, fetchedAt } = await progressCache.get(workshop);
             if (view === 'me') {
               const body: ProgressResponse<ParticipantRow> = { rows: participantRows(rows, email), fetchedAt };
               res.json(body);
@@ -310,26 +476,29 @@ createApp({
           res.status(401).json({ error: 'No user identity' });
           return;
         }
-        const hasToken = Boolean(req.header('x-forwarded-access-token')?.trim());
-        if (!hasToken && !devCheckAsCli) {
-          res.status(401).json({
-            error:
-              'Check needs your Databricks token (X-Forwarded-Access-Token), which only the deployed app gets ' +
-              'with the user API scope "sql". Locally: set DEV_CHECK_AS_CLI=1 to check as the CLI profile.',
-          });
-          return;
-        }
-        const result = validateCheckPost(req.body, guides);
-        if (!result.ok) {
-          res.status(result.status).json({ error: result.error });
-          return;
-        }
-        if (!checkLimiter.allow(email)) {
-          res.status(429).json({ error: 'One check every 3 seconds. Wait a moment and press Check again.' });
-          return;
-        }
-        const { post, step, check } = result;
         void (async () => {
+          // A locked workshop answers 423 before anything else (step lookup, token, rate limit).
+          const workshop = (req.body as { workshop?: unknown } | undefined)?.workshop;
+          if (typeof workshop === 'string' && !(await gateWorkshop(res, email, workshop))) return;
+          const result = validateCheckPost(req.body, guides);
+          if (!result.ok) {
+            res.status(result.status).json({ error: result.error });
+            return;
+          }
+          const { post, step, check } = result;
+          const hasToken = Boolean(req.header('x-forwarded-access-token')?.trim());
+          if (!hasToken && !devCheckAsCli) {
+            res.status(401).json({
+              error:
+                'Check needs your Databricks token (X-Forwarded-Access-Token), which only the deployed app gets ' +
+                'with the user API scope "sql". Locally: set DEV_CHECK_AS_CLI=1 to check as the CLI profile.',
+            });
+            return;
+          }
+          if (!checkLimiter.allow(email)) {
+            res.status(429).json({ error: 'One check every 3 seconds. Wait a moment and press Check again.' });
+            return;
+          }
           // Inside the async block: asUser() throws when the user headers are incomplete.
           const sqlAsUser = hasToken ? appkit.analytics.asUser(req) : appkit.analytics;
           const run = async (statement: string): Promise<Row[]> => {
@@ -388,21 +557,23 @@ createApp({
           res.status(404).json({ error: 'Unknown workshop' });
           return;
         }
-        if (!resetLimiter.allow(email)) {
-          res.status(429).json({ error: 'Too many resets. Wait a minute.' });
-          return;
-        }
         const { workshop } = query.data;
-        appkit.analytics
-          .query(progressReset, { user_email: sql.string(email), workshop: sql.string(workshop) })
-          .then(() => {
+        // The 423 gate runs first, so tries against a locked workshop do not use up the limit.
+        gateWorkshop(res, email, workshop)
+          .then(async (open) => {
+            if (!open) return;
+            if (!resetLimiter.allow(email)) {
+              res.status(429).json({ error: 'Too many resets. Wait a minute.' });
+              return;
+            }
+            await appkit.analytics.query(progressReset, { user_email: sql.string(email), workshop: sql.string(workshop) });
             progressCache.invalidate(workshop);
             const body: ResetResponse = { ok: true };
             res.json(body);
           })
           .catch((err: unknown) => {
             console.error('[workshop-guide] progress reset failed', err);
-            res.status(502).json({ error: 'Could not reset your progress. Try again in a moment.' });
+            if (!res.headersSent) res.status(502).json({ error: 'Could not reset your progress. Try again in a moment.' });
           });
       });
 
@@ -418,8 +589,10 @@ createApp({
           return;
         }
         const { post, step } = result;
-        appkit.analytics
-          .query(insertStatement, {
+        gateWorkshop(res, email, post.workshop)
+          .then(async (open) => {
+            if (!open) return;
+            await appkit.analytics.query(insertStatement, {
             user_email: sql.string(email),
             workshop: sql.string(post.workshop),
             step: sql.string(post.step),
@@ -427,15 +600,14 @@ createApp({
             status: sql.string(post.status),
             message: sql.string(post.message),
             hints_used: sql.int(post.hints_used),
-            attempts: sql.int(post.attempts),
-          })
-          .then(() => {
+              attempts: sql.int(post.attempts),
+            });
             progressCache.invalidate(post.workshop);
             res.status(201).json({ ok: true });
           })
           .catch((err: unknown) => {
             console.error('[workshop-guide] progress insert failed', err);
-            res.status(502).json({ error: 'Could not save progress. Try again in a moment.' });
+            if (!res.headersSent) res.status(502).json({ error: 'Could not save progress. Try again in a moment.' });
           });
       });
     });

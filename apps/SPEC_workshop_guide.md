@@ -201,7 +201,15 @@ for the classroom; they still describe the `_checks` self-study path.
   names are used in notebook titles, 00_intro / README / TRAINER_GUIDE agenda rows and the static HTML
   (which gets a PL and an EN page per workshop).
 
-## 10. Quiz as item III and trainer unlock (decided 28.10.2026, next after §9)
+## 10. Quiz as item III and trainer unlock (decided 28.10.2026, implemented 28.10.2026)
+
+Implemented in `apps/workshop-guide` (README "Trainer unlock"): `GET/POST /api/unlock`,
+`server/unlock.ts`, `server/sql/unlock_state.sql`, Access panel at the top of `/trainer`. `GET /api/guides`
+lists a locked workshop under `locked` with metadata only (`id`, `number`, `title`, `locked: true`);
+`GET /api/guides/:id`, `GET/DELETE /api/progress/me`, `GET /api/quiz`, `/api/quiz/me`, `/api/quiz/review`
+also return 423 for participants. Verified locally against the lab (28.10): all locked by default (423),
+trainer unlock reaches participants immediately (cache dropped after POST), lock again → 423.
+
 
 - The home list shows three numbered items in the order of the day: I — Ingestion workshop,
   II — Delta Lake workshop, III — Quiz (PL "Warsztat I/II", "III — Quiz"; EN "Workshop I/II", "III — Quiz").

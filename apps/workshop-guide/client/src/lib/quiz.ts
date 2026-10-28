@@ -32,7 +32,8 @@ async function errorFrom(res: Response): Promise<Error> {
   } catch {
     /* not JSON */
   }
-  return new Error(detail);
+  // The status lets the page tell "locked by the trainer" (423) from other errors.
+  return Object.assign(new Error(detail), { status: res.status });
 }
 
 export async function fetchQuiz(): Promise<QuizResponse> {

@@ -1,6 +1,20 @@
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Badge,
+  Button,
   Card,
   CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -12,12 +26,13 @@ import {
   SelectTrigger,
   SelectValue,
   Skeleton,
+  Switch,
   Tabs,
   TabsList,
   TabsTrigger,
 } from '@databricks/appkit-ui/react';
-import { Lock, Users } from 'lucide-react';
-import { useMemo } from 'react';
+import { KeyRound, Loader2, Lock, LockOpen, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { workshopLabel, type Guide } from '../../../shared/guide-schema';
 import { Kpi } from '../components/Kpi';
@@ -27,9 +42,10 @@ import { statusLabel, typeLabel } from '../lib/labels';
 import { useTrainerMatrix, type TrainerRow } from '../lib/progress';
 import { formatAgo, locale, parseTs, toStatus } from '../lib/status';
 import { buildMatrix } from '../lib/trainer';
+import { postUnlock, UNLOCK_ITEMS, type UnlockItem, type UnlockRow, type UnlockView } from '../lib/unlock';
 import { QuizStatsView } from './QuizStatsView';
 
-export function TrainerPage({ guides, isTrainer }: { guides: Guide[]; isTrainer: boolean }) {
+export function TrainerPage({ guides, isTrainer, unlock }: { guides: Guide[]; isTrainer: boolean; unlock: UnlockView }) {
   const { lang, m } = useI18n();
   const [params, setParams] = useSearchParams();
 
@@ -53,6 +69,7 @@ export function TrainerPage({ guides, isTrainer }: { guides: Guide[]; isTrainer:
   const guide = guides.find((g) => g.id === params.get('ws')) ?? guides[0];
   return (
     <div className="flex flex-col gap-5">
+      <AccessPanel guides={guides} unlock={unlock} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">{m.groupProgress}</h2>
@@ -255,5 +272,154 @@ function Legend() {
         <span className="wg-hint-count">2</span> {m.legendHints}
       </li>
     </ul>
+  );
+}
+
+/**
+ * "Dostęp / Access" (SPEC section 10): which items participants can open. Each change appends a
+ * row to the progress table (POST /api/unlock); the latest row per item wins.
+ */
+function AccessPanel({ guides, unlock }: { guides: Guide[]; unlock: UnlockView }) {
+  const { lang, m } = useI18n();
+  type Rows = Partial<Record<UnlockItem, UnlockRow>>;
+  // POST answers, shown until a poll returns a row at least as new (a poll that started before
+  // the POST must not flip the switch back).
+  const [saved, setSaved] = useState<Rows>({});
+  // Switches being saved (a POST takes a few seconds): shown at the new position with a spinner.
+  const [pending, setPending] = useState<Partial<Record<UnlockItem, boolean>>>({});
+  const [bulk, setBulk] = useState(false);
+  const [confirmLock, setConfirmLock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const polled = unlock.rows;
+  const time = (r: UnlockRow | undefined) => parseTs(r?.at)?.getTime() ?? 0;
+  const rows: Rows | null = polled
+    ? Object.fromEntries(UNLOCK_ITEMS.map((i) => [i, saved[i] && time(saved[i]) > time(polled[i]) ? saved[i] : polled[i]]))
+    : null;
+  const isOn = (item: UnlockItem) => pending[item] ?? Boolean(rows?.[item]?.on);
+  const saving = UNLOCK_ITEMS.some((i) => pending[i] !== undefined);
+  const allOn = UNLOCK_ITEMS.every(isOn);
+  const allOff = !UNLOCK_ITEMS.some(isOn);
+
+  const label = (item: UnlockItem) => {
+    if (item === 'quiz') return m.quizItemTitle;
+    const g = guides.find((x) => x.id === item);
+    return g ? workshopLabel(g, lang) : item;
+  };
+
+  const change = (item: UnlockItem | 'all', on: boolean) => {
+    const items = item === 'all' ? [...UNLOCK_ITEMS] : [item];
+    setPending((p) => ({ ...p, ...Object.fromEntries(items.map((i) => [i, on])) }));
+    if (item === 'all') setBulk(true);
+    setError(null);
+    postUnlock({ item, on })
+      .then((res) => {
+        const changed = res.rows.filter((r) => items.includes(r.item));
+        setSaved((prev) => ({ ...prev, ...Object.fromEntries(changed.map((r) => [r.item, r])) }));
+      })
+      .catch((err: unknown) => setError(m.accessSaveFailed((err as Error).message)))
+      .finally(() => {
+        setPending((p) => Object.fromEntries(Object.entries(p).filter(([i]) => !items.includes(i as UnlockItem))));
+        if (item === 'all') setBulk(false);
+      });
+  };
+
+  return (
+    <Card className="gap-3 py-4">
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 px-4">
+        <div className="space-y-1">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <KeyRound className="size-4" aria-hidden /> {m.accessTitle}
+          </CardTitle>
+          <CardDescription>{m.accessIntro}</CardDescription>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" disabled={!rows || saving || allOn} onClick={() => change('all', true)}>
+            <LockOpen className="size-4" aria-hidden /> {m.unlockAll}
+          </Button>
+          <AlertDialog open={confirmLock} onOpenChange={setConfirmLock}>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-[var(--destructive)] hover:text-[var(--destructive)]"
+                disabled={!rows || saving || allOff}
+              >
+                <Lock className="size-4" aria-hidden /> {m.lockAll}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{m.lockAllTitle}</AlertDialogTitle>
+                <AlertDialogDescription>{m.lockAllText}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{m.cancel}</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-[var(--destructive)] text-white hover:bg-[var(--destructive)]/90"
+                  onClick={() => change('all', false)}
+                >
+                  <Lock className="size-4" aria-hidden /> {m.lockAllConfirm}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </CardHeader>
+      <CardContent className="px-4">
+        {!rows ? (
+          unlock.error ? (
+            <p className="text-sm text-[var(--destructive)]">{m.accessLoadFailed(unlock.error)}</p>
+          ) : (
+            <Skeleton className="h-16 w-full" />
+          )
+        ) : (
+          <ul className="grid gap-2 md:grid-cols-3">
+            {UNLOCK_ITEMS.map((item) => {
+              const r = rows[item];
+              const on = isOn(item);
+              const busy = bulk || pending[item] !== undefined;
+              const id = `unlock-${item}`;
+              return (
+                <li key={item} className={`flex items-start gap-3 rounded-lg border p-3 ${on ? 'wg-access-item-on' : ''}`}>
+                  <Switch
+                    id={id}
+                    checked={on}
+                    disabled={busy}
+                    onCheckedChange={(v) => change(item, v)}
+                    aria-label={m.accessToggle(label(item))}
+                    className="wg-access-switch mt-0.5"
+                  />
+                  <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer space-y-1">
+                    <span className="block text-sm font-medium">{label(item)}</span>
+                    <span className="flex items-center gap-2">
+                      <Badge variant="outline" className={on ? 'wg-access-on' : 'wg-access-off'}>
+                        {on ? <LockOpen aria-hidden /> : <Lock aria-hidden />} {on ? m.accessOn : m.accessOff}
+                      </Badge>
+                      {pending[item] !== undefined && <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />}
+                    </span>
+                    <span
+                      className="block truncate text-xs text-muted-foreground"
+                      title={r?.at ? (r.by ?? undefined) : `GUIDE_DEFAULT_UNLOCKED=${r?.on ? 'all' : 'none'}`}
+                    >
+                      {r?.at ? m.accessChanged(r.by ?? '—', formatAgo(parseTs(r.at), undefined, lang)) : m.accessDefault}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p role="status" className={`mt-2 text-xs ${error || (rows && unlock.error) ? 'text-[var(--destructive)]' : 'text-muted-foreground'}`}>
+          {saving ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden /> {m.accessSaving}
+            </span>
+          ) : (
+            (error ?? (rows && unlock.error ? m.accessLoadFailed(unlock.error) : ''))
+          )}
+        </p>
+      </CardContent>
+    </Card>
   );
 }

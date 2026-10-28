@@ -42,13 +42,46 @@ export const en = {
   statusNone: 'Not started',
 
   // ── workshop picker ──
-  pickerTitle: 'Choose your workshop',
+  pickerTitle: 'Workshops and quiz',
   pickerIntro:
     'Open the matching notebook next to this guide. You write and run the code there; this guide explains each step and shows your progress.',
   unknownWorkshop: (id: string) => `Workshop “${id}” does not exist. Pick one below.`,
   stepCount: (required: number, optional: number) =>
     `${required} ${enPlural(required, 'step', 'steps')}${optional > 0 ? ` + ${optional} ⭐ optional` : ''}`,
   openWorkshop: (name: string) => `Open ${name}`,
+  quizItemTitle: 'III — Quiz',
+  quizItemIntro:
+    'Learning quiz for the whole day: one question at a time, with an explanation and the notebook section after each answer.',
+  openQuiz: 'Open the quiz',
+
+  // ── trainer unlock (participant side) ──
+  lockedBadge: 'Locked',
+  lockedText: 'Your trainer will unlock this at the right moment.',
+  lockedNowTitle: 'Locked by the trainer',
+  lockedNowText:
+    'The trainer has locked this item for now. Nothing is lost: your code stays in the notebook and your results stay saved. It opens again here as soon as the trainer unlocks it.',
+  lockedQuizText: 'This page updates by itself.',
+  lockedQuizNowText:
+    'The trainer has locked the quiz for now. Nothing is lost: your answers so far are saved. The quiz opens again here as soon as the trainer unlocks it.',
+  lockedForParticipants: 'Locked for participants',
+
+  // ── trainer unlock (trainer view) ──
+  accessTitle: 'Access',
+  accessIntro: 'Participants see an item only after you unlock it. Saving takes a few seconds; participants see the change within about 15 seconds.',
+  unlockAll: 'Unlock all',
+  lockAll: 'Lock all',
+  accessOn: 'Unlocked',
+  accessOff: 'Locked',
+  accessToggle: (label: string) => `Unlock ${label} for participants`,
+  accessChanged: (by: string, ago: string) => `${by} · ${ago}`,
+  accessDefault: 'Default — not changed yet',
+  accessSaving: 'Saving…',
+  lockAllTitle: 'Lock everything?',
+  lockAllText:
+    'All participants lose access to Workshops I and II and to the quiz right away. Their results and answers stay saved; after you unlock, they continue where they left off.',
+  lockAllConfirm: 'Lock all',
+  accessSaveFailed: (error: string) => `Could not save the change: ${error}`,
+  accessLoadFailed: (error: string) => `Could not read the access state: ${error}. Retrying.`,
   notebookLocation: 'Notebook location: ',
   yourGitFolder: 'your Git folder',
 
