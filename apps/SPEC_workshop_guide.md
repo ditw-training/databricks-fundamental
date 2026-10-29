@@ -159,7 +159,7 @@ for the classroom; they still describe the `_checks` self-study path.
 - Workshops are numbered in the order of the day with Roman numerals (superseded by section 9):
   **Workshop I — Ingestion**, **Workshop II — Delta Lake** (PL "Warsztat I/II"). Guide JSON gets
   `"number": 1|2` and the app lists and labels workshops by it (picker, headings,
-  trainer view, static HTML). Notebook titles, 00_intro / README / TRAINER_GUIDE agenda rows use the
+  trainer view, static HTML). Notebook titles, slide agenda / README / TRAINER_GUIDE agenda rows use the
   same names. File names stay (`WORKSHOP_ingestion.ipynb`, `WORKSHOP_delta.ipynb`; no renames).
 
 ## 8. Course quiz (app)
@@ -198,7 +198,7 @@ for the classroom; they still describe the `_checks` self-study path.
   table is added later.
 - Workshops are ordered by `number` and labelled with Roman numerals: PL "Warsztat I — Ingestion",
   "Warsztat II — Delta Lake"; EN "Workshop I — Ingestion", "Workshop II — Delta Lake". The same
-  names are used in notebook titles, 00_intro / README / TRAINER_GUIDE agenda rows and the static HTML
+  names are used in notebook titles, slide agenda / README / TRAINER_GUIDE agenda rows and the static HTML
   (which gets a PL and an EN page per workshop).
 
 ## 10. Quiz as item III and trainer unlock (decided 28.10.2026, implemented 28.10.2026)
