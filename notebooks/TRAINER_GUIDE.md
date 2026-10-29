@@ -1,7 +1,7 @@
 # Trainer Guide: Databricks Fundamental
 
-Run sheet for the one-day course, 09:00–16:40: 395 min of teaching and workshops, 65 min of breaks.
-The participant-facing agenda is in `notebooks/modules/00_intro.ipynb`; the table below is a copy of it, keep the two in sync.
+Run sheet for the one-day course, 09:00–16:00: 370 min of teaching and workshops, 50 min of breaks.
+The participant-facing agenda is on slide 2 of the deck and in README; keep them in sync with the table below. Notebooks carry no times.
 
 Sections are named by their headings. Cell numbers shift with every edit, so this guide does not use them.
 
@@ -18,23 +18,24 @@ Sections are named by their headings. Cell numbers shift with every edit, so thi
 | Time | Min | Block | CORE |
 |------|-----|-------|------|
 | 09:00 – 09:15 | 15 | **M00** Intro | Objectives, agenda, `%run ../setup/00_setup` as the environment check |
-| 09:15 – 10:20 | 65 | **M01** Platform, costs, GUI | Platform map, workspace + Catalog Explorer, three-level namespace, Volumes (DBFS is legacy), Serverless / classic / SQL warehouse, costs (formula, Jobs vs All-purpose, autoscaling, auto-termination), magic commands + `%sql`, Edit Chart + Data Profile, Genie Code; one billing query as a trainer demo |
-| 10:20 – 10:35 | 15 | **M02** How Spark works | Driver/executors, lazy evaluation, "SQL = PySpark, same engine", one sentence on shuffle |
-| 10:35 – 10:50 | 15 | Break | |
-| 10:50 – 11:45 | 55 | **M03** Medallion + ingestion | Python in 5 minutes, CSV/JSON/`read_files`, DDL schema, `display`/`show`/`describe`/`summary`, `select`/`filter`, `withColumn` + `cast` (ANSI, `try_cast`) + `when`, `groupBy.agg`, temp view + SQL, **write to Delta**; every operation with its SQL equivalent |
-| 11:45 – 12:25 | 40 | **Workshop I — Ingestion** | At most 8 tasks, the rest optional |
-| 12:25 – 13:05 | 40 | Lunch | |
-| 13:05 – 13:45 | 40 | **M04** Delta Lake | Table, schema enforcement/evolution, DML, MERGE, HISTORY, time travel, RESTORE; as concepts: VACUUM, UNDROP, predictive optimization / liquid clustering |
-| 13:45 – 14:20 | 35 | **Workshop II — Delta Lake** | 7 tasks (01, 03, 05+06, 08, 10, 12), SQL in `%sql`; 02/04/07/09/11 optional |
-| 14:20 – 14:30 | 10 | Break | |
-| 14:30 – 15:05 | 35 | **M05** Lakeflow Jobs | Ready notebooks from `materials/orchestration`, compute for jobs, parameters, simple task values, schedule, Repair run |
-| 15:05 – 15:20 | 15 | **M06** Unity Catalog | Groups, `GRANT` / `SHOW GRANTS` / `REVOKE` (3 lines), Permissions tab |
-| 15:20 – 16:25 | 65 | **Final Project** | Bronze ready → Silver/Gold TODO + CHECK → job with a schedule → SQL; after 25 min you may switch to the ready solutions |
-| 16:25 – 16:40 | 15 | Wrap-up, quiz, next steps | |
+| 09:15 – 10:15 | 60 | **M01** Platform, costs, GUI | Platform map, workspace + Catalog Explorer, three-level namespace, Volumes (DBFS is legacy), Serverless / classic / SQL warehouse, costs (formula, Jobs vs All-purpose, autoscaling, auto-termination), magic commands + `%sql`, Edit Chart + Data Profile, Genie Code; one billing query as a trainer demo |
+| 10:15 – 10:30 | 15 | **M02** How Spark works | Driver/executors, lazy evaluation, "SQL = PySpark, same engine", one sentence on shuffle |
+| 10:30 – 10:40 | 10 | Break | |
+| 10:40 – 11:30 | 50 | **M03** Medallion + ingestion | Python in 5 minutes, CSV/JSON/`read_files`, DDL schema, `display`/`show`/`describe`/`summary`, `select`/`filter`, `withColumn` + `cast` (ANSI, `try_cast`) + `when`, `groupBy.agg`, temp view + SQL, **write to Delta**; every operation with its SQL equivalent |
+| 11:30 – 12:10 | 40 | **Workshop I — Ingestion** | At most 8 tasks, the rest optional |
+| 12:10 – 12:40 | 30 | Lunch | |
+| 12:40 – 13:20 | 40 | **M04** Delta Lake | Table, schema enforcement/evolution, DML, MERGE, HISTORY, time travel, RESTORE; as concepts: VACUUM, UNDROP, predictive optimization / liquid clustering |
+| 13:20 – 13:55 | 35 | **Workshop II — Delta Lake** | 7 tasks (01, 03, 05+06, 08, 10, 12), SQL in `%sql`; 02/04/07/09/11 optional |
+| 13:55 – 14:05 | 10 | Break | |
+| 14:05 – 14:35 | 30 | **M05** Lakeflow Jobs | Ready notebooks from `materials/orchestration`, compute for jobs, parameters, simple task values, schedule, Repair run |
+| 14:35 – 14:50 | 15 | **M06** Unity Catalog | Groups, `GRANT` / `SHOW GRANTS` / `REVOKE` (3 lines), Permissions tab |
+| 14:50 – 15:50 | 60 | **Final Project** | Bronze ready → Silver/Gold TODO + CHECK → job with a schedule → SQL; after 25 min you may switch to the ready solutions |
+| 15:50 – 16:00 | 10 | Wrap-up, quiz, next steps | |
 | (optional) | (10) | **M07** Genie Agents / dashboard | Trainer demo, only if time is left |
 
-Sum: 15 + 65 + 15 + 55 + 40 + 40 + 35 + 35 + 15 + 65 + 15 = 395 min. The minutes are estimates from the
-26.10.2026 review, not a measurement; correct them after the timed dry run.
+Sum: 15 + 60 + 15 + 50 + 40 + 40 + 35 + 30 + 15 + 60 + 10 = 370 min. The day was shortened to 09:00–16:00 on
+28.10.2026 (M01, M03, M05, Final Project and wrap-up 5 min each, shorter breaks). The minutes are estimates, not a
+measurement; correct them after the timed dry run.
 
 ---
 
@@ -47,7 +48,7 @@ Sum: 15 + 65 + 15 + 55 + 40 + 40 + 35 + 35 + 15 + 65 + 15 = 395 min. The minutes
    `gold`, `default`, the Volume `default.datasets` with a copy of `dataset/`, and grants `ALL PRIVILEGES` + `MANAGE`.
    `ALL PRIVILEGES` does not include `MANAGE`; without it participants cannot run a single `GRANT` in M06.
 3. Upload `materials/volume_upload/stores.csv` and `promotions.json` for the M01 Volume demo, or plan to do it live.
-4. Participants clone the Git folder before 09:00 if possible (steps in `00_intro`, section *Getting the training materials*).
+4. Participants clone the Git folder before 09:00 if possible (steps in README, *Clone the repository as a Git folder*).
 5. Final Project fallback: make sure the ready Silver/Gold solutions are available to participants as read-only
    notebooks in the workspace (see `00_pre_config`), never in the public repository.
 6. Workshop Guide app: open it once as a participant account (not yours). The app asks every user to accept a
@@ -59,15 +60,16 @@ Sum: 15 + 65 + 15 + 55 + 40 + 40 + 35 + 35 + 15 + 65 + 15 = 395 min. The minutes
 
 ## Run sheet per module
 
-### M00 Intro (`00_intro`): 15 min
+### M00 Intro (slides): 15 min
 
-- **CORE:** *1. About This Training* (incl. *What you will learn today*), *2. Day Schedule*, *3. How the Notebooks Are Marked*,
-  *5. Environment Check* (`%run ../setup/00_setup`, prints `CATALOG`), *7. Training Rules*, *8. RetailHub Scenario*.
-- **Live:** if the Git folder is not cloned yet, do it together (*4. Getting the Training Materials: Git Folder*).
-- **Skip in class:** *6. Training Materials* tables and *What's Next* (BONUS): point to them, come back in the wrap-up.
+- **CORE:** the opening slides (agenda, introductions, rules, how the training environment works), then the setup step (no separate slide; README has the steps):
+  clone the Git folder and run section 1 of `01_platform_workspace` (`%run ../setup/00_setup`, prints `CATALOG`) as the
+  environment check. There is no separate intro notebook.
+- **Live:** if the Git folder is not cloned yet, do it together (README, *Clone the repository as a Git folder*).
+- Markers in the notebooks (⊕ BONUS, Optional) and the RetailHub data: explain them on the slides.
 - If *Catalog not found*: the participant's login is not in the training group, or `00_pre_config` was not re-run after a late joiner.
 
-### M01 Platform, costs, GUI (`01_platform_workspace`): 65 min
+### M01 Platform, costs, GUI (`01_platform_workspace`): 60 min
 
 Minutes per section (by heading):
 
@@ -122,7 +124,7 @@ Minutes per section (by heading):
   "when a query is slow, look at its execution: Query Profile on serverless, Spark UI on classic";
   "if you reuse a DataFrame many times, `.cache()` it once".
 
-### M03 Medallion + ingestion (`03_medallion_ingestion`): 55 min
+### M03 Medallion + ingestion (`03_medallion_ingestion`): 50 min
 
 Minutes per section (by heading):
 
@@ -199,7 +201,7 @@ Minutes per section (by heading):
 - **Optional:** tasks 02, 04, 07, 09, 11.
 - Solution: `utilization/solutions/WORKSHOP_delta_solution.ipynb` (local only).
 
-### M05 Lakeflow Jobs (`05_orchestration_jobs`): 35 min
+### M05 Lakeflow Jobs (`05_orchestration_jobs`): 30 min
 
 Minutes per section (by heading):
 
@@ -248,18 +250,18 @@ Minutes per section (by heading):
 - Requires the account group `retailhub_analysts` and `MANAGE` on the participant catalogs (see *Before the day*).
 - Free Edition has no account console; the notebook explains the single-user variant.
 
-### Final Project (`WORKSHOP_final_project` + `tasks/lab_task_01..03`): 65 min
+### Final Project (`WORKSHOP_final_project` + `tasks/lab_task_01..03`): 60 min
 
 - **CORE:** Bronze is ready → complete Silver and Gold (TODO + CHECK) → job with three tasks, job parameters
   `catalog` and `source_path` and a paused schedule → SQL checks 1 and 2.
 - **Cut-off:** after 25 min participants who are behind switch to the ready solution notebooks and still build the job.
 - Expected: Bronze 100,000 rows; Gold 32 rows (one per day, 2024-12-31 to 2025-01-31).
 - **Optional:** SQL checks 3–4, an active trigger a few minutes ahead.
-- Time split (moved from the notebook): sections 2–4 (setup, Silver/Gold, smoke test) 30 min, section 5 (job) 25 min,
+- Time split (moved from the notebook): sections 2–4 (setup, Silver/Gold, smoke test) 30 min, section 5 (job) 20 min,
   section 6 (SQL check) 10 min. The notebook says "when the trainer calls time": announce the 25-min cut-off aloud.
 - The read-only solutions folder for the cut-off is prepared by `00_pre_config`; give participants its path.
 
-### Wrap-up: 15 min
+### Wrap-up: 10 min
 
 - Quiz (`docs/*/quiz_databricks_fundamental.pdf`), next steps (`docs/*/next_steps.pdf`), Free Edition guide for self-study.
 - The app quiz (`/quiz`) and the PDF are self-checks. The participant PDF has no answer key since 28.10.2026 (older
@@ -284,7 +286,7 @@ Minutes per section (by heading):
 - [ ] Verify the Jobs UI screenshots in M05 and the Final Project against the current Lakeflow Jobs UI
 - [ ] Rebuild the `docs/` PDFs after every change to `utilization/en` or `utilization/pl` (`scripts/build_pdfs.sh`)
 - [ ] Test run on the classic shared cluster and on Free Edition (serverless): `99_test_runner`, workshops with solutions, both jobs
-- [ ] Timed dry run of the CORE path against the 395-minute agenda; then correct the minutes in `00_intro`, README and this guide
+- [ ] Timed dry run of the CORE path against the 370-minute agenda; then correct the minutes in this guide, README and slide 2 of the deck
 
 ---
 
