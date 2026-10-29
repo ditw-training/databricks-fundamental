@@ -1,0 +1,5 @@
+customer_id;first_name;last_name;city;registration_date;customer_segment
+CUST900001;Anna;Nowak;"Kraków; Rynek";15.01.2025;Premium
+CUST900002;Piotr;Wiśniewski;Gdańsk;28.02.2025;N/A
+CUST900003;Zofia;Zając;N/A;03.11.2024;Basic
+CUST900004;Jan;Kowalski;Warszawa;07.05.2025;Standard

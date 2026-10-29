@@ -1,0 +1,11 @@
+[
+  {"order_id": "ORD90000101",
+   "customer": {"id": "CUST000001", "segment": "Basic"},
+   "items": [{"product_id": "PROD000001", "quantity": 2, "unit_price": 253.01},
+             {"product_id": "PROD000164", "quantity": 1, "unit_price": 206.74}],
+   "order_datetime": "2025-01-10T10:15:00"},
+  {"order_id": "ORD90000102",
+   "customer": {"id": "CUST000002", "segment": "Premium"},
+   "items": [{"product_id": "PROD000002", "quantity": 1, "unit_price": 1287.65}],
+   "order_datetime": "2025-01-10T11:02:00", "coupon": "APP15"}
+]

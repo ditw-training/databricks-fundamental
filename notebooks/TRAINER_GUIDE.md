@@ -21,10 +21,10 @@ Sections are named by their headings. Cell numbers shift with every edit, so thi
 | 09:15 – 10:15 | 60 | **M01** Platform, costs, GUI | Platform map, workspace + Catalog Explorer, three-level namespace, Volumes (DBFS is legacy), Serverless / classic / SQL warehouse, costs (formula, Jobs vs All-purpose, autoscaling, auto-termination), magic commands + `%sql`, Edit Chart + Data Profile, Genie Code; one billing query as a trainer demo |
 | 10:15 – 10:30 | 15 | **M02** How Spark works | Driver/executors, lazy evaluation, "SQL = PySpark, same engine", one sentence on shuffle |
 | 10:30 – 10:40 | 10 | Break | |
-| 10:40 – 11:30 | 50 | **M03** Medallion + ingestion | Python in 5 minutes, CSV/JSON/`read_files`, DDL schema, `display`/`show`/`describe`/`summary`, `select`/`filter`, `withColumn` + `cast` (ANSI, `try_cast`) + `when`, `groupBy.agg`, temp view + SQL, **write to Delta**; every operation with its SQL equivalent |
+| 10:40 – 11:30 | 50 | **M03** Medallion + ingestion | Reading files: CSV options, JSON (nested), Parquet, Excel, bad rows, `read_files`; **write to Delta**; minimum transformations (`withColumn`, `cast`/`try_cast`, `when`, `filter`, `groupBy.agg`); temp view, global temp view, view |
 | 11:30 – 12:10 | 40 | **Workshop I — Ingestion** | At most 8 tasks, the rest optional |
 | 12:10 – 12:40 | 30 | Lunch | |
-| 12:40 – 13:20 | 40 | **M04** Delta Lake | Table, schema enforcement/evolution, DML, MERGE, HISTORY, time travel, RESTORE; as concepts: VACUUM, UNDROP, predictive optimization / liquid clustering |
+| 12:40 – 13:20 | 40 | **M04** Delta Lake | Table, schema enforcement/evolution, DML, MERGE, HISTORY, time travel, RESTORE, VACUUM with 0-hour retention; as concepts: UNDROP, predictive optimization / liquid clustering |
 | 13:20 – 13:55 | 35 | **Workshop II — Delta Lake** | 7 tasks (01, 03, 05+06, 08, 10, 12), SQL in `%sql`; 02/04/07/09/11 optional |
 | 13:55 – 14:05 | 10 | Break | |
 | 14:05 – 14:35 | 30 | **M05** Lakeflow Jobs | Ready notebooks from `materials/orchestration`, compute for jobs, parameters, simple task values, schedule, Repair run |
@@ -130,35 +130,34 @@ Minutes per section (by heading):
 
 | Section | Min |
 |---------|-----|
-| Setup + Python You Need for PySpark | 7 |
-| Medallion Architecture | 4 |
-| CSV Import: inferred and explicit schema | 8 |
-| JSON Import | 4 |
-| Data Exploration | 5 |
-| read_files() + Write to Delta | 7 |
-| DataFrame Transformations: select, withColumn, cast, when | 10 |
-| Filtering Data | 3 |
-| Aggregations | 3 |
-| Temporary Views & SQL | 4 |
+| Setup + Python You Need for PySpark | 5 |
+| Medallion Architecture | 3 |
+| Look at the Files First | 2 |
+| CSV: options, explicit schema, nullValue, several files, CSV from another system | 8 |
+| JSON: schema, file pattern, nested multi-line JSON | 5 |
+| Parquet + Excel | 4 |
+| Bad Rows | 4 |
+| read_files() in SQL | 4 |
+| Data Exploration | 2 |
+| Write to Delta — PySpark | 3 |
+| Basic Transformations | 6 |
+| Views and SQL | 4 |
 
-- **CORE:** Python in 5 minutes, medallion architecture, CSV with inferred vs explicit schema (DDL string next to
-  `StructType`), JSON, `read_files`, `display` / `show` / `describe` / `summary` on orders, `select` / `filter`,
-  `withColumn` + `cast` (ANSI error, `try_cast`) + `when`, one `groupBy().agg()`, temp view + `spark.sql`,
-  write to Delta. Show the one-line SQL equivalent for every operation.
-- **⊕ BONUS:** extended reader options, JSON options table, Parquet, Excel, inferSchema benchmark,
-  `withColumnRenamed` / `drop` / `distinct` / `orderBy` / `isin` / min-max / HAVING variants, fillna / dropna,
-  string functions, global temporary views, complex SQL.
+- **CORE:** reading files is the focus: raw lines first, CSV options (`header`, `inferSchema`, `sep`, `nullValue`,
+  `dateFormat`), DDL schema next to `StructType`, file patterns with `_metadata.file_name`, nested JSON (`multiLine`,
+  `explode`), Parquet, Excel (`dataAddress`, `headerRows`), bad rows (`_corrupt_record`, `DROPMALFORMED`,
+  `_rescued_data`), `read_files` + `schemaHints` + CTAS. Then the minimum the workshop needs: `withColumn`, `cast`
+  (ANSI, `try_cast`), `when`, `filter`, `groupBy().agg()`, and views: temp view, global temp view, view in Unity Catalog.
+- **⊕ BONUS:** B1 more column and row operations, B2 more filters, B3 fillna / dropna, B4 string functions,
+  B5 more aggregations, B6 joins, B7 DataFrame API vs SQL and complex SQL, B8 inferSchema read time,
+  B9–B10 CSV and JSON reader option reference.
+- Sample files for the reader demos: `dataset/samples/` (`customers_pl.csv`, `orders_bad.csv`, `orders_nested.json`).
 - Hand out `docs/*/pyspark_vs_sparksql.pdf` to SQL-only participants.
 - **Moved from the notebook (trainer notes):**
-  - Section 4, wrong schema: the schema is wrong on purpose (columns mapped by position, no error raised).
+  - Section 5, wrong schema: the schema is wrong on purpose (columns mapped by position, no error raised).
     Ask the group what went wrong before showing the Note and the corrected schema.
-  - BONUS 13–14 (reader options): reference only; point participants to the Databricks documentation.
-  - BONUS 15 (Parquet), 17 (inferSchema benchmark), 20 (string operations): give the one-line message verbally
-    ("Parquet carries its own schema", "inferSchema scans the file twice", "like / contains / startswith = SQL LIKE");
-    show the cells to advanced groups or in the 2-day format.
-  - BONUS 16 (Excel): cover only if the group works with Excel files.
-  - BONUS 18 (more column operations): show when participants ask how to write these SQL steps in PySpark.
-  - BONUS 22 (joins): cover it before the optional Workshop Task 12.
+  - Section 14, global temp view: works only on a classic cluster; on serverless skip the two cells.
+  - B6 (joins): cover it before the optional Workshop Task 12.
 
 ### Workshop I — Ingestion (`WORKSHOP_ingestion`): 40 min
 
@@ -183,16 +182,17 @@ Minutes per section (by heading):
 
 - **CORE:** create table, schema enforcement and evolution, INSERT / UPDATE / DELETE, MERGE, DESCRIBE HISTORY,
   time travel, RESTORE (only within the retention window).
-- **Concepts, 2 min:** VACUUM removes old data files, not the `_delta_log`; time travel is not a backup;
+- **VACUUM demo:** retention 0 hours, `VACUUM`, the old version is no longer readable, retention reset. VACUUM removes old data files, not the `_delta_log`; time travel is not a backup.
+- **Concepts, 2 min:**
   DROP + UNDROP for managed tables; predictive optimization and liquid clustering on Unity Catalog managed tables.
-- **⊕ BONUS:** identity and generated columns, constraints, `_delta_log` internals, VACUUM demo,
+- **⊕ BONUS:** identity and generated columns, constraints, `_delta_log` internals,
   external tables, multi-table transactions, troubleshooting.
 - **Trainer notes moved from the notebook (BONUS blocks):** skip all BONUS blocks in the standard schedule.
   Identity/generated columns: return to them for groups building production data models.
   Constraints: say verbally (30 s) "A CHECK constraint rejects every write that breaks the rule — the whole transaction fails";
   cover for advanced groups and the 2-day format. `_delta_log` internals: say verbally "Every Delta operation is recorded
   as a JSON file — that's what enables Time Travel"; return for engineers who want ACID at the storage level.
-  VACUUM demo: advanced groups and the 2-day format. External tables: core message "Managed tables = Databricks manages
+  External tables: core message "Managed tables = Databricks manages
   the data lifecycle. Use them by default."
 
 ### Workshop II — Delta Lake (`WORKSHOP_delta`): 35 min

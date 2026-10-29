@@ -110,7 +110,7 @@ The same agenda is on slide 2 of the deck and in `notebooks/TRAINER_GUIDE.md`.
 | 09:15 – 10:15 | **M01** Platform, costs, GUI | Platform, workspace, Volumes, compute and costs, notebook GUI, Genie Code |
 | 10:15 – 10:30 | **M02** How Spark works | How Spark runs your code; one engine for SQL and PySpark |
 | 10:30 – 10:40 | Break | |
-| 10:40 – 11:30 | **M03** Medallion + ingestion | Python primer, reading CSV/JSON, transforming data, writing to Delta |
+| 10:40 – 11:30 | **M03** Medallion + ingestion | Python primer, reading CSV/JSON/Parquet/Excel with options, bad rows, writing to Delta, basic transformations, views |
 | 11:30 – 12:10 | **Workshop I — Ingestion** | At most 8 tasks, the rest optional |
 | 12:10 – 12:40 | Lunch | |
 | 12:40 – 13:20 | **M04** Delta Lake | Delta tables, changing data, MERGE, history, time travel, RESTORE |
@@ -138,7 +138,7 @@ Databricks-Fundamental/
 |   modules/                      # Instructor demo notebooks
 |   |   01_platform_workspace.ipynb  # Workspace, compute, costs, Volumes, charts, Genie Code
 |   |   02_spark_architecture.ipynb  # Driver/executors, lazy evaluation, same engine for SQL and PySpark
-|   |   03_medallion_ingestion.ipynb # Medallion, CSV/JSON, exploration, transformations, write to Delta
+|   |   03_medallion_ingestion.ipynb # Medallion, reading CSV/JSON/Parquet/Excel, bad rows, write to Delta, transformations, views
 |   |   04_delta_fundamentals.ipynb  # DML, MERGE, history, time travel, RESTORE
 |   |   05_orchestration_jobs.ipynb  # Lakeflow Jobs: tasks, parameters, schedule, repair run
 |   |   06_unity_catalog.ipynb       # Account groups, GRANT / SHOW GRANTS / REVOKE
@@ -163,13 +163,14 @@ Databricks-Fundamental/
 |   customers/
 |   |   customers.csv             # 10,000 records — historical customer data
 |   |   customers_new.csv         # 114 records — batch update (MERGE demo)
-|   |   customers_extented.xlsx   # Excel import demo (M03 BONUS; the typo in the name is intentional)
+|   |   customers_extented.xlsx   # Excel import demo (M03; the typo in the name is intentional)
 |   orders/
 |   |   orders_batch.json         # 100,000 orders — JSON Lines (batch)
 |   |   stream/                   # Orders — JSON format (3 streaming files)
 |   products/
 |       products.csv              # 2,000 records — product catalog
 |       products.parquet          # Same catalog in Parquet (M03)
+|   samples/                      # Small files for the M03 reader demos: ; separator, bad rows, nested JSON
 |
 | docs/                           # PDF reference documents
 |   ENG/                          # English versions

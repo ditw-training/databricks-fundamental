@@ -78,6 +78,10 @@ docs/agent-handoff/
 
 # ── Kept locally only ─────────────────────────────────────────────────────────
 infra/
+# Workshop Guide app: deployed only to our training workspace
+apps/
+# Markdown files stay local (files already tracked stay tracked until git rm --cached)
+*.md
 docs/Databricks_Fundamentals_Altkom_PL.pptx
 
 # ── Participant credentials (local only, never commit) ────────────────────────
