@@ -23,7 +23,7 @@ Business scenario: fictional company **RetailHub** — an online clothing store 
 
 | | |
 |---|---|
-| **Duration** | 1 day, 09:00–16:40: 6 h 35 min of teaching and workshops + 65 min of breaks |
+| **Duration** | 1 day, 09:00–16:00: 6 h 10 min of teaching and workshops + 50 min of breaks |
 | **Level** | Fundamental (beginner) |
 | **Notebook language** | Python (PySpark) + SQL |
 | **Environment** | Azure Databricks with Unity Catalog, or Databricks Free Edition for self-study |
@@ -72,12 +72,20 @@ Run once before the training; in self-study set `SINGLE_USER_MODE = True` in its
 
 ### 2. Clone the repository as a Git folder
 
-Workspace → Home → **Create** → **Git folder** → `https://github.com/ditw-training/databricks-fundamental`.
-Step-by-step instructions are in `notebooks/modules/00_intro.ipynb`.
+1. Left menu → **Workspace** → **Home** (your user folder)
+2. **Create** → **Git folder**
+3. Git repository URL: `https://github.com/ditw-training/databricks-fundamental`. Provider **GitHub** is detected
+   automatically; the repository is public, so no credentials are needed.
+4. **Create Git folder** → the folder `databricks-fundamental` appears in your Home.
+
+**Pull updates:** open the **Git dialog** (the **Git** button beside the folder name, or the branch button `main` next to
+a notebook name) → **Pull**. A conflict means you edited a notebook the trainer also changed: copy your notebook outside
+the Git folder (right-click → **Clone**), then in the Git dialog use **⋮ → Reset** and **Pull** again. In this training
+you only pull from the course repository; push needs write access.
 
 ### 3. Environment check
 
-Open `notebooks/modules/00_intro.ipynb` and run the environment check. It calls the same setup notebook that every module uses:
+Open `notebooks/modules/01_platform_workspace.ipynb` and run section 1, *Connect to your training catalog*. It calls the same setup notebook that every module uses:
 
 ```python
 %run ../setup/00_setup
@@ -94,29 +102,29 @@ Use that printed name wherever the materials say `retailhub_<your_name>`.
 
 ## Training Schedule
 
-Same agenda as in `notebooks/modules/00_intro.ipynb`.
+The same agenda is on slide 2 of the deck and in `notebooks/TRAINER_GUIDE.md`.
 
 | Time | Block | Topics |
 |------|-------|--------|
 | 09:00 – 09:15 | **M00** Intro | Objectives, agenda, environment check |
-| 09:15 – 10:20 | **M01** Platform, costs, GUI | Platform, workspace, Volumes, compute and costs, notebook GUI, Genie Code |
-| 10:20 – 10:35 | **M02** How Spark works | How Spark runs your code; one engine for SQL and PySpark |
-| 10:35 – 10:50 | Break | |
-| 10:50 – 11:45 | **M03** Medallion + ingestion | Python primer, reading CSV/JSON, transforming data, writing to Delta |
-| 11:45 – 12:25 | **Workshop I — Ingestion** | At most 8 tasks, the rest optional |
-| 12:25 – 13:05 | Lunch | |
-| 13:05 – 13:45 | **M04** Delta Lake | Delta tables, changing data, MERGE, history, time travel, RESTORE |
-| 13:45 – 14:20 | **Workshop II — Delta Lake** | 7 tasks in SQL, the rest optional |
-| 14:20 – 14:30 | Break | |
-| 14:30 – 15:05 | **M05** Lakeflow Jobs | A job from ready notebooks: parameters, schedule, repair run |
-| 15:05 – 15:20 | **M06** Unity Catalog | Groups and permissions: `GRANT`, `SHOW GRANTS`, `REVOKE` |
-| 15:20 – 16:25 | **Final Project** | Bronze → Silver → Gold pipeline as a scheduled job; ready solutions if you fall behind |
-| 16:25 – 16:40 | Wrap-up, quiz, next steps | |
+| 09:15 – 10:15 | **M01** Platform, costs, GUI | Platform, workspace, Volumes, compute and costs, notebook GUI, Genie Code |
+| 10:15 – 10:30 | **M02** How Spark works | How Spark runs your code; one engine for SQL and PySpark |
+| 10:30 – 10:40 | Break | |
+| 10:40 – 11:30 | **M03** Medallion + ingestion | Python primer, reading CSV/JSON, transforming data, writing to Delta |
+| 11:30 – 12:10 | **Workshop I — Ingestion** | At most 8 tasks, the rest optional |
+| 12:10 – 12:40 | Lunch | |
+| 12:40 – 13:20 | **M04** Delta Lake | Delta tables, changing data, MERGE, history, time travel, RESTORE |
+| 13:20 – 13:55 | **Workshop II — Delta Lake** | 7 tasks in SQL, the rest optional |
+| 13:55 – 14:05 | Break | |
+| 14:05 – 14:35 | **M05** Lakeflow Jobs | A job from ready notebooks: parameters, schedule, repair run |
+| 14:35 – 14:50 | **M06** Unity Catalog | Groups and permissions: `GRANT`, `SHOW GRANTS`, `REVOKE` |
+| 14:50 – 15:50 | **Final Project** | Bronze → Silver → Gold pipeline as a scheduled job; ready solutions if you fall behind |
+| 15:50 – 16:00 | Wrap-up, quiz, next steps | |
 | (optional) | **M07** Genie Agents / dashboard | Trainer demo, only if time is left |
 
 Detailed topics and minutes per block: `notebooks/TRAINER_GUIDE.md`.
 
-**Teaching time: 395 min (6 h 35 min)** plus 65 min of breaks and lunch. Sections marked ⊕ BONUS in the
+**Teaching time: 370 min (6 h 10 min)** plus 50 min of breaks and lunch. Sections marked ⊕ BONUS in the
 notebooks are outside this schedule and stay in the material for self-study.
 
 ---
@@ -128,7 +136,6 @@ Databricks-Fundamental/
 |
 | notebooks/
 |   modules/                      # Instructor demo notebooks
-|   |   00_intro.ipynb            # Objectives, agenda, environment check
 |   |   01_platform_workspace.ipynb  # Workspace, compute, costs, Volumes, charts, Genie Code
 |   |   02_spark_architecture.ipynb  # Driver/executors, lazy evaluation, same engine for SQL and PySpark
 |   |   03_medallion_ingestion.ipynb # Medallion, CSV/JSON, exploration, transformations, write to Delta
@@ -292,7 +299,7 @@ predictive optimization, streaming, advanced Unity Catalog, MLflow) are describe
    (keep real values out of the repository), then run it. It creates for every participant the catalog `retailhub_<name>`
    with the schemas `bronze`, `silver`, `gold`, `default`, the Volume `default.datasets` with a copy of `dataset/`,
    and grants `ALL PRIVILEGES` + `MANAGE` on the catalog. No manual upload is needed.
-3. At the start of the day participants run the environment check in `00_intro`. Every module calls `00_setup` with `%run`.
+3. At the start of the day participants run section 1 of `01_platform_workspace` as the environment check. Every module calls `00_setup` with `%run`.
 
 The trainer run sheet (minutes, CORE and BONUS per module) is in `notebooks/TRAINER_GUIDE.md`.
 
