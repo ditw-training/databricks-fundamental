@@ -232,6 +232,8 @@ city, state, country, registration_date, customer_segment
 }
 ```
 
+**Final Project amount contract:** `total_amount` is the source amount after discount; `net_amount = ROUND(total_amount, 2)`. `discount_percent` describes the discount already included and is not applied again. This is the definition adopted for the exercise based on inspection of the data. Duplicate IDs and negative source amounts remain; Gold counts rows and aggregates their amounts.
+
 **products.csv**
 ```
 product_id, product_name, subcategory_code, brand,
