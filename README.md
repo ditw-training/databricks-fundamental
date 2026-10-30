@@ -113,7 +113,7 @@ The same agenda is on slide 2 of the deck and in `notebooks/TRAINER_GUIDE.md`.
 | 10:40 – 11:30 | **M03** Medallion + ingestion | Python primer, reading CSV/JSON/Parquet/Excel with options, bad rows, writing to Delta, basic transformations, views |
 | 11:30 – 12:10 | **Workshop I — Ingestion** | At most 8 tasks, the rest optional |
 | 12:10 – 12:40 | Lunch | |
-| 12:40 – 13:20 | **M04** Delta Lake | Delta tables, changing data, MERGE, history, time travel, RESTORE |
+| 12:40 – 13:20 | **M04** Delta Lake | Delta tables, changing data, MERGE, history, time travel, RESTORE, VACUUM |
 | 13:20 – 13:55 | **Workshop II — Delta Lake** | 7 tasks in SQL, the rest optional |
 | 13:55 – 14:05 | Break | |
 | 14:05 – 14:35 | **M05** Lakeflow Jobs | A job from ready notebooks: parameters, schedule, repair run |
