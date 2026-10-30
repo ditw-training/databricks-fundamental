@@ -102,7 +102,7 @@ Use that printed name wherever the materials say `retailhub_<your_name>`.
 
 ## Training Schedule
 
-The same agenda is on slide 2 of the deck and in `notebooks/TRAINER_GUIDE.md`.
+The same agenda is on slide 2 of the deck.
 
 | Time | Block | Topics |
 |------|-------|--------|
@@ -122,7 +122,6 @@ The same agenda is on slide 2 of the deck and in `notebooks/TRAINER_GUIDE.md`.
 | 15:50 – 16:00 | Wrap-up, quiz, next steps | |
 | (optional) | **M07** Genie Agents / dashboard | Trainer demo, only if time is left |
 
-Detailed topics and minutes per block: `notebooks/TRAINER_GUIDE.md`.
 
 **Teaching time: 370 min (6 h 10 min)** plus 50 min of breaks and lunch. Sections marked ⊕ BONUS in the
 notebooks are outside this schedule and stay in the material for self-study.
@@ -302,7 +301,6 @@ predictive optimization, streaming, advanced Unity Catalog, MLflow) are describe
    and grants `ALL PRIVILEGES` + `MANAGE` on the catalog. No manual upload is needed.
 3. At the start of the day participants run section 1 of `01_platform_workspace` as the environment check. Every module calls `00_setup` with `%run`.
 
-The trainer run sheet (minutes, CORE and BONUS per module) is in `notebooks/TRAINER_GUIDE.md`.
 
 ### Notebook Tests
 

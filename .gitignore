@@ -86,3 +86,8 @@ docs/Databricks_Fundamentals_Altkom_PL.pptx
 
 # ── Participant credentials (local only, never commit) ────────────────────────
 access/
+
+# ── Trainer-only notes (kept locally, not for participants) ──────────────────
+notebooks/TRAINER_GUIDE.md
+assets/brand/palette.md
+notebooks/workshops/guide/README.md
